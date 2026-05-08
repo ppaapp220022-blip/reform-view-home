@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>RE:FORM — UI Kit (Web · Mobile)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+  html, body { background: #DDE1E8; }
+  body { margin: 0; padding: 24px 0; min-height: 100vh; display:flex; flex-direction:column; align-items:center; gap:16px; font-family: Pretendard, sans-serif; }
+  .stage-label { font-family: 'IAMAPLAYER','Bebas Neue',sans-serif; font-size:12px; letter-spacing:.1em; color:#5A6A7A; display:flex; align-items:center; gap:14px; }
+  .theme-toggle {
+    display:inline-flex; align-items:center; gap:6px;
+    background:#fff; border:1px solid rgba(13,27,42,.20);
+    border-radius:9999px; padding:5px 12px; cursor:pointer;
+    font-family:'IAMAPLAYER','Bebas Neue',sans-serif; font-size:11px;
+    letter-spacing:.08em; color:#002147;
+    transition:all .12s cubic-bezier(0.22,1,0.36,1);
+  }
+  .theme-toggle:hover { border-color:#002147; }
+  .phone {
+    width: 390px;
+    height: 780px;
+    background: #fff;
+    border-radius: 28px;
+    box-shadow: 0 24px 64px -12px rgba(0,33,71,.28), 0 8px 24px -8px rgba(0,33,71,.12);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: background .2s cubic-bezier(0.22,1,0.36,1);
+  }
+  .phone[data-theme="dark"] { background: #050E1A; color: #E8EEF4; }
+  .phone-scroll { flex: 1; overflow-y: auto; position: relative; }
+  .phone-scroll::-webkit-scrollbar { display: none; }
+  /* Dark mode surface overrides — applied via attr selector */
+  .phone[data-theme="dark"] [data-surface] { background: #0D1B2A !important; color: #E8EEF4; }
+  .phone[data-theme="dark"] [data-surface-2] { background: #142236 !important; }
+  .phone[data-theme="dark"] [data-surface-sunken] { background: #081018 !important; }
+  .phone[data-theme="dark"] [data-divider] { border-color: rgba(255,255,255,.08) !important; }
+  .phone[data-theme="dark"] [data-text-main] { color: #E8EEF4 !important; }
+  .phone[data-theme="dark"] [data-text-sub] { color: #8B9BB0 !important; }
+  .phone[data-theme="dark"] [data-text-hint] { color: #5A6A7A !important; }
+  .phone[data-theme="dark"] [data-card] {
+    background: #0D1B2A !important; border-color: rgba(255,255,255,.08) !important;
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,.4) !important;
+  }
+  .phone[data-theme="dark"] [data-price] { color: #E8EEF4 !important; }
+  .phone[data-theme="dark"] [data-chip] { background: #0D1B2A !important; border-color: rgba(255,255,255,.16) !important; color: #E8EEF4 !important; }
+  .phone[data-theme="dark"] [data-chip-active] { background: #E8EEF4 !important; color: #0D1B2A !important; border-color: #E8EEF4 !important; }
+</style>
+</head>
+<body>
+  <div class="stage-label">
+    <span>RE:FORM · MARKETPLACE · MOBILE WEB</span>
+    <button id="themeBtn" class="theme-toggle" aria-label="Toggle theme">
+      <span id="themeIcon">☀</span><span id="themeLabel">LIGHT</span>
+    </button>
+  </div>
+  <div id="phone" class="phone" data-theme="light">
+    <div id="root" style="flex:1;display:flex;flex-direction:column;min-height:0;"></div>
+  </div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="components/Shared.jsx"></script>
+  <script type="text/babel" src="components/Navigation.jsx"></script>
+  <script type="text/babel" src="components/Listing.jsx"></script>
+  <script type="text/babel" src="components/Screens.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { TabBar, GNB, HomeScreen, DetailScreen, CommunityScreen, ChatScreen, MyScreen } = window.RF;
+
+    function App() {
+      const [tab, setTab] = useState('home');
+      const [detail, setDetail] = useState(null);
+      const [liked, setLiked] = useState(new Set(['a2']));
+      const [dark, setDark] = useState(false);
+
+      useEffect(() => {
+        document.getElementById('phone').setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.getElementById('themeIcon').textContent = dark ? '☾' : '☀';
+        document.getElementById('themeLabel').textContent = dark ? 'DARK' : 'LIGHT';
+      }, [dark]);
+
+      useEffect(() => {
+        const btn = document.getElementById('themeBtn');
+        const onClick = () => setDark(d => !d);
+        btn.addEventListener('click', onClick);
+        return () => btn.removeEventListener('click', onClick);
+      }, []);
+
+      const onLike = (id) => setLiked(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+      });
+
+      const themeProps = { dark };
+
+      let body;
+      if (detail) {
+        body = <DetailScreen item={detail} liked={liked.has(detail.id)} onLike={onLike} onBack={() => setDetail(null)} {...themeProps}/>;
+      } else if (tab === 'home') {
+        body = <HomeScreen liked={liked} onLike={onLike} onSelect={setDetail} {...themeProps}/>;
+      } else if (tab === 'chat') {
+        body = <ChatScreen {...themeProps}/>;
+      } else if (tab === 'my') {
+        body = <MyScreen {...themeProps}/>;
+      } else if (tab === 'search' || tab === 'sell') {
+        body = <CommunityScreen {...themeProps}/>;
+      }
+
+      return (
+        <>
+          <div className="phone-scroll">{body}</div>
+          {!detail && <TabBar active={tab} onChange={setTab} dark={dark}/>}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

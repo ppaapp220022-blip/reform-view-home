@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<style>
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;padding-top:1rem;margin-bottom:1.5rem}
+.tab-btn{padding:5px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);color:var(--color-text-secondary);font-size:12px;cursor:pointer}
+.tab-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-secondary);font-weight:500}
+.sec{display:none}.sec.active{display:block}
+.tname{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:1.5rem 0 6px}
+.tname:first-child{margin-top:0}
+.new-badge{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;background:#FAEEDA;color:#633806;font-weight:500;margin-left:6px;vertical-align:middle}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;table-layout:fixed}
+th{text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-weight:500;font-size:11px}
+td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.pk{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;background:#E6F1FB;color:#0C447C;font-weight:500}
+.fk{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;background:#EAF3DE;color:#27500A;font-weight:500}
+.nn{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;background:#F1EFE8;color:#444441}
+.up{background:#EEEDFE;color:#3C3489;display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:500}
+.type{color:var(--color-text-secondary);font-family:var(--font-mono);font-size:11px}
+</style>
+<h2 class="sr-only">RE:FORM DB 스키마 v2 — 경매·지역·활동점수 반영</h2>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('mem')">회원</button>
+  <button class="tab-btn" onclick="show('trd')">거래</button>
+  <button class="tab-btn" onclick="show('auc')">경매 <span style="background:#FAEEDA;color:#633806;font-size:10px;padding:1px 5px;border-radius:4px">NEW</span></button>
+  <button class="tab-btn" onclick="show('cht')">채팅</button>
+  <button class="tab-btn" onclick="show('pay')">결제/정산</button>
+  <button class="tab-btn" onclick="show('com')">커뮤니티</button>
+  <button class="tab-btn" onclick="show('etc')">AI/알림/신고</button>
+</div>
+
+<div id="mem" class="sec active">
+
+<p class="tname">member <span class="up">수정</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>email</td><td class="type">VARCHAR(100)</td><td><span class="nn">NN</span></td><td>UNIQUE</td></tr>
+<tr><td>password</td><td class="type">VARCHAR(255)</td><td></td><td>BCrypt 암호화 (소셜 로그인 시 NULL)</td></tr>
+<tr><td>nickname</td><td class="type">VARCHAR(50)</td><td><span class="nn">NN</span></td><td>UNIQUE</td></tr>
+<tr><td>profile_image_url</td><td class="type">VARCHAR(500)</td><td></td><td>S3/R2 URL</td></tr>
+<tr><td>bio</td><td class="type">VARCHAR(200)</td><td></td><td>자기소개</td></tr>
+<tr><td>manner_score</td><td class="type">DECIMAL(3,2)</td><td></td><td>매너 점수 평균</td></tr>
+<tr><td>activity_score</td><td class="type">INT</td><td></td><td><span class="up">추가</span> 커뮤니티 활동 점수 — 경매 입찰 자격 연동</td></tr>
+<tr><td>region_city</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span> 시/도</td></tr>
+<tr><td>region_district</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span> 시/군/구</td></tr>
+<tr><td>region_dong</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span> 동/읍/면</td></tr>
+<tr><td>role</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>USER / ADMIN</td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>ACTIVE / SUSPENDED / WITHDRAWN</td></tr>
+<tr><td>warning_count</td><td class="type">INT</td><td></td><td>누적 경고 횟수</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">social_account</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>provider</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>KAKAO / GOOGLE</td></tr>
+<tr><td>provider_id</td><td class="type">VARCHAR(100)</td><td><span class="nn">NN</span></td><td>소셜 제공자 고유 ID</td></tr>
+</tbody></table>
+
+<p class="tname">interest_setting</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>sport</td><td class="type">VARCHAR(50)</td><td></td><td>관심 종목</td></tr>
+<tr><td>team</td><td class="type">VARCHAR(100)</td><td></td><td>관심 구단</td></tr>
+<tr><td>keyword</td><td class="type">VARCHAR(200)</td><td></td><td>관심 키워드</td></tr>
+<tr><td>email_recommend</td><td class="type">BOOLEAN</td><td></td><td>추천 매물 수신</td></tr>
+<tr><td>email_price_drop</td><td class="type">BOOLEAN</td><td></td><td>찜 가격 인하 수신</td></tr>
+<tr><td>email_event</td><td class="type">BOOLEAN</td><td></td><td>이벤트 수신</td></tr>
+</tbody></table>
+
+<p class="tname">manner_review</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>trade_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>trade.id</td></tr>
+<tr><td>reviewer_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>작성자 member.id</td></tr>
+<tr><td>reviewee_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>대상자 member.id</td></tr>
+<tr><td>score</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>매너 점수 1~5</td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td></td><td>텍스트 후기</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="trd" class="sec">
+
+<p class="tname">post <span class="up">수정</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>seller_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>title</td><td class="type">VARCHAR(200)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>sport</td><td class="type">VARCHAR(50)</td><td><span class="nn">NN</span></td><td>종목</td></tr>
+<tr><td>team</td><td class="type">VARCHAR(100)</td><td><span class="nn">NN</span></td><td>구단명</td></tr>
+<tr><td>uniform_name</td><td class="type">VARCHAR(200)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>season</td><td class="type">VARCHAR(20)</td><td></td><td></td></tr>
+<tr><td>grade</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>S / A / B / C</td></tr>
+<tr><td>size</td><td class="type">VARCHAR(10)</td><td></td><td>XS~XXL</td></tr>
+<tr><td>marking</td><td class="type">ENUM</td><td></td><td>NONE / NAME / NUMBER / BOTH</td></tr>
+<tr><td>price</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>희망 가격</td></tr>
+<tr><td>delivery_type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>DIRECT / DELIVERY / BOTH</td></tr>
+<tr><td>region_city</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span> 지역 기반 직거래 필터용</td></tr>
+<tr><td>region_district</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span></td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>ON_SALE / RESERVED / SOLD / HIDDEN / DELETED</td></tr>
+<tr><td>view_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>wish_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>risk_level</td><td class="type">ENUM</td><td></td><td>LOW / MID / HIGH</td></tr>
+<tr><td>embedding</td><td class="type">VECTOR(1536)</td><td></td><td><span class="up">추가</span> PGVector 시맨틱 검색용</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>updated_at</td><td class="type">DATETIME</td><td></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">post_image</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>post.id</td></tr>
+<tr><td>image_url</td><td class="type">VARCHAR(500)</td><td><span class="nn">NN</span></td><td>S3/R2 URL</td></tr>
+<tr><td>sort_order</td><td class="type">INT</td><td></td><td>최대 10장</td></tr>
+</tbody></table>
+
+<p class="tname">wish</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>post.id (UNIQUE with member_id)</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">trade</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>post.id</td></tr>
+<tr><td>buyer_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>seller_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>REQUESTED / ACCEPTED / PAID / IN_PROGRESS / CONFIRMED / COMPLETED / CANCELED / DISPUTED</td></tr>
+<tr><td>delivery_type</td><td class="type">ENUM</td><td></td><td>DIRECT / DELIVERY</td></tr>
+<tr><td>delivery_address</td><td class="type">VARCHAR(300)</td><td></td><td>배송 선택 시 주소</td></tr>
+<tr><td>trade_price</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>실제 거래 금액</td></tr>
+<tr><td>confirmed_at</td><td class="type">DATETIME</td><td></td><td>구매 확정 일시</td></tr>
+<tr><td>completed_at</td><td class="type">DATETIME</td><td></td><td>정산 완료 일시</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="auc" class="sec">
+
+<p class="tname">auction_post <span style="background:#FAEEDA;color:#633806;display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-left:4px">NEW</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>seller_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>title</td><td class="type">VARCHAR(200)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td></td><td></td></tr>
+<tr><td>sport</td><td class="type">VARCHAR(50)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>team</td><td class="type">VARCHAR(100)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>uniform_name</td><td class="type">VARCHAR(200)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>season</td><td class="type">VARCHAR(20)</td><td></td><td></td></tr>
+<tr><td>grade</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>S / A / B / C</td></tr>
+<tr><td>marking</td><td class="type">ENUM</td><td></td><td>NONE / NAME / NUMBER / BOTH</td></tr>
+<tr><td>start_price</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>최소 입찰가</td></tr>
+<tr><td>secret_max_price</td><td class="type">INT</td><td></td><td>비공개 상한가 (관리자만 열람)</td></tr>
+<tr><td>min_activity_score</td><td class="type">INT</td><td></td><td>입찰 자격 최소 활동 점수</td></tr>
+<tr><td>starts_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td>경매 시작 일시</td></tr>
+<tr><td>ends_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td>경매 종료 일시</td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>PENDING_REVIEW / APPROVED / ACTIVE / ENDED / CANCELED</td></tr>
+<tr><td>interest_count</td><td class="type">INT</td><td></td><td>경매 관심 참여 희망자 수</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">auction_image <span style="background:#FAEEDA;color:#633806;display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-left:4px">NEW</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>auction_post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>auction_post.id</td></tr>
+<tr><td>image_url</td><td class="type">VARCHAR(500)</td><td><span class="nn">NN</span></td><td>S3/R2 URL</td></tr>
+<tr><td>sort_order</td><td class="type">INT</td><td></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">auction_bid <span style="background:#FAEEDA;color:#633806;display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-left:4px">NEW</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>auction_post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>auction_post.id</td></tr>
+<tr><td>bidder_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>bid_price</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>입찰 금액</td></tr>
+<tr><td>is_winner</td><td class="type">BOOLEAN</td><td></td><td>낙찰 여부</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">auction_interest <span style="background:#FAEEDA;color:#633806;display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;margin-left:4px">NEW</span></p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>auction_post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>auction_post.id</td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id (UNIQUE with auction_post_id)</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="cht" class="sec">
+
+<p class="tname">chat_room</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>trade_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>trade.id</td></tr>
+<tr><td>buyer_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>seller_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">chat_message</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>room_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>chat_room.id</td></tr>
+<tr><td>sender_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>TEXT / IMAGE / SYSTEM</td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td></td><td></td></tr>
+<tr><td>image_url</td><td class="type">VARCHAR(500)</td><td></td><td>S3/R2 URL (이미지 메시지)</td></tr>
+<tr><td>is_read</td><td class="type">BOOLEAN</td><td><span class="nn">NN</span></td><td>읽음 여부</td></tr>
+<tr><td>is_risk</td><td class="type">BOOLEAN</td><td></td><td>AI 위험 문구 포함 여부</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="pay" class="sec">
+
+<p class="tname">payment</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>trade_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>trade.id</td></tr>
+<tr><td>toss_order_id</td><td class="type">VARCHAR(100)</td><td><span class="nn">NN</span></td><td>Toss 주문 ID (UNIQUE)</td></tr>
+<tr><td>toss_payment_key</td><td class="type">VARCHAR(200)</td><td></td><td>Toss 결제 키</td></tr>
+<tr><td>amount</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>결제 금액</td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>READY / PAID / FAILED / CANCELED / REFUNDED</td></tr>
+<tr><td>paid_at</td><td class="type">DATETIME</td><td></td><td>결제 완료 일시</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">point_wallet</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id (UNIQUE)</td></tr>
+<tr><td>balance</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>보유 포인트</td></tr>
+<tr><td>withdrawable</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>출금 가능 포인트</td></tr>
+<tr><td>pending</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>출금 대기 포인트</td></tr>
+</tbody></table>
+
+<p class="tname">point_history</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>wallet_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>point_wallet.id</td></tr>
+<tr><td>trade_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>trade.id (UNIQUE — 중복 지급 방지)</td></tr>
+<tr><td>type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>EARN / WITHDRAW</td></tr>
+<tr><td>amount</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>포인트 변동량</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">withdraw_request</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>amount</td><td class="type">INT</td><td><span class="nn">NN</span></td><td>출금 요청 금액</td></tr>
+<tr><td>bank_name</td><td class="type">VARCHAR(50)</td><td></td><td></td></tr>
+<tr><td>account_number</td><td class="type">VARCHAR(30)</td><td></td><td></td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>PENDING / APPROVED / REJECTED / COMPLETED</td></tr>
+<tr><td>reject_reason</td><td class="type">VARCHAR(300)</td><td></td><td></td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="com" class="sec">
+
+<p class="tname">community_post</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>category</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>FREE / INFO / REVIEW / TRADE_REVIEW / QNA</td></tr>
+<tr><td>title</td><td class="type">VARCHAR(200)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>image_url</td><td class="type">VARCHAR(500)</td><td></td><td></td></tr>
+<tr><td>region_city</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span> 지역 게시판 필터용</td></tr>
+<tr><td>region_district</td><td class="type">VARCHAR(50)</td><td></td><td><span class="up">추가</span></td></tr>
+<tr><td>view_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>like_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>comment_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>ACTIVE / HIDDEN / DELETED</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">comment</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>post_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>community_post.id</td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>parent_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>comment.id (대댓글 시)</td></tr>
+<tr><td>content</td><td class="type">TEXT</td><td></td><td>삭제 시 NULL → "삭제된 댓글입니다" 마스킹</td></tr>
+<tr><td>is_deleted</td><td class="type">BOOLEAN</td><td><span class="nn">NN</span></td><td>소프트 삭제</td></tr>
+<tr><td>like_count</td><td class="type">INT</td><td></td><td></td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">post_like</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>member.id</td></tr>
+<tr><td>target_type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>POST / COMMENT</td></tr>
+<tr><td>target_id</td><td class="type">BIGINT</td><td><span class="nn">NN</span></td><td>UNIQUE(member_id, target_type, target_id)</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<div id="etc" class="sec">
+
+<p class="tname">risk_analysis_result</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>target_type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>POST / CHAT / AUCTION</td></tr>
+<tr><td>target_id</td><td class="type">BIGINT</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>risk_level</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>LOW / MID / HIGH</td></tr>
+<tr><td>reason</td><td class="type">TEXT</td><td></td><td>탐지 사유</td></tr>
+<tr><td>suggestion</td><td class="type">TEXT</td><td></td><td>개선 제안</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">report</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>reporter_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>신고자 member.id</td></tr>
+<tr><td>target_type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>POST / COMMUNITY_POST / AUCTION</td></tr>
+<tr><td>target_id</td><td class="type">BIGINT</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>reason</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>FAKE / INAPPROPRIATE / FRAUD / ETC</td></tr>
+<tr><td>detail</td><td class="type">TEXT</td><td></td><td></td></tr>
+<tr><td>status</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>PENDING / NORMAL / WARNING / DELETED</td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+<p class="tname">notification</p>
+<table><colgroup><col style="width:160px"><col style="width:110px"><col style="width:55px"><col style="width:auto"></colgroup>
+<thead><tr><th>컬럼</th><th>타입</th><th>제약</th><th>설명</th></tr></thead>
+<tbody>
+<tr><td>id</td><td class="type">BIGINT</td><td><span class="pk">PK</span></td><td></td></tr>
+<tr><td>member_id</td><td class="type">BIGINT</td><td><span class="fk">FK</span></td><td>수신자 member.id</td></tr>
+<tr><td>type</td><td class="type">ENUM</td><td><span class="nn">NN</span></td><td>TRADE / CHAT / PRICE_DROP / REVIEW / AUCTION / SYSTEM</td></tr>
+<tr><td>content</td><td class="type">VARCHAR(300)</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>link_url</td><td class="type">VARCHAR(300)</td><td></td><td>클릭 시 이동 경로</td></tr>
+<tr><td>is_read</td><td class="type">BOOLEAN</td><td><span class="nn">NN</span></td><td></td></tr>
+<tr><td>created_at</td><td class="type">DATETIME</td><td><span class="nn">NN</span></td><td></td></tr>
+</tbody></table>
+
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>

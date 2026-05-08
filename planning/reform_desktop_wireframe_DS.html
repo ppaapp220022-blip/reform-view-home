@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap');
+/* ── Local Fonts ── */
+@font-face{font-family:'Pretendard';font-weight:400;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Regular.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:500;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Medium.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:600;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-SemiBold.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:700;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Bold.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:800;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-ExtraBold.woff2') format('woff2');}
+@font-face{font-family:'IAMAPLAYER';font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0020-007E,U+00A0-00FF;src:url('/fonts/IAMAPLAYER.woff2') format('woff2');}
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#002147;--navy2:#1A3051;--navy3:#343F5B;
+  --red:#FF2E4D;--gold:#FFB800;--green:#00B36E;
+  --surf:#F4F6F9;--surf2:#EBEEF3;
+  --bd:rgba(13,27,42,.10);--bd2:rgba(13,27,42,.20);
+  --tx:#0D1B2A;--ts:#5A6A7A;--th:#9BAAB9;
+  --r:8px;--rl:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:#E8EBF0;color:var(--tx);}
+
+/* ── PAGE SEPARATOR ── */
+.pg-sep{background:var(--navy);color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:6px 20px;display:flex;align-items:center;gap:8px;}
+.pg-sep strong{color:#fff;}
+
+/* ── BROWSER CHROME ── */
+.browser{background:#fff;border:1px solid var(--bd2);border-radius:var(--rl);overflow:hidden;margin-bottom:28px;}
+.browser-bar{background:#F0F2F5;border-bottom:1px solid var(--bd);padding:8px 14px;display:flex;align-items:center;gap:8px;}
+.b-dot{width:9px;height:9px;border-radius:50%;}
+.b-url{flex:1;background:#fff;border:1px solid var(--bd);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--ts);margin:0 12px;}
+
+/* ── GLOBAL NAV ── */
+.gnav{background:var(--navy);height:56px;display:flex;align-items:center;padding:0 32px;gap:0;border-bottom:1px solid rgba(255,255,255,.06);}
+.gnav-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:3px;margin-right:40px;flex-shrink:0;}
+.gnav-logo span{color:var(--red);}
+.gnav-links{display:flex;gap:0;flex:1;}
+.gnav-link{padding:0 16px;height:56px;display:flex;align-items:center;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.gnav-link.active{color:#fff;border-bottom-color:var(--red);}
+.gnav-search{display:flex;align-items:center;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:0 12px;height:36px;gap:8px;width:280px;margin:0 24px;}
+.s-icon{width:13px;height:13px;border:1.5px solid rgba(255,255,255,.45);border-radius:50%;position:relative;flex-shrink:0;}
+.s-icon::after{content:'';position:absolute;bottom:-3px;right:-3px;width:5px;height:1.5px;background:rgba(255,255,255,.45);transform:rotate(45deg);}
+.gnav-search span{font-size:12px;color:rgba(255,255,255,.4);}
+.gnav-right{display:flex;align-items:center;gap:10px;}
+.nav-btn{height:32px;padding:0 14px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:transparent;font-size:12px;color:rgba(255,255,255,.8);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.nav-btn-p{background:var(--red);border-color:var(--red);color:#fff;}
+.nav-ava{width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:500;}
+.notif-btn{width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;}
+.notif-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1.5px solid var(--navy);}
+
+/* ── SPORT CATEGORY BAR ── */
+.cat-bar{background:#fff;border-bottom:1px solid var(--bd);padding:0 32px;display:flex;gap:0;overflow-x:auto;}
+.cat-bar::-webkit-scrollbar{display:none;}
+.cat-item{padding:0 20px;height:44px;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ts);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;}
+.cat-item.active{color:var(--navy);border-bottom-color:var(--red);font-weight:500;}
+.cat-icon{font-size:15px;}
+
+/* ── CHIP / BADGE ── */
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;border:1px solid;}
+.cn{background:var(--navy);color:#fff;border-color:var(--navy);}
+.co{background:transparent;color:var(--navy);border-color:var(--bd2);}
+.cr{background:var(--red);color:#fff;border-color:var(--red);}
+.cg{background:#EBF8F1;color:#1A7A40;border-color:#7FD4A5;}
+.ca{background:#FFF8EC;color:#8A6010;border-color:#F5C97A;}
+.cb{background:#EDF3FE;color:#1A4EA5;border-color:#96BAEF;}
+
+/* ── BTN ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid;padding:0 16px;height:36px;font-family:'DM Sans',sans-serif;}
+.btn-p{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-n{background:var(--navy);color:#fff;border-color:var(--navy);}
+.btn-o{background:transparent;color:var(--navy);border-color:var(--bd2);}
+.btn-g{background:transparent;color:var(--ts);border-color:transparent;}
+.btn-sm{height:30px;padding:0 12px;font-size:12px;border-radius:7px;}
+.btn-lg{height:44px;padding:0 28px;font-size:15px;border-radius:10px;}
+.btn-xl{height:52px;padding:0 36px;font-size:16px;border-radius:10px;font-weight:500;}
+
+/* ── JERSEY SHAPE ── */
+.jersey-wrap{display:flex;align-items:center;justify-content:center;}
+.j{position:relative;display:inline-block;}
+.j-body{width:52px;height:64px;border-radius:4px 4px 0 0;position:relative;}
+.j-body::before{content:'';position:absolute;top:0;left:-10px;width:13px;height:22px;border-radius:0 0 7px 0;}
+.j-body::after{content:'';position:absolute;top:0;right:-10px;width:13px;height:22px;border-radius:0 0 0 7px;}
+.j-stripe{position:absolute;top:16px;left:0;right:0;height:4px;background:rgba(255,255,255,.25);}
+.j-num{position:absolute;top:24px;left:0;right:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:rgba(255,255,255,.3);}
+.j-lg .j-body{width:80px;height:98px;}
+.j-lg .j-body::before{left:-15px;width:20px;height:32px;}
+.j-lg .j-body::after{right:-15px;width:20px;height:32px;}
+.j-lg .j-stripe{top:24px;height:6px;}
+.j-lg .j-num{top:36px;font-size:32px;}
+.j-navy .j-body,.j-navy .j-body::before,.j-navy .j-body::after{background:var(--navy);}
+.j-red .j-body,.j-red .j-body::before,.j-red .j-body::after{background:#B5222B;}
+.j-blue .j-body,.j-blue .j-body::before,.j-blue .j-body::after{background:#034694;}
+.j-pur .j-body,.j-pur .j-body::before,.j-pur .j-body::after{background:#6B0078;}
+.j-white .j-body{background:#fff;border:1px solid var(--bd);}
+.j-white .j-body::before,.j-white .j-body::after{background:#fff;border-left:1px solid var(--bd);}
+
+/* ── PRODUCT CARD ── */
+.prod-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;cursor:pointer;transition:border-color .15s;}
+.prod-card:hover{border-color:var(--navy);}
+.prod-img{height:160px;background:var(--surf);position:relative;display:flex;align-items:center;justify-content:center;}
+.grade-b{position:absolute;top:10px;left:10px;background:var(--navy);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;}
+.heart-b{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;}
+.heart-svg{width:13px;height:12px;position:relative;}
+.heart-svg::before,.heart-svg::after{content:'';position:absolute;width:7px;height:7px;border-radius:50%;background:var(--red);top:0;}
+.heart-svg::before{left:0;}.heart-svg::after{right:0;}
+.heart-b-fill{position:absolute;bottom:0;left:0;right:0;height:9px;background:var(--red);clip-path:polygon(0 0,100% 0,50% 100%);}
+.prod-info{padding:12px;}
+.prod-team{font-size:10px;color:var(--th);font-weight:500;text-transform:uppercase;letter-spacing:.5px;}
+.prod-name{font-size:14px;font-weight:500;color:var(--tx);margin:3px 0 8px;line-height:1.3;}
+.prod-price{font-size:16px;font-weight:500;color:var(--tx);}
+.prod-sub{display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap;}
+
+/* ── HERO ── */
+.hero{background:var(--navy);padding:40px 32px;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;right:-40px;top:-40px;width:260px;height:260px;border-radius:50%;border:36px solid rgba(255,255,255,.03);}
+.hero::after{content:'';position:absolute;right:80px;bottom:-60px;width:180px;height:180px;border-radius:50%;border:24px solid rgba(255,255,255,.03);}
+.hero-inner{display:flex;align-items:center;gap:48px;}
+.hero-text{flex:1;}
+.hero-tag{font-size:11px;letter-spacing:2px;color:var(--red);text-transform:uppercase;font-weight:500;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:52px;color:#fff;line-height:1.0;margin:8px 0;}
+.hero-title em{color:var(--red);font-style:normal;}
+.hero-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:24px;line-height:1.6;}
+.hero-btns{display:flex;gap:10px;}
+.hero-img-area{width:240px;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;}
+.hero-stats{display:flex;gap:32px;margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,.08);}
+.hstat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;}
+.hstat-lbl{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.5px;}
+
+/* ── MAIN CONTENT LAYOUT ── */
+.page-body{display:flex;gap:0;background:var(--surf);}
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--bd);padding:20px 0;min-height:400px;}
+.sidebar-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--th);padding:8px 20px 4px;font-weight:500;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;border-left:3px solid transparent;font-size:13px;color:var(--ts);}
+.sidebar-item.active{color:var(--navy);font-weight:500;border-left-color:var(--red);background:#F8F9FB;}
+.sidebar-icon{width:24px;height:24px;border-radius:6px;background:var(--surf2);flex-shrink:0;}
+.sidebar-icon.active-ic{background:var(--navy);}
+.main-content{flex:1;min-width:0;padding:24px;}
+
+/* ── SECTION ── */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sec-title{font-size:15px;font-weight:500;color:var(--tx);}
+.sec-more{font-size:12px;color:var(--red);cursor:pointer;}
+
+/* ── GRID LISTINGS ── */
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+
+/* ── FILTER ROW ── */
+.filter-row{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:20px;}
+.tab{padding:10px 18px;font-size:13px;cursor:pointer;color:var(--th);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.active{color:var(--navy);border-bottom-color:var(--red);font-weight:500;}
+
+/* ── DETAIL PAGE ── */
+.det-layout{display:flex;gap:32px;align-items:flex-start;}
+.det-left{width:420px;flex-shrink:0;}
+.det-right{flex:1;}
+.det-img-main{height:340px;background:var(--surf);border-radius:var(--rl);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:10px;}
+.det-thumbs{display:flex;gap:8px;}
+.det-thumb{width:72px;height:80px;border-radius:8px;background:var(--surf2);border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.det-thumb.active{border-color:var(--navy);}
+.det-badge-row{display:flex;gap:8px;margin-bottom:10px;}
+.det-price{font-size:30px;font-weight:500;color:var(--tx);}
+.det-price-sub{font-size:13px;color:var(--th);margin-top:4px;margin-bottom:16px;}
+.det-name{font-size:20px;font-weight:500;color:var(--tx);margin-bottom:8px;}
+.divider{height:1px;background:var(--bd);margin:16px 0;}
+.grade-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.grade-box{border:1.5px solid var(--bd);border-radius:8px;padding:10px 8px;text-align:center;cursor:pointer;}
+.grade-box.sel{border-color:var(--navy);background:var(--navy);}
+.grade-ltr{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--navy);}
+.grade-box.sel .grade-ltr{color:#fff;}
+.grade-desc{font-size:10px;color:var(--th);}
+.grade-box.sel .grade-desc{color:rgba(255,255,255,.7);}
+.seller-card{background:var(--surf);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.seller-ava{width:44px;height:44px;border-radius:50%;background:var(--navy2);display:flex;align-items:center;justify-content:center;font-size:15px;color:rgba(255,255,255,.85);font-weight:500;flex-shrink:0;}
+.seller-name{font-size:14px;font-weight:500;}
+.seller-score{font-size:12px;color:var(--ts);margin-top:2px;}
+.stars{color:var(--gold);font-size:12px;}
+.action-bar{display:flex;gap:10px;margin-top:20px;}
+
+/* ── TRADE STATUS BAR ── */
+.ts-bar{display:flex;align-items:center;padding:16px 0;margin-bottom:16px;}
+.ts-step{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.ts-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;}
+.ts-circle.done{background:var(--navy);border-color:var(--navy);}
+.ts-circle.cur{background:var(--red);border-color:var(--red);}
+.ts-dot{width:7px;height:7px;border-radius:50%;background:#fff;}
+.ts-label{font-size:10px;color:var(--th);white-space:nowrap;}
+.ts-step.done .ts-label,.ts-step.cur .ts-label{color:var(--navy);font-weight:500;}
+.ts-line{flex:1;height:1.5px;background:var(--bd);min-width:20px;}
+.ts-line.done{background:var(--navy);}
+
+/* ── CHAT ── */
+.chat-layout{display:flex;height:560px;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;}
+.chat-list{width:280px;flex-shrink:0;border-right:1px solid var(--bd);background:#fff;}
+.chat-list-header{padding:16px;border-bottom:1px solid var(--bd);font-size:14px;font-weight:500;}
+.chat-list-item{display:flex;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--bd);align-items:flex-start;}
+.chat-list-item.active{background:#F8F9FB;}
+.chat-ava{width:40px;height:40px;border-radius:50%;background:var(--navy2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:rgba(255,255,255,.8);}
+.chat-item-name{font-size:13px;font-weight:500;}
+.chat-item-preview{font-size:11px;color:var(--th);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:160px;}
+.chat-item-time{font-size:10px;color:var(--th);margin-left:auto;flex-shrink:0;}
+.chat-unread{width:16px;height:16px;border-radius:50%;background:var(--red);font-size:9px;color:#fff;display:flex;align-items:center;justify-content:center;margin-left:auto;}
+.chat-main{flex:1;display:flex;flex-direction:column;}
+.chat-header{padding:14px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;background:#fff;}
+.chat-product-info{display:flex;align-items:center;gap:10px;flex:1;}
+.chat-product-thumb{width:40px;height:46px;border-radius:7px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.chat-header-actions{display:flex;gap:8px;}
+.chat-body{flex:1;padding:16px 20px;background:var(--surf);display:flex;flex-direction:column;gap:12px;overflow-y:auto;}
+.msg{max-width:65%;}
+.msg.mine{align-self:flex-end;}
+.msg-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;}
+.msg.other .msg-bubble{background:#fff;border:1px solid var(--bd);border-radius:4px 12px 12px 12px;}
+.msg.mine .msg-bubble{background:var(--navy);color:#fff;border-radius:12px 4px 12px 12px;}
+.msg-time{font-size:10px;color:var(--th);margin-top:3px;}
+.msg.mine .msg-time{text-align:right;}
+.warn-msg{background:#FEF0F0;border:1px solid #F5A5A5;border-radius:8px;padding:10px 14px;font-size:12px;color:#C0201F;line-height:1.5;}
+.safety-bar{background:#FFF8EC;border-top:1px solid #F5C97A;border-bottom:1px solid #F5C97A;padding:8px 20px;font-size:11px;color:#8A6010;display:flex;align-items:center;gap:6px;}
+.chat-input-bar{display:flex;align-items:center;gap:10px;padding:12px 20px;border-top:1px solid var(--bd);background:#fff;}
+.chat-input{flex:1;height:38px;border:1px solid var(--bd);border-radius:8px;padding:0 14px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surf);}
+.chat-send{width:38px;height:38px;border-radius:8px;background:var(--navy);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+.trade-bar{background:var(--surf2);border-top:1px solid var(--bd);padding:10px 20px;display:flex;gap:8px;align-items:center;}
+
+/* ── PAYMENT ── */
+.pay-layout{display:flex;gap:24px;align-items:flex-start;}
+.pay-main{flex:1;}
+.pay-side{width:320px;flex-shrink:0;}
+.pay-section{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:14px;}
+.pay-section-title{font-size:13px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;}
+.pay-method-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pay-method{border:1.5px solid var(--bd);border-radius:8px;padding:12px 8px;text-align:center;cursor:pointer;}
+.pay-method.sel{border-color:var(--navy);background:rgba(13,27,42,.03);}
+.pay-method-icon{font-size:20px;margin-bottom:4px;}
+.pay-method-name{font-size:11px;font-weight:500;color:var(--tx);}
+.receive-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.receive-item{border:1.5px solid var(--bd);border-radius:8px;padding:14px;text-align:center;cursor:pointer;}
+.receive-item.sel{border-color:var(--navy);background:rgba(13,27,42,.03);}
+.receive-icon{font-size:22px;margin-bottom:6px;}
+.receive-name{font-size:13px;font-weight:500;}
+.receive-sub{font-size:11px;color:var(--th);margin-top:2px;}
+.price-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;}
+.price-row.total{font-size:16px;font-weight:500;border-top:1px solid var(--bd);padding-top:12px;margin-top:6px;}
+.escrow-box{background:#EBF8F1;border:1px solid #7FD4A5;border-radius:8px;padding:12px;font-size:12px;color:#1A7A40;display:flex;gap:8px;line-height:1.5;}
+
+/* ── MY PAGE ── */
+.my-layout{display:flex;gap:24px;align-items:flex-start;}
+.my-profile-card{background:var(--navy);border-radius:var(--rl);padding:24px;margin-bottom:14px;}
+.my-ava{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:500;}
+.my-name{font-size:18px;font-weight:500;color:#fff;margin-top:10px;}
+.my-sub{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;}
+.my-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid rgba(255,255,255,.1);margin-top:16px;padding-top:16px;}
+.my-stat{text-align:center;}
+.my-stat+.my-stat{border-left:1px solid rgba(255,255,255,.1);}
+.my-stat-num{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;}
+.my-stat-lbl{font-size:11px;color:rgba(255,255,255,.4);}
+.point-card{background:var(--navy2);border-radius:var(--rl);padding:20px;margin-bottom:14px;}
+.point-lbl{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,.5);}
+.point-num{font-family:'Bebas Neue',sans-serif;font-size:36px;color:#fff;margin:6px 0;}
+.point-num span{font-size:18px;color:rgba(255,255,255,.5);}
+.point-row-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px;}
+.point-mini{background:rgba(255,255,255,.07);border-radius:8px;padding:10px 12px;}
+.point-mini-lbl{font-size:10px;color:rgba(255,255,255,.4);}
+.point-mini-num{font-size:16px;font-weight:500;color:#fff;margin-top:3px;}
+.menu-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;}
+.menu-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--th);padding:10px 16px 6px;font-weight:500;background:var(--surf);}
+.menu-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--bd);cursor:pointer;}
+.menu-ic{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.menu-arrow{margin-left:auto;width:6px;height:6px;border-top:1.5px solid var(--th);border-right:1.5px solid var(--th);transform:rotate(45deg);}
+
+/* ── ADMIN ── */
+.adm-stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+.adm-stat{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:16px;text-align:center;}
+.adm-stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;}
+.adm-stat-lbl{font-size:11px;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+.adm-table{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;}
+.adm-th{display:grid;background:var(--surf2);border-bottom:1px solid var(--bd);padding:9px 16px;font-size:10px;color:var(--th);text-transform:uppercase;letter-spacing:.5px;font-weight:500;}
+.adm-tr{display:grid;padding:11px 16px;border-bottom:1px solid var(--bd);align-items:center;font-size:13px;}
+.adm-tr:last-child{border-bottom:none;}
+
+/* ── WRITE PAGE ── */
+.write-layout{display:flex;gap:24px;align-items:flex-start;}
+.write-main{flex:1;}
+.write-side{width:300px;flex-shrink:0;}
+.form-section{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:14px;}
+.form-label{font-size:11px;font-weight:500;color:var(--th);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+.form-input{width:100%;height:38px;border:1px solid var(--bd);border-radius:8px;padding:0 12px;font-size:13px;background:var(--surf);font-family:'DM Sans',sans-serif;}
+.form-textarea{width:100%;min-height:80px;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:13px;background:var(--surf);font-family:'DM Sans',sans-serif;resize:none;}
+.photo-grid{display:flex;gap:10px;flex-wrap:wrap;}
+.photo-thumb{width:80px;height:88px;border-radius:9px;background:var(--navy2);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.photo-add{width:80px;height:88px;border:1.5px dashed var(--bd2);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--surf);}
+.plus-ic{width:20px;height:20px;position:relative;}
+.plus-ic::before{content:'';position:absolute;top:50%;left:0;right:0;height:1.5px;background:var(--th);transform:translateY(-50%);}
+.plus-ic::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--th);transform:translateX(-50%);}
+.ai-box{background:linear-gradient(130deg,#EDF3FE,#F0EEF8);border:1px solid #B5C9F5;border-radius:var(--r);padding:14px;}
+.ai-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#1A4EA5;margin-bottom:10px;}
+.ai-dot-el{width:9px;height:9px;border-radius:50%;background:#4A90E2;}
+.ai-tag-row{display:flex;flex-wrap:wrap;gap:5px;}
+.ai-tag{background:rgba(255,255,255,.8);border:1px solid #B5C9F5;border-radius:999px;padding:3px 10px;font-size:11px;color:#1A4EA5;}
+.warn-box{background:#FEF0F0;border:1px solid #F5A5A5;border-radius:8px;padding:12px;font-size:12px;color:#C0201F;display:flex;gap:8px;line-height:1.5;}
+.ok-box{background:#EBF8F1;border:1px solid #7FD4A5;border-radius:8px;padding:12px;font-size:12px;color:#1A7A40;display:flex;gap:8px;line-height:1.5;}
+.risk-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:2px;}
+
+/* ── COMMUNITY ── */
+.com-layout{display:flex;gap:24px;align-items:flex-start;}
+.com-sidebar{width:200px;flex-shrink:0;}
+.com-main{flex:1;}
+.com-card{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:16px 20px;margin-bottom:10px;cursor:pointer;}
+.com-card:hover{border-color:var(--navy);}
+.com-cat-chip{display:inline-flex;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;background:var(--surf2);color:var(--ts);margin-bottom:8px;}
+.com-title{font-size:14px;font-weight:500;color:var(--tx);margin-bottom:6px;}
+.com-body{font-size:13px;color:var(--ts);line-height:1.5;margin-bottom:10px;}
+.com-footer{display:flex;gap:16px;align-items:center;}
+.com-stat{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--th);}
+.com-ava-sm{width:26px;height:26px;border-radius:50%;background:var(--navy2);display:flex;align-items:center;justify-content:center;font-size:10px;color:rgba(255,255,255,.8);}
+.hot-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:6px;}
+
+/* ── SEARCH RESULTS ── */
+.search-result-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--bd);align-items:center;cursor:pointer;}
+.sr-thumb{width:60px;height:70px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sr-info{flex:1;}
+.sr-team{font-size:11px;color:var(--th);text-transform:uppercase;font-weight:500;}
+.sr-name{font-size:14px;font-weight:500;color:var(--tx);margin:2px 0 5px;}
+.sr-price{font-size:17px;font-weight:500;color:var(--tx);margin-left:auto;flex-shrink:0;}
+
+/* ── AUCTION ── */
+.auc-card{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;}
+.auc-top{display:flex;gap:16px;padding:16px;}
+.auc-thumb-big{width:80px;height:96px;background:var(--surf2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+.auc-live{position:absolute;top:6px;left:6px;background:var(--red);color:#fff;font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;letter-spacing:.5px;}
+.auc-info{flex:1;}
+.auc-team{font-size:11px;color:var(--th);text-transform:uppercase;font-weight:500;}
+.auc-name{font-size:15px;font-weight:500;color:var(--tx);margin:3px 0 8px;}
+.auc-bottom{background:var(--navy);padding:12px 16px;display:flex;align-items:center;gap:24px;}
+.auc-price-lbl{font-size:10px;color:rgba(255,255,255,.5);}
+.auc-price-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;}
+.auc-timer{display:flex;gap:6px;align-items:center;margin-left:auto;}
+.auc-time-b{background:rgba(255,255,255,.12);border-radius:5px;padding:5px 8px;text-align:center;min-width:38px;}
+.auc-time-num{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#fff;}
+.auc-time-unit{font-size:8px;color:rgba(255,255,255,.4);text-transform:uppercase;}
+.auc-sep{font-family:'Bebas Neue',sans-serif;font-size:18px;color:rgba(255,255,255,.3);}
+.auc-bid-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--surf2);border-top:1px solid var(--bd);}
+
+/* MISC */
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd);font-size:13px;}
+.info-val{color:var(--ts);}
+</style>
+
+<h2 class="sr-only">RE:FORM 스포츠 유니폼 중고 거래 웹사이트 와이어프레임 — 9개 화면</h2>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 1 : 홈 피드 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 01 &nbsp;›&nbsp; <strong>홈 피드 (메인)</strong> &nbsp;—&nbsp; UC-MEM-005 · TRD 관련</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr</div>
+  </div>
+  <!-- GNav -->
+  <div class="gnav">
+    <div class="gnav-logo">RE:<span>FORM</span></div>
+    <div class="gnav-links">
+      <div class="gnav-link active">홈</div>
+      <div class="gnav-link">판매글</div>
+      <div class="gnav-link">경매</div>
+      <div class="gnav-link">커뮤니티</div>
+    </div>
+    <div class="gnav-search">
+      <div class="s-icon"></div>
+      <span>선수명, 구단, 시즌 검색...</span>
+    </div>
+    <div class="gnav-right">
+      <div class="notif-btn"><div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.7);border-radius:5px 5px 0 0;"></div><div class="notif-dot"></div></div>
+      <div class="nav-ava">KJ</div>
+    </div>
+  </div>
+  <!-- Sport Bar -->
+  <div class="cat-bar">
+    <div class="cat-item active"><span class="cat-icon">⚽</span> 축구 전체</div>
+    <div class="cat-item"><span class="cat-icon">⚾</span> 야구</div>
+    <div class="cat-item"><span class="cat-icon">🏀</span> 농구</div>
+    <div class="cat-item"><span class="cat-icon">🏈</span> 미식축구</div>
+    <div class="cat-item"><span class="cat-icon">🏒</span> 아이스하키</div>
+    <div class="cat-item"><span class="cat-icon">🎽</span> 기타 종목</div>
+    <div style="margin-left:auto;display:flex;align-items:center;padding:0 8px;gap:6px;">
+      <div class="chip co" style="font-size:11px;">EPL</div>
+      <div class="chip co" style="font-size:11px;">라리가</div>
+      <div class="chip co" style="font-size:11px;">KBO</div>
+      <div class="chip co" style="font-size:11px;">KBL</div>
+    </div>
+  </div>
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="hero-tag">이번 주 인기 매물 · 내 관심팀</div>
+        <div class="hero-title">손흥민 23/24<br><em>토트넘 홈</em> 유니폼</div>
+        <div class="hero-sub">마킹 포함 · S등급 (미착용) · Size M · 강남 직거래 가능</div>
+        <div class="hero-btns">
+          <button class="btn btn-p btn-lg">지금 구매하기</button>
+          <button class="btn btn-lg" style="border-color:rgba(255,255,255,.25);color:#fff;background:rgba(255,255,255,.08);">찜하기</button>
+        </div>
+        <div class="hero-stats">
+          <div><div class="hstat-num">4,820</div><div class="hstat-lbl">오늘 등록</div></div>
+          <div><div class="hstat-num">31,500</div><div class="hstat-lbl">전체 매물</div></div>
+          <div><div class="hstat-num">9,200</div><div class="hstat-lbl">완료 거래</div></div>
+          <div><div class="hstat-num">1,240</div><div class="hstat-lbl">활성 사용자</div></div>
+        </div>
+      </div>
+      <div class="hero-img-area">
+        <div class="j j-lg j-navy" style="transform:rotate(-4deg);opacity:.85;">
+          <div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div>
+        </div>
+        <div class="j j-lg j-white" style="position:absolute;right:30px;bottom:-20px;transform:rotate(6deg);opacity:.6;z-index:0;">
+          <div class="j-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Main Body -->
+  <div class="page-body">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">스포츠 종목</div>
+      <div class="sidebar-item active"><div class="sidebar-icon active-ic"></div> 축구 전체</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> EPL</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 라리가</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 분데스리가</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> K리그</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 국가대표</div>
+      <div class="sidebar-label" style="margin-top:12px;">필터</div>
+      <div style="padding:8px 16px;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:12px;color:var(--ts);font-weight:500;margin-top:4px;">상태 등급</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <div class="chip cn" style="font-size:10px;padding:2px 7px;">S</div>
+          <div class="chip co" style="font-size:10px;padding:2px 7px;">A</div>
+          <div class="chip co" style="font-size:10px;padding:2px 7px;">B</div>
+          <div class="chip co" style="font-size:10px;padding:2px 7px;">C</div>
+        </div>
+        <div style="font-size:12px;color:var(--ts);font-weight:500;margin-top:6px;">마킹</div>
+        <div style="display:flex;gap:5px;">
+          <div class="chip cn" style="font-size:10px;padding:2px 7px;">마킹 있음</div>
+          <div class="chip co" style="font-size:10px;padding:2px 7px;">없음</div>
+        </div>
+        <div style="font-size:12px;color:var(--ts);font-weight:500;margin-top:6px;">가격 범위</div>
+        <div style="font-size:12px;color:var(--th);">0원 ~ 500,000원</div>
+      </div>
+      <div style="padding:12px 16px;"><button class="btn btn-p" style="width:100%;font-size:12px;height:32px;">필터 적용</button></div>
+    </div>
+    <!-- Content -->
+    <div class="main-content">
+      <div class="filter-row">
+        <span style="font-size:13px;color:var(--ts);">총 128개 매물</span>
+        <div style="display:flex;gap:6px;margin-left:auto;">
+          <span style="font-size:13px;font-weight:500;color:var(--red);">최신순</span>
+          <span style="font-size:13px;color:var(--th);">인기순</span>
+          <span style="font-size:13px;color:var(--th);">가격↑</span>
+          <span style="font-size:13px;color:var(--th);">가격↓</span>
+        </div>
+        <button class="btn btn-o btn-sm">+ 판매글 등록</button>
+      </div>
+      <div class="grid-5">
+        <!-- Card 1 -->
+        <div class="prod-card">
+          <div class="prod-img"><div class="grade-b">S</div><div class="j j-navy"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div>
+          <div class="prod-info"><div class="prod-team">토트넘 · EPL</div><div class="prod-name">손흥민 23/24 홈 마킹</div><div class="prod-price">78,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">M</div><span style="font-size:10px;color:var(--th);">강남 · 1시간 전</span></div></div>
+        </div>
+        <!-- Card 2 -->
+        <div class="prod-card">
+          <div class="prod-img" style="background:#F5EAEA;"><div class="grade-b" style="background:var(--red);">A</div><div class="j j-red"><div class="j-body"><div class="j-stripe"></div><div class="j-num">10</div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div>
+          <div class="prod-info"><div class="prod-team">맨유 · EPL</div><div class="prod-name">루니 레트로 07/08</div><div class="prod-price">55,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">L</div><span style="font-size:10px;color:var(--th);">마포 · 3시간</span></div></div>
+        </div>
+        <!-- Card 3 -->
+        <div class="prod-card">
+          <div class="prod-img" style="background:#EEF2F8;"><div class="grade-b" style="background:var(--ts);">B</div><div class="j j-blue"><div class="j-body"><div class="j-stripe"></div><div class="j-num">11</div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div>
+          <div class="prod-info"><div class="prod-team">첼시 · EPL</div><div class="prod-name">드로그바 11/12 어웨이</div><div class="prod-price">43,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">XL</div><span style="font-size:10px;color:var(--th);">홍대 · 5시간</span></div></div>
+        </div>
+        <!-- Card 4 -->
+        <div class="prod-card">
+          <div class="prod-img" style="background:#F2EEF8;"><div class="grade-b">S</div><div class="j j-pur"><div class="j-body"><div class="j-stripe"></div><div class="j-num">9</div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div>
+          <div class="prod-info"><div class="prod-team">레알 마드리드</div><div class="prod-name">벤제마 21/22 써드킷</div><div class="prod-price">92,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">S</div><span style="font-size:10px;color:var(--th);">여의도 · 방금</span></div></div>
+        </div>
+        <!-- Card 5 -->
+        <div class="prod-card">
+          <div class="prod-img" style="background:#EAF8EE;"><div class="grade-b">S</div><div class="j" style=""><div class="j-body" style="background:#1A7A40;"><div class="j-body" style="background:transparent;"></div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div>
+          <div class="prod-info"><div class="prod-team">국가대표 · 한국</div><div class="prod-name">이강인 2024 홈 마킹</div><div class="prod-price">66,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">M</div><span style="font-size:10px;color:var(--th);">서초 · 2시간</span></div></div>
+        </div>
+      </div>
+
+      <!-- Auction Section -->
+      <div class="sec-head" style="margin-top:24px;">
+        <span class="sec-title" style="display:flex;align-items:center;gap:8px;">경매 진행 중 <span class="chip cr" style="font-size:10px;padding:2px 7px;">LIVE 3</span></span>
+        <span class="sec-more">전체 경매 보기 ›</span>
+      </div>
+      <div class="grid-3" style="margin-bottom:8px;">
+        <div class="auc-card">
+          <div class="auc-top">
+            <div class="auc-thumb-big"><div class="j j-navy" style="transform:scale(.8);"><div class="j-body"><div class="j-stripe"></div></div></div><div class="auc-live">LIVE</div></div>
+            <div class="auc-info"><div class="auc-team">KBO · 롯데 자이언츠</div><div class="auc-name">이대호 선수 실착 서명 유니폼</div><div style="display:flex;gap:5px;flex-wrap:wrap;"><div class="chip cr" style="font-size:10px;padding:1px 6px;">한정판</div><div class="chip ca" style="font-size:10px;padding:1px 6px;">실착</div><div class="chip co" style="font-size:10px;padding:1px 6px;">입찰 24회</div></div></div>
+          </div>
+          <div class="auc-bottom">
+            <div><div class="auc-price-lbl">현재 최고가</div><div class="auc-price-val">₩ 287,000</div></div>
+            <div class="auc-timer">
+              <div class="auc-time-b"><div class="auc-time-num">02</div><div class="auc-time-unit">시간</div></div>
+              <div class="auc-sep">:</div>
+              <div class="auc-time-b"><div class="auc-time-num">34</div><div class="auc-time-unit">분</div></div>
+              <div class="auc-sep">:</div>
+              <div class="auc-time-b"><div class="auc-time-num">17</div><div class="auc-time-unit">초</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="auc-card">
+          <div class="auc-top">
+            <div class="auc-thumb-big"><div class="j j-red" style="transform:scale(.8);"><div class="j-body"><div class="j-stripe"></div></div></div><div class="auc-live">LIVE</div></div>
+            <div class="auc-info"><div class="auc-team">EPL · 맨체스터 유나이티드</div><div class="auc-name">퍼거슨 시대 레트로 컬렉션</div><div style="display:flex;gap:5px;flex-wrap:wrap;"><div class="chip ca" style="font-size:10px;padding:1px 6px;">레트로</div><div class="chip co" style="font-size:10px;padding:1px 6px;">입찰 11회</div></div></div>
+          </div>
+          <div class="auc-bottom">
+            <div><div class="auc-price-lbl">현재 최고가</div><div class="auc-price-val">₩ 154,000</div></div>
+            <div class="auc-timer">
+              <div class="auc-time-b"><div class="auc-time-num">05</div><div class="auc-time-unit">시간</div></div>
+              <div class="auc-sep">:</div>
+              <div class="auc-time-b"><div class="auc-time-num">12</div><div class="auc-time-unit">분</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="auc-card">
+          <div class="auc-top">
+            <div class="auc-thumb-big"><div class="j j-pur" style="transform:scale(.8);"><div class="j-body"><div class="j-stripe"></div></div></div><div class="auc-live">LIVE</div></div>
+            <div class="auc-info"><div class="auc-team">라리가 · 레알 마드리드</div><div class="auc-name">지단 챔스 결승전 실착 유니폼</div><div style="display:flex;gap:5px;flex-wrap:wrap;"><div class="chip cr" style="font-size:10px;padding:1px 6px;">희귀</div><div class="chip co" style="font-size:10px;padding:1px 6px;">입찰 38회</div></div></div>
+          </div>
+          <div class="auc-bottom">
+            <div><div class="auc-price-lbl">현재 최고가</div><div class="auc-price-val">₩ 920,000</div></div>
+            <div class="auc-timer">
+              <div class="auc-time-b"><div class="auc-time-num">00</div><div class="auc-time-unit">시간</div></div>
+              <div class="auc-sep">:</div>
+              <div class="auc-time-b"><div class="auc-time-num">48</div><div class="auc-time-unit">분</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 2 : 판매글 상세 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 02 &nbsp;›&nbsp; <strong>판매글 상세</strong> &nbsp;—&nbsp; UC-TRD-001 · 007 · 010 · 011</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/trade/detail/1042</div>
+  </div>
+  <div class="gnav">
+    <div class="gnav-logo">RE:<span>FORM</span></div>
+    <div class="gnav-links"><div class="gnav-link active">판매글</div><div class="gnav-link">경매</div><div class="gnav-link">커뮤니티</div></div>
+    <div class="gnav-search"><div class="s-icon"></div><span>검색...</span></div>
+    <div class="gnav-right"><div class="notif-btn"><div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.7);border-radius:5px 5px 0 0;"></div><div class="notif-dot"></div></div><div class="nav-ava">KJ</div></div>
+  </div>
+  <div style="padding:24px 32px;">
+    <!-- Breadcrumb -->
+    <div style="font-size:12px;color:var(--th);margin-bottom:16px;">홈 › 축구 › EPL › <span style="color:var(--tx);">손흥민 23/24 홈 마킹 유니폼</span></div>
+    <div class="det-layout">
+      <!-- Left: Images -->
+      <div class="det-left">
+        <div class="det-img-main">
+          <div class="j j-lg j-navy"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div>
+          <div style="position:absolute;top:12px;left:12px;display:flex;gap:6px;">
+            <div class="chip cn" style="font-size:10px;padding:2px 8px;">S등급</div>
+            <div class="chip ca" style="font-size:10px;padding:2px 8px;">마킹</div>
+          </div>
+          <div style="position:absolute;bottom:12px;left:0;right:0;display:flex;gap:5px;justify-content:center;">
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--navy);"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--bd2);"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--bd2);"></div>
+            <div style="width:7px;height:7px;border-radius:50%;background:var(--bd2);"></div>
+          </div>
+        </div>
+        <div class="det-thumbs">
+          <div class="det-thumb active"><div class="j" style="transform:scale(.6);"><div class="j-body" style="background:var(--navy);width:38px;height:48px;"><div class="j-stripe" style="top:12px;height:3px;"></div></div></div></div>
+          <div class="det-thumb"><div class="j" style="transform:scale(.6);"><div class="j-body" style="background:var(--navy);width:38px;height:48px;opacity:.5;"></div></div></div>
+          <div class="det-thumb"><div style="width:32px;height:32px;background:var(--surf2);border-radius:4px;"></div></div>
+          <div class="det-thumb"><div style="width:32px;height:32px;background:var(--surf2);border-radius:4px;"></div></div>
+        </div>
+      </div>
+      <!-- Right: Info -->
+      <div class="det-right">
+        <div class="det-badge-row">
+          <div class="chip cb">EPL · 토트넘 홋스퍼</div>
+          <div class="chip co">23/24 시즌</div>
+          <div class="chip co">홈 유니폼</div>
+        </div>
+        <div class="det-name">손흥민 홈 마킹 유니폼 — Size M</div>
+        <div class="det-price">78,000원</div>
+        <div class="det-price-sub">+ 배송비 3,000원 · 직거래 협의 가능 · 강남구</div>
+        <div class="divider"></div>
+        <!-- Grade Guide -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:500;color:var(--ts);margin-bottom:8px;">상태 등급 기준</div>
+          <div class="grade-row">
+            <div class="grade-box sel"><div class="grade-ltr">S</div><div class="grade-desc">미착용</div></div>
+            <div class="grade-box"><div class="grade-ltr">A</div><div class="grade-desc">최상</div></div>
+            <div class="grade-box"><div class="grade-ltr">B</div><div class="grade-desc">상</div></div>
+            <div class="grade-box"><div class="grade-ltr">C</div><div class="grade-desc">중</div></div>
+          </div>
+        </div>
+        <!-- Trade Status -->
+        <div style="background:var(--surf);border-radius:var(--r);padding:14px;margin-bottom:16px;">
+          <div style="font-size:11px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">거래 상태</div>
+          <div class="ts-bar">
+            <div class="ts-step done"><div class="ts-circle done"><div class="ts-dot"></div></div><div class="ts-label">구매 요청</div></div>
+            <div class="ts-line done"></div>
+            <div class="ts-step cur"><div class="ts-circle cur"><div class="ts-dot"></div></div><div class="ts-label">판매자 수락</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">결제 완료</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">배송/직거래</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">구매 확정</div></div>
+          </div>
+        </div>
+        <!-- Seller -->
+        <div class="seller-card">
+          <div class="seller-ava">KJ</div>
+          <div style="flex:1;">
+            <div class="seller-name">킥마니아_김준혁</div>
+            <div class="seller-score"><span class="stars">★★★★</span> 4.8 · 거래 47회 완료</div>
+          </div>
+          <button class="btn btn-o btn-sm">프로필 보기</button>
+        </div>
+        <!-- Description -->
+        <div style="font-size:13px;color:var(--ts);line-height:1.7;margin-bottom:14px;">
+          23/24 시즌 토트넘 홈 유니폼으로 손흥민 마킹(7번)이 포함되어 있습니다. 구매 후 한 번도 착용하지 않은 새 제품이며, 정품 태그가 그대로 붙어 있습니다.
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+          <div class="chip co" style="font-size:11px;">#손흥민</div>
+          <div class="chip co" style="font-size:11px;">#토트넘유니폼</div>
+          <div class="chip co" style="font-size:11px;">#EPL</div>
+          <div class="chip co" style="font-size:11px;">#새상품</div>
+        </div>
+        <div class="action-bar">
+          <div style="width:44px;height:44px;border-radius:10px;border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;"><div class="heart-svg"><div class="heart-b-fill"></div></div></div>
+          <button class="btn btn-o btn-lg" style="flex:1;">채팅하기</button>
+          <button class="btn btn-p btn-lg" style="flex:2;">구매하기</button>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button class="btn btn-g btn-sm" style="font-size:12px;color:var(--th);">신고하기</button>
+          <button class="btn btn-g btn-sm" style="font-size:12px;color:var(--th);">공유하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 3 : 판매글 작성 (AI 보조) -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 03 &nbsp;›&nbsp; <strong>판매글 작성</strong> &nbsp;—&nbsp; UC-TRD-001 · AI-001 · AI-002</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/trade/write</div>
+  </div>
+  <div class="gnav">
+    <div class="gnav-logo">RE:<span>FORM</span></div>
+    <div class="gnav-links"><div class="gnav-link active">판매글 등록</div></div>
+    <div class="gnav-right"><button class="nav-btn nav-btn-p">등록 완료</button></div>
+  </div>
+  <div style="padding:24px 32px;">
+    <div style="font-size:20px;font-weight:500;margin-bottom:20px;">유니폼 판매 등록</div>
+    <div class="write-layout">
+      <div class="write-main">
+        <!-- Photos -->
+        <div class="form-section">
+          <div class="form-label">유니폼 사진 (최대 10장)</div>
+          <div class="photo-grid">
+            <div class="photo-thumb"><div class="j j-navy" style="transform:scale(.7);"><div class="j-body"><div class="j-stripe"></div></div></div></div>
+            <div class="photo-thumb" style="background:var(--navy2);opacity:.7;"><div class="j j-navy" style="transform:scale(.7);opacity:.5;"><div class="j-body"></div></div></div>
+            <div class="photo-add"><div class="plus-ic"></div><div style="font-size:10px;color:var(--th);margin-top:4px;">추가</div></div>
+            <div style="align-self:center;font-size:11px;color:var(--th);">2 / 10</div>
+          </div>
+        </div>
+        <!-- Sport / Team -->
+        <div class="form-section">
+          <div class="form-label">종목 · 구단</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <div class="chip cn">⚽ 축구</div>
+            <div class="chip co">⚾ 야구</div>
+            <div class="chip co">🏀 농구</div>
+            <div class="chip co">🏈 미식축구</div>
+          </div>
+          <input class="form-input" placeholder="구단명 검색 (예: 토트넘)" value="토트넘 홋스퍼" />
+        </div>
+        <!-- Name / Season -->
+        <div class="form-section">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div><div class="form-label">유니폼명</div><input class="form-input" value="손흥민 23/24 홈 마킹 유니폼" /></div>
+            <div><div class="form-label">시즌</div><input class="form-input" value="2023/24" /></div>
+          </div>
+        </div>
+        <!-- Grade -->
+        <div class="form-section">
+          <div class="form-label">상태 등급</div>
+          <div class="grade-row">
+            <div class="grade-box sel"><div class="grade-ltr">S</div><div class="grade-desc">미착용</div></div>
+            <div class="grade-box"><div class="grade-ltr">A</div><div class="grade-desc">최상</div></div>
+            <div class="grade-box"><div class="grade-ltr">B</div><div class="grade-desc">상</div></div>
+            <div class="grade-box"><div class="grade-ltr">C</div><div class="grade-desc">중</div></div>
+          </div>
+          <div style="font-size:11px;color:var(--th);margin-top:6px;">S등급: 태그 부착, 세탁·착용 이력 없는 새 제품</div>
+        </div>
+        <!-- Marking / Size / Price -->
+        <div class="form-section">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;">
+            <div>
+              <div class="form-label">마킹 정보</div>
+              <div style="display:flex;gap:6px;margin-bottom:8px;"><div class="chip cn">마킹 있음</div><div class="chip co">마킹 없음</div></div>
+              <input class="form-input" placeholder="선수명 / 등번호" value="손흥민 / 7" />
+            </div>
+            <div><div class="form-label">사이즈</div><input class="form-input" value="M" /></div>
+            <div><div class="form-label">희망 가격 (원)</div><input class="form-input" value="78,000" /></div>
+          </div>
+        </div>
+        <!-- Description -->
+        <div class="form-section">
+          <div class="form-label">상세 설명</div>
+          <textarea class="form-textarea" style="min-height:100px;">23/24 시즌 토트넘 홈 유니폼으로 손흥민 마킹(7번)이 포함되어 있습니다. 구매 후 한 번도 착용하지 않은 새 제품이며, 정품 태그가 그대로 붙어 있습니다. 박스 포장 상태로 보관하였습니다.</textarea>
+        </div>
+      </div>
+      <!-- Side Panel -->
+      <div class="write-side">
+        <!-- AI Box -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;margin-bottom:12px;">
+          <div class="ai-box">
+            <div class="ai-head"><div class="ai-dot-el"></div> AI 문구·태그 자동 추천</div>
+            <div style="font-size:12px;color:#1A4EA5;line-height:1.6;margin-bottom:10px;">"23/24 시즌 토트넘 홈 유니폼, 손흥민 7번 마킹 포함. 태그 부착 미착용 새제품으로 정품 보증합니다."</div>
+            <div class="ai-tag-row">
+              <div class="ai-tag">#손흥민</div>
+              <div class="ai-tag">#EPL</div>
+              <div class="ai-tag">#토트넘</div>
+              <div class="ai-tag">#새상품</div>
+              <div class="ai-tag">#23-24시즌</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;">
+              <button class="btn btn-o btn-sm">다시 추천</button>
+              <button class="btn btn-n btn-sm">본문 적용</button>
+            </div>
+          </div>
+        </div>
+        <!-- Risk Detection -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;margin-bottom:12px;">
+          <div style="font-size:12px;font-weight:500;color:var(--ts);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">AI 위험 문구 탐지</div>
+          <div class="ok-box">
+            <div class="risk-dot" style="background:#27AE60;"></div>
+            <div><strong>LOW — 안전</strong><br>위험 표현이 감지되지 않았습니다.</div>
+          </div>
+          <div style="font-size:11px;color:var(--th);margin-top:8px;line-height:1.5;">선입금 유도, 외부결제 요청, 개인정보 요청 등을 자동으로 탐지합니다.</div>
+        </div>
+        <!-- Preview -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;">
+          <div style="font-size:12px;font-weight:500;color:var(--ts);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">미리보기</div>
+          <div class="prod-card" style="cursor:default;">
+            <div class="prod-img" style="height:120px;"><div class="grade-b">S</div><div class="j j-navy" style="transform:scale(.8);"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div></div>
+            <div class="prod-info"><div class="prod-team">토트넘 · EPL</div><div class="prod-name" style="font-size:12px;">손흥민 23/24 홈 마킹</div><div class="prod-price" style="font-size:14px;">78,000원</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 4 : 검색 결과 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 04 &nbsp;›&nbsp; <strong>검색 · 필터</strong> &nbsp;—&nbsp; UC-SRC-001 · 002 · 003 · 004</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/search?q=손흥민+유니폼</div>
+  </div>
+  <div class="gnav">
+    <div class="gnav-logo">RE:<span>FORM</span></div>
+    <div class="gnav-links"><div class="gnav-link">홈</div><div class="gnav-link active">검색</div></div>
+    <div class="gnav-search" style="width:400px;background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);">
+      <div class="s-icon"></div>
+      <span style="color:#fff;">손흥민 유니폼</span>
+    </div>
+    <div class="gnav-right"><div class="notif-btn"><div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.7);border-radius:5px 5px 0 0;"></div></div><div class="nav-ava">KJ</div></div>
+  </div>
+  <div style="background:#EDF3FE;border-bottom:1px solid #B5D4F4;padding:8px 32px;font-size:12px;color:#1A4EA5;display:flex;align-items:center;gap:6px;">
+    <div style="width:7px;height:7px;border-radius:50%;background:#4A90E2;flex-shrink:0;"></div>
+    AI 의미 검색 적용 중 — 오타·유사 표현도 자동 처리됩니다
+  </div>
+  <div class="page-body">
+    <!-- Filter Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">종목 필터</div>
+      <div class="sidebar-item active"><div class="sidebar-icon active-ic"></div> 전체</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 축구</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 야구</div>
+      <div class="sidebar-label" style="margin-top:8px;">상태 등급</div>
+      <div style="padding:6px 16px;display:flex;flex-direction:column;gap:5px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" checked style="width:14px;height:14px;"> S등급 (미착용)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" checked style="width:14px;height:14px;"> A등급 (최상)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:14px;height:14px;"> B등급 (상)</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:14px;height:14px;"> C등급 (중)</label>
+      </div>
+      <div class="sidebar-label" style="margin-top:8px;">마킹 여부</div>
+      <div style="padding:6px 16px;display:flex;flex-direction:column;gap:5px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" checked style="width:14px;height:14px;"> 마킹 있음</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:14px;height:14px;"> 마킹 없음</label>
+      </div>
+      <div class="sidebar-label" style="margin-top:8px;">가격 범위</div>
+      <div style="padding:6px 16px;font-size:12px;color:var(--ts);">0원 ~ 200,000원</div>
+      <div style="padding:8px 16px;"><button class="btn btn-p" style="width:100%;font-size:12px;height:32px;">필터 적용</button></div>
+    </div>
+    <!-- Results -->
+    <div class="main-content">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <span style="font-size:14px;color:var(--ts);">"손흥민 유니폼" 검색 결과 <strong style="color:var(--tx);">128건</strong></span>
+        <div style="display:flex;gap:8px;margin-left:auto;background:var(--surf);border:1px solid var(--bd);border-radius:8px;padding:4px 8px;">
+          <span style="font-size:12px;font-weight:500;color:var(--red);">최신순</span>
+          <span style="font-size:12px;color:var(--th);">인기순</span>
+          <span style="font-size:12px;color:var(--th);">가격↑</span>
+          <span style="font-size:12px;color:var(--th);">가격↓</span>
+        </div>
+        <div style="display:flex;gap:5px;">
+          <div class="chip cn" style="font-size:11px;">S등급 X</div>
+          <div class="chip cn" style="font-size:11px;">마킹 X</div>
+        </div>
+      </div>
+      <div class="grid-4">
+        <div class="prod-card"><div class="prod-img"><div class="grade-b">S</div><div class="j j-navy"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div><div class="heart-b"><div class="heart-svg"><div class="heart-b-fill"></div></div></div></div><div class="prod-info"><div class="prod-team">토트넘 · EPL</div><div class="prod-name">손흥민 23/24 홈 마킹</div><div class="prod-price">78,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">M</div><div class="chip cb" style="font-size:10px;padding:1px 6px;">AI 추천</div></div></div></div>
+        <div class="prod-card"><div class="prod-img" style="background:#F5EAEA;"><div class="grade-b" style="background:var(--red);">A</div><div class="j j-red"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div></div><div class="prod-info"><div class="prod-team">토트넘 · EPL</div><div class="prod-name">손흥민 22/23 어웨이</div><div class="prod-price">62,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">L</div></div></div></div>
+        <div class="prod-card"><div class="prod-img" style="background:#EAF8EE;"><div class="grade-b">S</div><div class="j" style=""><div class="j-body" style="background:#1A7A40;"><div class="j-stripe" style="background:rgba(255,255,255,.25);top:16px;"></div><div class="j-num">7</div></div></div></div><div class="prod-info"><div class="prod-team">국가대표 · 한국</div><div class="prod-name">손흥민 국대 홈 마킹 정품</div><div class="prod-price">71,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">S</div><div class="chip cb" style="font-size:10px;padding:1px 6px;">AI 추천</div></div></div></div>
+        <div class="prod-card"><div class="prod-img"><div class="grade-b">S</div><div class="j j-navy" style="opacity:.7;"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div></div><div class="prod-info"><div class="prod-team">토트넘 · EPL</div><div class="prod-name">손흥민 21/22 챔스 에디션</div><div class="prod-price">95,000원</div><div class="prod-sub"><div class="chip co" style="font-size:10px;padding:1px 6px;">XL</div></div></div></div>
+      </div>
+      <div style="margin-top:16px;text-align:center;"><button class="btn btn-o" style="width:100%;max-width:280px;">더 보기 (124건 남음)</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 5 : 채팅 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 05 &nbsp;›&nbsp; <strong>1:1 거래 채팅</strong> &nbsp;—&nbsp; UC-CHT-001 · 002 · 003 · 004 · 005</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/chat/room/302</div>
+  </div>
+  <div class="gnav">
+    <div class="gnav-logo">RE:<span>FORM</span></div>
+    <div class="gnav-links"><div class="gnav-link active">채팅</div></div>
+    <div class="gnav-right"><div class="notif-btn"><div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.7);border-radius:5px 5px 0 0;"></div><div class="notif-dot"></div></div><div class="nav-ava">KJ</div></div>
+  </div>
+  <div style="padding:0;">
+    <div class="chat-layout">
+      <!-- Chat List -->
+      <div class="chat-list">
+        <div class="chat-list-header">채팅 목록</div>
+        <div class="chat-list-item active">
+          <div class="chat-ava">LM</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:4px;"><div class="chat-item-name">유니폼마니아_이민수</div><div class="chat-unread">2</div></div>
+            <div class="chat-item-preview">혹시 카카오페이로 먼저 보내드리면...</div>
+            <div style="font-size:10px;color:var(--th);margin-top:2px;">손흥민 23/24 홈 마킹</div>
+          </div>
+          <div class="chat-item-time">2분 전</div>
+        </div>
+        <div class="chat-list-item">
+          <div class="chat-ava" style="background:#B5222B;">PJ</div>
+          <div style="flex:1;min-width:0;">
+            <div class="chat-item-name">박준서</div>
+            <div class="chat-item-preview">네 직거래 가능합니다 강남역에서...</div>
+            <div style="font-size:10px;color:var(--th);margin-top:2px;">드로그바 11/12 어웨이</div>
+          </div>
+          <div class="chat-item-time">1시간 전</div>
+        </div>
+        <div class="chat-list-item">
+          <div class="chat-ava" style="background:#034694;">KS</div>
+          <div style="flex:1;min-width:0;">
+            <div class="chat-item-name">킥스타트_김승현</div>
+            <div class="chat-item-preview">거래 완료 확인해주세요!</div>
+            <div style="font-size:10px;color:var(--th);margin-top:2px;">루니 레트로 07/08</div>
+          </div>
+          <div class="chat-item-time">어제</div>
+        </div>
+      </div>
+      <!-- Chat Main -->
+      <div class="chat-main">
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="chat-product-info">
+            <div class="chat-product-thumb"><div class="j j-navy" style="transform:scale(.65);margin-top:4px;"><div class="j-body"><div class="j-stripe"></div></div></div></div>
+            <div>
+              <div style="font-size:13px;font-weight:500;">손흥민 23/24 홈 마킹 유니폼</div>
+              <div style="font-size:11px;color:var(--th);">킥마니아_김준혁 · 78,000원</div>
+            </div>
+            <div style="margin-left:16px;"><div class="chip ca" style="font-size:10px;">수락됨 · ACCEPTED</div></div>
+          </div>
+          <div class="chat-header-actions">
+            <button class="btn btn-o btn-sm">상품 상세</button>
+            <button class="btn btn-o btn-sm">거래 정보</button>
+          </div>
+        </div>
+        <!-- Trade Status Bar in Chat -->
+        <div style="background:var(--surf2);border-bottom:1px solid var(--bd);padding:10px 20px;">
+          <div class="ts-bar" style="padding:0;">
+            <div class="ts-step done"><div class="ts-circle done"><div class="ts-dot"></div></div><div class="ts-label">요청</div></div>
+            <div class="ts-line done"></div>
+            <div class="ts-step cur"><div class="ts-circle cur"><div class="ts-dot"></div></div><div class="ts-label">수락</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">결제</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">진행</div></div>
+            <div class="ts-line"></div>
+            <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">완료</div></div>
+          </div>
+        </div>
+        <!-- Safety Bar -->
+        <div class="safety-bar">
+          <div style="width:8px;height:8px;border-radius:50%;background:#F5A623;flex-shrink:0;"></div>
+          RE:FORM 안전 거래 채팅 · 외부 결제 유도 및 개인정보 요청 시 자동 차단됩니다
+        </div>
+        <!-- Chat Body -->
+        <div class="chat-body">
+          <div class="msg other">
+            <div class="msg-bubble">안녕하세요! 손흥민 유니폼 정말 상태 좋아 보이네요. 직거래도 가능한가요?</div>
+            <div class="msg-time">오후 2:14</div>
+          </div>
+          <div class="msg mine">
+            <div class="msg-bubble">네, 강남역 근처 직거래 가능합니다. 태그 부착 새 제품 맞고요 사진 추가로 보내드릴게요!</div>
+            <div class="msg-time">오후 2:16 · 읽음</div>
+          </div>
+          <div class="msg other">
+            <div class="msg-bubble">혹시 카카오페이로 먼저 보내드리면 바로 보내주실 수 있나요?</div>
+            <div class="msg-time">오후 2:18</div>
+          </div>
+          <div class="warn-msg">
+            <strong>⚠ AI 위험 문구 감지</strong><br>
+            외부 결제 유도 표현이 포함된 메시지입니다. RE:FORM 안전결제를 이용해 주세요. 이 내용이 반복될 경우 관리자에게 자동 신고됩니다.
+          </div>
+          <div class="msg mine">
+            <div class="msg-bubble">RE:FORM 안전결제로 진행해주세요. 에스크로로 구매 확정 전까지 금액이 보관됩니다.</div>
+            <div class="msg-time">오후 2:20 · 읽음</div>
+          </div>
+        </div>
+        <!-- Trade Action Bar -->
+        <div class="trade-bar">
+          <button class="btn btn-o btn-sm">수령 방법 선택</button>
+          <button class="btn btn-p btn-sm">안전 결제 진행</button>
+          <div style="margin-left:auto;display:flex;gap:6px;">
+            <button class="btn btn-g btn-sm">신고하기</button>
+          </div>
+        </div>
+        <!-- Input -->
+        <div class="chat-input-bar">
+          <div style="width:32px;height:32px;border-radius:8px;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;"><div style="width:14px;height:14px;border-radius:2px;border:1.5px solid var(--th);"></div></div>
+          <input class="chat-input" placeholder="메시지를 입력하세요..." />
+          <div class="chat-send"><div style="width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;border-left:9px solid #fff;margin-left:2px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 6 : 결제 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 06 &nbsp;›&nbsp; <strong>안전 결제 (에스크로)</strong> &nbsp;—&nbsp; UC-PAY-001 · 002 · TRD-008</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/payment/checkout/1042</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-right"><div class="nav-ava">KJ</div></div></div>
+  <div style="padding:24px 32px;">
+    <div style="font-size:20px;font-weight:500;margin-bottom:6px;">안전 결제</div>
+    <div style="font-size:13px;color:var(--ts);margin-bottom:20px;">결제 금액은 구매 확정 전까지 RE:FORM이 에스크로로 보관합니다.</div>
+    <div class="pay-layout">
+      <div class="pay-main">
+        <!-- Product -->
+        <div class="pay-section">
+          <div class="pay-section-title">주문 상품</div>
+          <div style="display:flex;gap:14px;align-items:center;">
+            <div style="width:64px;height:74px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div class="j j-navy" style="transform:scale(.7);"><div class="j-body"><div class="j-stripe"></div><div class="j-num">7</div></div></div></div>
+            <div>
+              <div style="font-size:15px;font-weight:500;">손흥민 23/24 홈 마킹 유니폼</div>
+              <div style="font-size:12px;color:var(--th);margin-top:3px;">토트넘 · S등급 · Size M · 마킹 포함</div>
+              <div style="margin-top:6px;"><div class="chip cn" style="font-size:10px;padding:2px 7px;">킥마니아_김준혁</div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Receive -->
+        <div class="pay-section">
+          <div class="pay-section-title">수령 방법</div>
+          <div class="receive-grid">
+            <div class="receive-item sel">
+              <div class="receive-icon">📦</div>
+              <div class="receive-name">택배 배송</div>
+              <div class="receive-sub">+3,000원 별도</div>
+            </div>
+            <div class="receive-item">
+              <div class="receive-icon">🤝</div>
+              <div class="receive-name">직거래</div>
+              <div class="receive-sub">채팅에서 장소 협의</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;background:var(--surf);border-radius:var(--r);padding:12px 14px;">
+            <div style="font-size:12px;font-weight:500;margin-bottom:6px;">배송지 주소</div>
+            <div style="font-size:13px;color:var(--ts);">서울시 강남구 테헤란로 123, 101동 201호</div>
+            <button class="btn btn-o btn-sm" style="margin-top:8px;">주소 변경</button>
+          </div>
+        </div>
+        <!-- Payment Method -->
+        <div class="pay-section">
+          <div class="pay-section-title">결제 수단</div>
+          <div class="pay-method-grid">
+            <div class="pay-method sel"><div class="pay-method-icon">💳</div><div class="pay-method-name">신용카드</div></div>
+            <div class="pay-method"><div class="pay-method-icon">📱</div><div class="pay-method-name">카카오페이</div></div>
+            <div class="pay-method"><div class="pay-method-icon">🏦</div><div class="pay-method-name">계좌이체</div></div>
+            <div class="pay-method"><div class="pay-method-icon">🍎</div><div class="pay-method-name">토스페이</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Summary Side -->
+      <div class="pay-side">
+        <div class="pay-section">
+          <div class="pay-section-title">결제 금액</div>
+          <div class="price-row"><span>상품 금액</span><span class="info-val">78,000원</span></div>
+          <div class="price-row"><span>배송비</span><span class="info-val">3,000원</span></div>
+          <div class="price-row"><span>플랫폼 수수료</span><span class="info-val">0원</span></div>
+          <div class="price-row total"><span>총 결제 금액</span><span>81,000원</span></div>
+          <div style="margin-top:16px;"><button class="btn btn-p btn-xl" style="width:100%;">81,000원 안전 결제하기</button></div>
+          <div style="font-size:11px;color:var(--th);text-align:center;margin-top:8px;">Toss Payments 에스크로 결제</div>
+        </div>
+        <div class="escrow-box">
+          <div style="width:16px;height:16px;border-radius:3px;background:#27AE60;flex-shrink:0;margin-top:1px;"></div>
+          <div style="line-height:1.6;"><strong>에스크로 안전결제</strong><br>구매 확정 전까지 RE:FORM이 결제 금액을 보관하며, 판매자에게 직접 전달되지 않습니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 7 : 마이페이지 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 07 &nbsp;›&nbsp; <strong>마이페이지</strong> &nbsp;—&nbsp; UC-MEM-004~008 · PAY-005~006</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/mypage</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-links"><div class="gnav-link active">마이페이지</div></div><div class="gnav-right"><div class="nav-ava">KJ</div></div></div>
+  <div style="padding:24px 32px;">
+    <div class="my-layout">
+      <!-- Left -->
+      <div style="width:280px;flex-shrink:0;">
+        <div class="my-profile-card">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="my-ava">KJ</div>
+            <div>
+              <div class="my-name">킥마니아_김준혁</div>
+              <div class="my-sub">가입 2023.03 · 서울 강남</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;"><div class="chip ca" style="font-size:10px;padding:2px 7px;">판매자</div><div class="chip co" style="border-color:rgba(255,255,255,.3);color:#fff;font-size:10px;padding:2px 7px;">EPL 팬</div></div>
+          <div class="my-stats">
+            <div class="my-stat"><div class="my-stat-num">47</div><div class="my-stat-lbl">거래 완료</div></div>
+            <div class="my-stat"><div class="my-stat-num">1,240</div><div class="my-stat-lbl">활동 포인트</div></div>
+            <div class="my-stat"><div class="my-stat-num">4.8</div><div class="my-stat-lbl">매너 점수</div></div>
+          </div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-label">거래 관리</div>
+          <div class="menu-item"><div class="menu-ic" style="background:var(--surf2);"></div><span style="font-size:13px;">판매 내역</span><div class="chip cr" style="font-size:10px;padding:1px 6px;margin-left:auto;">진행 2</div><div class="menu-arrow" style="margin-left:8px;"></div></div>
+          <div class="menu-item"><div class="menu-ic" style="background:var(--surf2);"></div><span style="font-size:13px;">구매 내역</span><div class="menu-arrow"></div></div>
+          <div class="menu-item"><div class="menu-ic" style="background:#FEF0F0;"></div><span style="font-size:13px;">찜 목록</span><span style="font-size:12px;color:var(--th);margin-left:auto;">12개</span><div class="menu-arrow" style="margin-left:8px;"></div></div>
+        </div>
+        <div class="menu-card">
+          <div class="menu-label">계정 설정</div>
+          <div class="menu-item"><div class="menu-ic" style="background:#FFF8EC;"></div><span style="font-size:13px;">관심 종목·구단 설정</span><div class="menu-arrow"></div></div>
+          <div class="menu-item"><div class="menu-ic" style="background:#EBF8F1;"></div><span style="font-size:13px;">매너 평가 확인</span><span class="stars" style="margin-left:auto;font-size:12px;">★★★★</span><div class="menu-arrow" style="margin-left:8px;"></div></div>
+          <div class="menu-item"><div class="menu-ic" style="background:var(--surf2);"></div><span style="font-size:13px;">알림 설정</span><div class="menu-arrow"></div></div>
+          <div class="menu-item"><div class="menu-ic" style="background:var(--surf2);"></div><span style="font-size:13px;">프로필 수정</span><div class="menu-arrow"></div></div>
+        </div>
+      </div>
+      <!-- Right -->
+      <div style="flex:1;">
+        <div class="point-card">
+          <div class="point-lbl">보유 포인트 (정산용)</div>
+          <div class="point-num">324,500<span>P</span></div>
+          <div class="point-row-grid">
+            <div class="point-mini"><div class="point-mini-lbl">출금 가능</div><div class="point-mini-num">200,000P</div></div>
+            <div class="point-mini"><div class="point-mini-lbl">출금 대기</div><div class="point-mini-num">124,500P</div></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;">
+            <button class="btn btn-o btn-sm" style="border-color:rgba(255,255,255,.25);color:#fff;">출금 요청하기</button>
+            <button class="btn btn-g btn-sm" style="color:rgba(255,255,255,.6);">이력 조회</button>
+          </div>
+        </div>
+        <!-- Trade History Tabs -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;">
+          <div class="tabs" style="padding:0 16px;margin-bottom:0;">
+            <div class="tab active">진행 중인 거래 (2)</div>
+            <div class="tab">판매 이력</div>
+            <div class="tab">구매 이력</div>
+          </div>
+          <!-- Trade Items -->
+          <div style="padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;gap:12px;align-items:center;">
+            <div style="width:52px;height:60px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div class="j j-navy" style="transform:scale(.65);"><div class="j-body"><div class="j-stripe"></div></div></div></div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:500;">손흥민 23/24 홈 마킹 유니폼</div>
+              <div style="font-size:12px;color:var(--th);margin-top:2px;">구매자: 유니폼마니아_이민수 · 78,000원</div>
+              <div style="margin-top:6px;"><div class="chip ca" style="font-size:10px;padding:2px 7px;">ACCEPTED · 수락됨</div></div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-o btn-sm">채팅 보기</button>
+              <button class="btn btn-p btn-sm">결제 안내</button>
+            </div>
+          </div>
+          <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;">
+            <div style="width:52px;height:60px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div class="j j-red" style="transform:scale(.65);"><div class="j-body"><div class="j-stripe"></div></div></div></div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:500;">루니 레트로 07/08 유니폼</div>
+              <div style="font-size:12px;color:var(--th);margin-top:2px;">구매자: 박준서 · 55,000원</div>
+              <div style="margin-top:6px;"><div class="chip cb" style="font-size:10px;padding:2px 7px;">IN_PROGRESS · 배송 중</div></div>
+            </div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-o btn-sm">배송 조회</button>
+            </div>
+          </div>
+        </div>
+        <!-- Recent Review -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;">
+          <div style="font-size:13px;font-weight:500;margin-bottom:14px;">최근 받은 매너 후기</div>
+          <div style="display:flex;gap:12px;padding:12px;background:var(--surf);border-radius:var(--r);">
+            <div class="chat-ava" style="width:36px;height:36px;font-size:13px;flex-shrink:0;">LM</div>
+            <div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:13px;font-weight:500;">유니폼마니아_이민수</span><span class="stars">★★★★★</span><span style="font-size:11px;color:var(--th);">5.0 · 3일 전</span></div>
+              <div style="font-size:13px;color:var(--ts);margin-top:5px;line-height:1.6;">포장도 꼼꼼하고 빠른 발송 감사합니다. 상품 상태가 설명과 동일해서 만족스러운 거래였어요!</div>
+            </div>
+          </div>
+          <button class="btn btn-o" style="width:100%;margin-top:12px;font-size:12px;">후기 전체 보기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 8 : 커뮤니티 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 08 &nbsp;›&nbsp; <strong>커뮤니티</strong> &nbsp;—&nbsp; UC-COM-001 · 002 · 003 · 004 · 005</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/community</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-links"><div class="gnav-link">홈</div><div class="gnav-link">판매글</div><div class="gnav-link active">커뮤니티</div></div><div class="gnav-search"><div class="s-icon"></div><span>검색...</span></div><div class="gnav-right"><div class="notif-btn"><div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.7);border-radius:5px 5px 0 0;"></div></div><div class="nav-ava">KJ</div></div></div>
+  <div class="page-body">
+    <!-- Community Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">카테고리</div>
+      <div class="sidebar-item active"><div class="sidebar-icon active-ic"></div> 전체</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 자유</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 직관 동행</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 경기 이야기</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 굿즈·유니폼 반응</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 이벤트</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 분실물</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 질문</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 정보 공유</div>
+      <div style="padding:16px;"><button class="btn btn-p" style="width:100%;font-size:12px;height:32px;">+ 글쓰기</button></div>
+    </div>
+    <div class="main-content">
+      <!-- Hot posts -->
+      <div style="background:#FFF8EC;border:1px solid #F5C97A;border-radius:var(--r);padding:12px 16px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:#8A6010;margin-bottom:10px;">지역별 인기글 TOP 3 (최근 24시간)</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          <div style="background:rgba(255,255,255,.7);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#8A6010;font-weight:500;margin-bottom:4px;">1위 · 서울 강남</div>
+            <div style="font-size:13px;font-weight:500;color:var(--tx);">손흥민 국대 직관 같이 갈 분 구해요</div>
+            <div style="font-size:11px;color:var(--th);margin-top:4px;">❤ 142 · 💬 38</div>
+          </div>
+          <div style="background:rgba(255,255,255,.7);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#8A6010;font-weight:500;margin-bottom:4px;">2위 · 서울 마포</div>
+            <div style="font-size:13px;font-weight:500;color:var(--tx);">2002 월드컵 유니폼 구매 후기</div>
+            <div style="font-size:11px;color:var(--th);margin-top:4px;">❤ 87 · 💬 22</div>
+          </div>
+          <div style="background:rgba(255,255,255,.7);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:10px;color:#8A6010;font-weight:500;margin-bottom:4px;">3위 · 서울 홍대</div>
+            <div style="font-size:13px;font-weight:500;color:var(--tx);">EPL 레트로 유니폼 감정가 기준이?</div>
+            <div style="font-size:11px;color:var(--th);margin-top:4px;">❤ 45 · 💬 19</div>
+          </div>
+        </div>
+      </div>
+      <!-- Posts -->
+      <div class="com-card">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div class="com-ava-sm" style="width:36px;height:36px;font-size:13px;flex-shrink:0;">TK</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:13px;font-weight:500;">티켓왕_박태규</span><div class="com-cat-chip">직관 동행</div><span class="hot-badge">HOT</span><span style="font-size:11px;color:var(--th);margin-left:auto;">2시간 전</span></div>
+            <div class="com-title">손흥민 국대 직관 같이 갈 분 구해요 🙌</div>
+            <div class="com-body">6월 A매치 홈 경기 직관 동행 구합니다. 2석 있고 강남쪽 거주자 우선으로 연락 주세요. 원정 응원석 바로 옆 자리라 분위기 최고입니다!</div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;"><div class="chip co" style="font-size:10px;padding:1px 6px;">#직관동행</div><div class="chip co" style="font-size:10px;padding:1px 6px;">#국대</div><div class="chip co" style="font-size:10px;padding:1px 6px;">#A매치</div></div>
+            <div style="display:flex;gap:16px;align-items:center;">
+              <span class="com-stat">❤ 142</span><span class="com-stat">💬 38</span><span class="com-stat">👁 1,204</span>
+              <button class="btn btn-o btn-sm" style="margin-left:auto;font-size:11px;">좋아요</button>
+              <button class="btn btn-o btn-sm" style="font-size:11px;">댓글 달기</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="com-card">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div class="com-ava-sm" style="width:36px;height:36px;font-size:13px;flex-shrink:0;">LJ</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:13px;font-weight:500;">레트로킥_이지원</span><div class="com-cat-chip">굿즈·유니폼 반응</div><span style="font-size:11px;color:var(--th);margin-left:auto;">5시간 전</span></div>
+            <div class="com-title">2002 월드컵 유니폼 실물 구매 후기 올립니다</div>
+            <div class="com-body">어제 RE:FORM에서 구매한 2002년 국대 유니폼 받았어요. A등급이었는데 상태가 정말 최상급이에요. 판매자분도 친절하시고 포장도 꼼꼼하게 해주셨습니다.</div>
+            <div style="display:flex;gap:16px;align-items:center;"><span class="com-stat">❤ 87</span><span class="com-stat">💬 22</span><span class="com-stat">👁 634</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="com-card">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div class="com-ava-sm" style="width:36px;height:36px;font-size:13px;flex-shrink:0;background:#034694;">CJ</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><span style="font-size:13px;font-weight:500;">첼시덕_최준</span><div class="com-cat-chip">질문</div><span style="font-size:11px;color:var(--th);margin-left:auto;">어제</span></div>
+            <div class="com-title">90년대 EPL 레트로 유니폼 감정가 기준이 뭔가요?</div>
+            <div class="com-body">오래된 EPL 유니폼 판매 전에 가격 산정이 어려운데, 기준이 있을까요? 시즌, 등급, 마킹 여부 외에 희귀성도 반영되나요?</div>
+            <div style="display:flex;gap:16px;align-items:center;"><span class="com-stat">❤ 45</span><span class="com-stat">💬 19</span><span class="com-stat">👁 412</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SCREEN 9 : 관리자 대시보드 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="pg-sep">화면 09 &nbsp;›&nbsp; <strong>관리자 대시보드</strong> &nbsp;—&nbsp; UC-ADM-001 · 002 · 003 · 004 · 005</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/admin/dashboard</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span> <span style="font-size:13px;color:rgba(255,255,255,.5);letter-spacing:1px;font-family:'DM Sans',sans-serif;font-weight:400;">ADMIN</span></div><div class="gnav-right"><div class="chip cr" style="font-size:11px;">관리자</div><div class="nav-ava" style="background:#5A6A7A;">AD</div></div></div>
+  <div style="display:flex;height:auto;">
+    <!-- Admin Sidebar -->
+    <div class="sidebar" style="min-height:540px;">
+      <div class="sidebar-label">관리 메뉴</div>
+      <div class="sidebar-item active"><div class="sidebar-icon active-ic"></div> 대시보드</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 신고 관리 <div class="chip cr" style="font-size:9px;padding:1px 5px;margin-left:auto;">7</div></div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 회원 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 게시글 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 출금 요청 <div class="chip ca" style="font-size:9px;padding:1px 5px;margin-left:auto;">3</div></div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 분쟁 관리 <div class="chip cr" style="font-size:9px;padding:1px 5px;margin-left:auto;">2</div></div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 경매 심사 <div class="chip ca" style="font-size:9px;padding:1px 5px;margin-left:auto;">4</div></div>
+    </div>
+    <div class="main-content">
+      <!-- Stats -->
+      <div class="adm-stat-row">
+        <div class="adm-stat"><div class="adm-stat-num" style="color:var(--red);">7</div><div class="adm-stat-lbl">신고 대기</div></div>
+        <div class="adm-stat"><div class="adm-stat-num" style="color:var(--gold);">3</div><div class="adm-stat-lbl">출금 요청</div></div>
+        <div class="adm-stat"><div class="adm-stat-num" style="color:#C0201F;">2</div><div class="adm-stat-lbl">분쟁 거래</div></div>
+        <div class="adm-stat"><div class="adm-stat-num">4</div><div class="adm-stat-lbl">경매 심사</div></div>
+        <div class="adm-stat"><div class="adm-stat-num" style="color:var(--green);">1,204</div><div class="adm-stat-lbl">오늘 활성 유저</div></div>
+      </div>
+      <!-- Report Table -->
+      <div style="font-size:14px;font-weight:500;margin-bottom:12px;">신고 내역 처리</div>
+      <div class="adm-table">
+        <div class="adm-th" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1.5fr;">
+          <div>신고 대상</div><div>사유</div><div>AI 위험도</div><div>신고 횟수</div><div>조치</div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1.5fr;">
+          <div><div style="font-size:13px;font-weight:500;">홍길동_유니폼판매글</div><div style="font-size:11px;color:var(--th);margin-top:2px;">판매글 · 허위매물 의심</div></div>
+          <div><div class="chip" style="background:#FEF0F0;color:#C0201F;border-color:#F5A5A5;font-size:10px;">허위매물</div></div>
+          <div><div class="chip cr" style="font-size:10px;">HIGH</div></div>
+          <div style="font-size:13px;font-weight:500;color:var(--red);">3회</div>
+          <div style="display:flex;gap:5px;"><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">정상</button><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">주의</button><button class="btn btn-p btn-sm" style="font-size:11px;padding:0 8px;height:28px;">삭제</button></div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1.5fr;">
+          <div><div style="font-size:13px;font-weight:500;">레알팬_이수진 (채팅)</div><div style="font-size:11px;color:var(--th);margin-top:2px;">채팅 · 외부 결제 유도</div></div>
+          <div><div class="chip ca" style="font-size:10px;">외부결제</div></div>
+          <div><div class="chip ca" style="font-size:10px;">MID</div></div>
+          <div style="font-size:13px;font-weight:500;color:var(--gold);">2회</div>
+          <div style="display:flex;gap:5px;"><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">정상</button><button class="btn btn-n btn-sm" style="font-size:11px;padding:0 8px;height:28px;">정지</button></div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 1.5fr 1fr 1fr 1.5fr;">
+          <div><div style="font-size:13px;font-weight:500;">유니폼덕_김민지</div><div style="font-size:11px;color:var(--th);margin-top:2px;">판매글 · 사기 의심</div></div>
+          <div><div class="chip" style="background:#FEF0F0;color:#C0201F;border-color:#F5A5A5;font-size:10px;">사기의심</div></div>
+          <div><div class="chip cg" style="font-size:10px;">LOW</div></div>
+          <div style="font-size:13px;font-weight:500;color:var(--ts);">1회</div>
+          <div style="display:flex;gap:5px;"><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">정상</button><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">주의</button></div>
+        </div>
+      </div>
+      <!-- Withdrawal Table -->
+      <div style="font-size:14px;font-weight:500;margin:20px 0 12px;">출금 요청 처리</div>
+      <div class="adm-table">
+        <div class="adm-th" style="grid-template-columns:2fr 1.5fr 1fr 2fr;">
+          <div>판매자</div><div>출금 요청액</div><div>상태</div><div>처리</div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 1.5fr 1fr 2fr;">
+          <div><div style="font-size:13px;font-weight:500;">킥마니아_김준혁</div><div style="font-size:11px;color:var(--th);">신청일: 2024.01.15</div></div>
+          <div style="font-size:14px;font-weight:500;">200,000P</div>
+          <div><div class="chip ca" style="font-size:10px;">대기</div></div>
+          <div style="display:flex;gap:5px;"><button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">반려</button><button class="btn btn-n btn-sm" style="font-size:11px;padding:0 8px;height:28px;">승인</button><button class="btn btn-p btn-sm" style="font-size:11px;padding:0 8px;height:28px;">완료처리</button></div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 1.5fr 1fr 2fr;">
+          <div><div style="font-size:13px;font-weight:500;">레트로킥_이지원</div><div style="font-size:11px;color:var(--th);">신청일: 2024.01.14</div></div>
+          <div style="font-size:14px;font-weight:500;">150,000P</div>
+          <div><div class="chip cg" style="font-size:10px;">승인됨</div></div>
+          <div style="display:flex;gap:5px;"><button class="btn btn-p btn-sm" style="font-size:11px;padding:0 8px;height:28px;">완료처리</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:20px;font-size:11px;color:var(--th);border-top:1px solid var(--bd);background:#fff;margin-top:4px;">
+  RE:FORM 데스크탑 와이어프레임 — 총 9개 화면 · UC 35개 반영 (지역·경매 제외)
+</div>
+                                                                                                                         

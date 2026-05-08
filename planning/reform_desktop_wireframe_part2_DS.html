@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+
+</body>
+</html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+/* ── Local Fonts ── */
+@font-face{font-family:'Pretendard';font-weight:400;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Regular.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:500;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Medium.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:600;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-SemiBold.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:700;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-Bold.woff2') format('woff2');}
+@font-face{font-family:'Pretendard';font-weight:800;font-style:normal;font-display:swap;src:url('/fonts/Pretendard-ExtraBold.woff2') format('woff2');}
+@font-face{font-family:'IAMAPLAYER';font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0020-007E,U+00A0-00FF;src:url('/fonts/IAMAPLAYER.woff2') format('woff2');}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --navy:#002147;--navy2:#1A3051;--navy3:#343F5B;
+  --red:#FF2E4D;--gold:#FFB800;--green:#00B36E;
+  --surf:#F4F6F9;--surf2:#EBEEF3;
+  --bd:rgba(13,27,42,.10);--bd2:rgba(13,27,42,.20);
+  --tx:#0D1B2A;--ts:#5A6A7A;--th:#9BAAB9;
+  --r:8px;--rl:12px;
+}
+body{font-family:'DM Sans',sans-serif;background:#E8EBF0;color:var(--tx);}
+
+.pg-sep{background:var(--navy);color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:6px 20px;display:flex;align-items:center;gap:8px;}
+.pg-sep strong{color:#fff;}
+
+.browser{background:#fff;border:1px solid var(--bd2);border-radius:var(--rl);overflow:hidden;margin-bottom:28px;}
+.browser-bar{background:#F0F2F5;border-bottom:1px solid var(--bd);padding:8px 14px;display:flex;align-items:center;gap:8px;}
+.b-dot{width:9px;height:9px;border-radius:50%;}
+.b-url{flex:1;background:#fff;border:1px solid var(--bd);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--ts);margin:0 12px;}
+
+.gnav{background:var(--navy);height:56px;display:flex;align-items:center;padding:0 32px;gap:0;}
+.gnav-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:3px;margin-right:40px;flex-shrink:0;}
+.gnav-logo span{color:var(--red);}
+.gnav-links{display:flex;gap:0;flex:1;}
+.gnav-link{padding:0 16px;height:56px;display:flex;align-items:center;font-size:13px;color:rgba(255,255,255,.6);cursor:pointer;border-bottom:2px solid transparent;}
+.gnav-link.active{color:#fff;border-bottom-color:var(--red);}
+.gnav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.nav-btn{height:32px;padding:0 14px;border-radius:7px;border:1px solid rgba(255,255,255,.2);background:transparent;font-size:12px;color:rgba(255,255,255,.8);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.nav-btn-p{background:var(--red);border-color:var(--red);color:#fff;}
+.nav-ava{width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;font-weight:500;}
+
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500;border:1px solid;}
+.cn{background:var(--navy);color:#fff;border-color:var(--navy);}
+.co{background:transparent;color:var(--navy);border-color:var(--bd2);}
+.cr{background:var(--red);color:#fff;border-color:var(--red);}
+.cg{background:#EBF8F1;color:#1A7A40;border-color:#7FD4A5;}
+.ca{background:#FFF8EC;color:#8A6010;border-color:#F5C97A;}
+.cb{background:#EDF3FE;color:#1A4EA5;border-color:#96BAEF;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid;padding:0 16px;height:36px;font-family:'DM Sans',sans-serif;}
+.btn-p{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-n{background:var(--navy);color:#fff;border-color:var(--navy);}
+.btn-o{background:transparent;color:var(--navy);border-color:var(--bd2);}
+.btn-g{background:transparent;color:var(--ts);border-color:transparent;}
+.btn-sm{height:30px;padding:0 12px;font-size:12px;border-radius:7px;}
+.btn-lg{height:44px;padding:0 28px;font-size:15px;border-radius:10px;}
+.btn-xl{height:52px;padding:0 32px;font-size:16px;border-radius:10px;}
+
+.sidebar{width:220px;flex-shrink:0;background:#fff;border-right:1px solid var(--bd);padding:20px 0;min-height:400px;}
+.sidebar-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--th);padding:8px 20px 4px;font-weight:500;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;border-left:3px solid transparent;font-size:13px;color:var(--ts);}
+.sidebar-item.active{color:var(--navy);font-weight:500;border-left-color:var(--red);background:#F8F9FB;}
+.sidebar-icon{width:24px;height:24px;border-radius:6px;background:var(--surf2);flex-shrink:0;}
+.sidebar-icon.aic{background:var(--navy);}
+.page-body{display:flex;gap:0;background:var(--surf);}
+.main-content{flex:1;min-width:0;padding:24px;}
+
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:20px;}
+.tab{padding:10px 18px;font-size:13px;cursor:pointer;color:var(--th);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.active{color:var(--navy);border-bottom-color:var(--red);font-weight:500;}
+
+.divider{height:1px;background:var(--bd);margin:16px 0;}
+
+.form-section{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:14px;}
+.form-label{font-size:11px;font-weight:500;color:var(--th);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:block;}
+.form-input{width:100%;height:38px;border:1px solid var(--bd);border-radius:8px;padding:0 12px;font-size:13px;background:var(--surf);font-family:'DM Sans',sans-serif;}
+.form-textarea{width:100%;min-height:80px;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:13px;background:var(--surf);font-family:'DM Sans',sans-serif;resize:none;}
+
+.ts-bar{display:flex;align-items:center;padding:0;}
+.ts-step{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.ts-circle{width:28px;height:28px;border-radius:50%;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;}
+.ts-circle.done{background:var(--navy);border-color:var(--navy);}
+.ts-circle.cur{background:var(--red);border-color:var(--red);}
+.ts-circle.comp{background:var(--green);border-color:var(--green);}
+.ts-dot{width:7px;height:7px;border-radius:50%;background:#fff;}
+.ts-label{font-size:10px;color:var(--th);white-space:nowrap;}
+.ts-step.done .ts-label,.ts-step.cur .ts-label,.ts-step.comp .ts-label{color:var(--navy);font-weight:500;}
+.ts-line{flex:1;height:1.5px;background:var(--bd);min-width:20px;}
+.ts-line.done{background:var(--navy);}
+.ts-line.comp{background:var(--green);}
+
+.adm-table{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);overflow:hidden;}
+.adm-th{background:var(--surf2);border-bottom:1px solid var(--bd);padding:9px 16px;font-size:10px;color:var(--th);text-transform:uppercase;letter-spacing:.5px;font-weight:500;display:grid;}
+.adm-tr{padding:12px 16px;border-bottom:1px solid var(--bd);display:grid;align-items:center;font-size:13px;}
+.adm-tr:last-child{border-bottom:none;}
+
+.jersey{position:relative;display:inline-block;}
+.jb{width:52px;height:64px;border-radius:4px 4px 0 0;position:relative;}
+.jb::before{content:'';position:absolute;top:0;left:-10px;width:13px;height:22px;border-radius:0 0 7px 0;}
+.jb::after{content:'';position:absolute;top:0;right:-10px;width:13px;height:22px;border-radius:0 0 0 7px;}
+.js{position:absolute;top:16px;left:0;right:0;height:4px;background:rgba(255,255,255,.25);}
+.jn{position:absolute;top:24px;left:0;right:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:rgba(255,255,255,.3);}
+.jnav .jb,.jnav .jb::before,.jnav .jb::after{background:var(--navy);}
+.jred .jb,.jred .jb::before,.jred .jb::after{background:#B5222B;}
+.jblue .jb,.jblue .jb::before,.jblue .jb::after{background:#034694);}
+.jgrn .jb,.jgrn .jb::before,.jgrn .jb::after{background:#1A7A40;}
+
+.star-row{display:flex;gap:8px;}
+.star{width:40px;height:40px;border-radius:8px;border:1.5px solid var(--bd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;}
+.star.on{border-color:var(--gold);background:#FFF8EC;}
+
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--bd);font-size:13px;}
+.info-val{color:var(--ts);}
+</style>
+
+<h2 class="sr-only">RE:FORM 추가 와이어프레임 — 화면 10~16 (경매 제외)</h2>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 10 : 로그인 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 10 &nbsp;›&nbsp; <strong>로그인</strong> &nbsp;—&nbsp; UC-MEM-002 · 003</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/login</div>
+  </div>
+  <div style="display:flex;min-height:560px;">
+    <!-- Left: Brand Panel -->
+    <div style="width:420px;flex-shrink:0;background:var(--navy);padding:60px 48px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-40px;top:-40px;width:240px;height:240px;border-radius:50%;border:40px solid rgba(255,255,255,.04);"></div>
+      <div style="position:absolute;left:-30px;bottom:-30px;width:160px;height:160px;border-radius:50%;border:28px solid rgba(255,255,255,.04);"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;letter-spacing:4px;margin-bottom:6px;">RE:<span style="color:var(--red);">FORM</span></div>
+      <div style="font-size:15px;color:rgba(255,255,255,.55);line-height:1.7;margin-bottom:40px;">스포츠 유니폼 중고 거래<br>국내 최대 플랫폼</div>
+      <!-- 3 mini feature pills -->
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.08);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.5);"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#fff;">에스크로 안전결제</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">구매 확정 전까지 RE:FORM이 보관</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.08);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:16px;height:16px;border-radius:3px;background:rgba(255,255,255,.4);"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#fff;">AI 사기 자동 탐지</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">위험 문구·허위매물 실시간 차단</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.08);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            <div style="width:16px;height:8px;border-radius:2px;background:rgba(255,255,255,.4);"></div>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:500;color:#fff;">S·A·B·C 등급 기준 통일</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);">표준화된 상태 등급으로 신뢰 거래</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Right: Login Form -->
+    <div style="flex:1;padding:60px 48px;display:flex;flex-direction:column;justify-content:center;background:#fff;">
+      <div style="font-size:22px;font-weight:500;margin-bottom:4px;">로그인</div>
+      <div style="font-size:13px;color:var(--ts);margin-bottom:32px;">계정이 없으신가요? <span style="color:var(--red);cursor:pointer;">회원가입</span></div>
+      <!-- Social Buttons -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px;">
+        <button class="btn btn-lg" style="width:100%;background:#FEE500;border-color:#FEE500;color:#191919;font-size:14px;justify-content:flex-start;padding:0 20px;gap:12px;">
+          <div style="width:22px;height:22px;background:#191919;border-radius:50%;flex-shrink:0;"></div>
+          카카오로 로그인
+        </button>
+        <button class="btn btn-lg" style="width:100%;background:#fff;border-color:var(--bd2);color:var(--tx);font-size:14px;justify-content:flex-start;padding:0 20px;gap:12px;">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--surf2);flex-shrink:0;"></div>
+          구글로 로그인
+        </button>
+      </div>
+      <!-- Divider -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <div style="flex:1;height:1px;background:var(--bd);"></div>
+        <span style="font-size:12px;color:var(--th);">또는 이메일로 로그인</span>
+        <div style="flex:1;height:1px;background:var(--bd);"></div>
+      </div>
+      <!-- Email Form -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+        <div>
+          <label class="form-label">이메일</label>
+          <input class="form-input" placeholder="example@email.com" style="background:#fff;" />
+        </div>
+        <div>
+          <label class="form-label">비밀번호</label>
+          <input class="form-input" type="password" placeholder="비밀번호 입력" style="background:#fff;" />
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" style="width:15px;height:15px;"> 로그인 상태 유지</label>
+        <span style="font-size:12px;color:var(--red);cursor:pointer;">비밀번호 찾기</span>
+      </div>
+      <button class="btn btn-p btn-xl" style="width:100%;font-size:15px;">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 11 : 회원가입 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 11 &nbsp;›&nbsp; <strong>회원가입</strong> &nbsp;—&nbsp; UC-MEM-001 · NFR-L01</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/signup</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-right"><span style="font-size:12px;color:rgba(255,255,255,.55);">이미 계정이 있으신가요?</span><button class="nav-btn">로그인</button></div></div>
+  <div style="max-width:520px;margin:0 auto;padding:48px 24px;">
+    <!-- Step indicator -->
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:36px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#fff;">1</div>
+        <div style="font-size:11px;font-weight:500;color:var(--navy);">기본 정보</div>
+      </div>
+      <div style="flex:1;height:1.5px;background:var(--navy);margin-bottom:16px;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--th);">2</div>
+        <div style="font-size:11px;color:var(--th);">관심 설정</div>
+      </div>
+      <div style="flex:1;height:1.5px;background:var(--bd);margin-bottom:16px;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--th);">3</div>
+        <div style="font-size:11px;color:var(--th);">완료</div>
+      </div>
+    </div>
+    <div style="font-size:22px;font-weight:500;margin-bottom:4px;">기본 정보 입력</div>
+    <div style="font-size:13px;color:var(--ts);margin-bottom:28px;">이메일과 비밀번호로 계정을 만들어 주세요.</div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+      <div>
+        <label class="form-label">이메일</label>
+        <input class="form-input" placeholder="example@email.com" value="kick_kim@email.com" style="background:#fff;" />
+        <div style="margin-top:5px;display:flex;align-items:center;gap:5px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--green);"></div><span style="font-size:11px;color:#1A7A40;">사용 가능한 이메일입니다</span></div>
+      </div>
+      <div>
+        <label class="form-label">닉네임</label>
+        <input class="form-input" placeholder="닉네임 입력" value="킥마니아_김준혁" style="background:#fff;" />
+      </div>
+      <div>
+        <label class="form-label">비밀번호</label>
+        <input class="form-input" type="password" placeholder="8자 이상, 영문+숫자 조합" value="••••••••••" style="background:#fff;" />
+        <div style="margin-top:6px;display:flex;gap:4px;">
+          <div style="flex:1;height:3px;border-radius:2px;background:var(--green);"></div>
+          <div style="flex:1;height:3px;border-radius:2px;background:var(--green);"></div>
+          <div style="flex:1;height:3px;border-radius:2px;background:var(--green);"></div>
+          <div style="flex:1;height:3px;border-radius:2px;background:var(--bd2);"></div>
+        </div>
+        <div style="font-size:11px;color:var(--green);margin-top:4px;">강력한 비밀번호</div>
+      </div>
+      <div>
+        <label class="form-label">비밀번호 확인</label>
+        <input class="form-input" type="password" placeholder="비밀번호 재입력" value="••••••••••" style="background:#fff;" />
+      </div>
+    </div>
+    <!-- Terms -->
+    <div style="background:var(--surf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:20px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:12px;"><input type="checkbox" checked style="width:16px;height:16px;"> 전체 동의</label>
+      <div style="height:1px;background:var(--bd);margin-bottom:12px;"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="width:14px;height:14px;"> <span style="color:var(--red);font-weight:500;">[필수]</span> 이용 약관 동의 <span style="margin-left:auto;font-size:11px;color:var(--red);cursor:pointer;">보기</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" checked style="width:14px;height:14px;"> <span style="color:var(--red);font-weight:500;">[필수]</span> 개인정보 처리방침 동의 <span style="margin-left:auto;font-size:11px;color:var(--red);cursor:pointer;">보기</span></label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;"><input type="checkbox" style="width:14px;height:14px;"> <span style="color:var(--ts);">[선택]</span> 마케팅 정보 수신 동의</label>
+      </div>
+    </div>
+    <button class="btn btn-p btn-xl" style="width:100%;">다음 단계 — 관심 설정</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 12 : 온보딩 — 관심 종목·구단 설정 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 12 &nbsp;›&nbsp; <strong>온보딩 — 관심 종목·구단 설정</strong> &nbsp;—&nbsp; UC-MEM-005</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/onboarding/interests</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-right"><button class="nav-btn" style="color:rgba(255,255,255,.5);">나중에 설정</button></div></div>
+  <div style="max-width:680px;margin:0 auto;padding:48px 24px;">
+    <!-- Step -->
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:36px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;">
+          <div style="width:10px;height:7px;border-left:2px solid var(--green);border-bottom:2px solid var(--green);transform:rotate(-45deg);margin-top:-2px;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--green);">기본 정보</div>
+      </div>
+      <div style="flex:1;height:1.5px;background:var(--green);margin-bottom:16px;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:#fff;">2</div>
+        <div style="font-size:11px;font-weight:500;color:var(--navy);">관심 설정</div>
+      </div>
+      <div style="flex:1;height:1.5px;background:var(--bd);margin-bottom:16px;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--surf2);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--th);">3</div>
+        <div style="font-size:11px;color:var(--th);">완료</div>
+      </div>
+    </div>
+    <div style="font-size:22px;font-weight:500;margin-bottom:4px;">관심 종목과 구단을 선택하세요</div>
+    <div style="font-size:13px;color:var(--ts);margin-bottom:32px;">선택한 정보를 기반으로 맞춤 매물과 알림을 제공합니다.</div>
+    <!-- Sport Selection -->
+    <div style="font-size:13px;font-weight:500;margin-bottom:12px;">종목 선택</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:32px;">
+      <div style="border:1.5px solid var(--navy);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;background:rgba(13,27,42,.04);">
+        <div style="font-size:24px;margin-bottom:5px;">⚽</div>
+        <div style="font-size:12px;font-weight:500;color:var(--navy);">축구</div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;">
+        <div style="font-size:24px;margin-bottom:5px;">⚾</div>
+        <div style="font-size:12px;color:var(--ts);">야구</div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;">
+        <div style="font-size:24px;margin-bottom:5px;">🏀</div>
+        <div style="font-size:12px;color:var(--ts);">농구</div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;">
+        <div style="font-size:24px;margin-bottom:5px;">🏈</div>
+        <div style="font-size:12px;color:var(--ts);">미식축구</div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;">
+        <div style="font-size:24px;margin-bottom:5px;">🏒</div>
+        <div style="font-size:12px;color:var(--ts);">아이스하키</div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;">
+        <div style="font-size:24px;margin-bottom:5px;">🎽</div>
+        <div style="font-size:12px;color:var(--ts);">기타</div>
+      </div>
+    </div>
+    <!-- League / Team -->
+    <div style="font-size:13px;font-weight:500;margin-bottom:12px;">관심 리그 선택 <span style="font-size:11px;color:var(--th);font-weight:400;">(복수 선택 가능)</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;">
+      <div class="chip cn">EPL</div>
+      <div class="chip co">라리가</div>
+      <div class="chip co">분데스리가</div>
+      <div class="chip co">세리에A</div>
+      <div class="chip co">리그앙</div>
+      <div class="chip co">K리그</div>
+      <div class="chip co">국가대표</div>
+    </div>
+    <div style="font-size:13px;font-weight:500;margin-bottom:12px;">관심 구단 <span style="font-size:11px;color:var(--th);font-weight:400;">(최대 5개)</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px;">
+      <div style="border:1.5px solid var(--navy);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;background:rgba(13,27,42,.04);">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--navy);flex-shrink:0;"></div>
+        <div><div style="font-size:12px;font-weight:500;color:var(--navy);">토트넘</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--navy);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;background:rgba(13,27,42,.04);">
+        <div style="width:36px;height:36px;border-radius:8px;background:#B5222B;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;font-weight:500;color:var(--navy);">맨유</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#034694;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">첼시</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#6CABDD;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">맨시티</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#CC0000;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">리버풀</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#EF0107;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">아스날</div><div style="font-size:10px;color:var(--th);">EPL</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#003087;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">레알 마드리드</div><div style="font-size:10px;color:var(--th);">라리가</div></div>
+      </div>
+      <div style="border:1.5px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <div style="width:36px;height:36px;border-radius:8px;background:#A50044;flex-shrink:0;"></div>
+        <div><div style="font-size:12px;color:var(--tx);">바르셀로나</div><div style="font-size:10px;color:var(--th);">라리가</div></div>
+      </div>
+    </div>
+    <!-- Keyword -->
+    <div style="margin-bottom:28px;">
+      <div style="font-size:13px;font-weight:500;margin-bottom:8px;">관심 키워드 <span style="font-size:11px;color:var(--th);font-weight:400;">(직접 입력)</span></div>
+      <input class="form-input" style="background:#fff;" placeholder="예: 손흥민, 레트로, 국대" value="손흥민, EPL, 레트로" />
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+        <div class="chip cn" style="font-size:11px;">손흥민 ×</div>
+        <div class="chip cn" style="font-size:11px;">EPL ×</div>
+        <div class="chip cn" style="font-size:11px;">레트로 ×</div>
+      </div>
+    </div>
+    <button class="btn btn-p btn-xl" style="width:100%;">완료 — 시작하기</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 13 : 판매글 수정 / 삭제 관리 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 13 &nbsp;›&nbsp; <strong>판매글 수정 / 삭제</strong> &nbsp;—&nbsp; UC-TRD-003 · 004 · 005</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/trade/edit/1042</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-links"><div class="gnav-link active">판매글 수정</div></div><div class="gnav-right"><button class="nav-btn nav-btn-p">수정 저장</button><button class="nav-btn" style="border-color:#F5A5A5;color:#E84855;">삭제</button></div></div>
+  <div style="padding:24px 32px;">
+    <!-- Status Banner -->
+    <div style="background:#EDF3FE;border:1px solid #B5D4F4;border-radius:var(--r);padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4A90E2;flex-shrink:0;"></div>
+      <div style="font-size:13px;color:#1A4EA5;">현재 상태: <strong>거래 진행 중</strong> (구매 의사를 표시한 구매자 1명 있음) — 가격 수정 및 삭제가 제한됩니다.</div>
+    </div>
+    <div style="display:flex;gap:24px;align-items:flex-start;">
+      <!-- Form -->
+      <div style="flex:1;">
+        <div class="form-section">
+          <div style="font-size:15px;font-weight:500;margin-bottom:16px;">기본 정보 수정</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div><label class="form-label">유니폼명</label><input class="form-input" value="손흥민 23/24 홈 마킹 유니폼" style="background:#fff;" /></div>
+            <div><label class="form-label">시즌</label><input class="form-input" value="2023/24" style="background:#fff;" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div>
+              <label class="form-label">희망 가격</label>
+              <input class="form-input" value="78,000" style="background:#F5EAEA;border-color:#F5A5A5;cursor:not-allowed;" disabled />
+              <div style="font-size:11px;color:#C0201F;margin-top:4px;">거래 진행 중 — 가격 수정 불가</div>
+            </div>
+            <div><label class="form-label">사이즈</label><input class="form-input" value="M" style="background:#fff;" /></div>
+            <div>
+              <label class="form-label">마킹 선수/번호</label>
+              <input class="form-input" value="손흥민 / 7" style="background:#fff;" />
+            </div>
+          </div>
+          <div>
+            <label class="form-label">상세 설명</label>
+            <textarea class="form-textarea" style="background:#fff;min-height:100px;">23/24 시즌 토트넘 홈 유니폼으로 손흥민 마킹(7번)이 포함되어 있습니다. 구매 후 한 번도 착용하지 않은 새 제품이며, 정품 태그가 그대로 붙어 있습니다.</textarea>
+          </div>
+        </div>
+        <!-- State Grade -->
+        <div class="form-section">
+          <div style="font-size:15px;font-weight:500;margin-bottom:12px;">상태 등급 수정</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+            <div style="border:1.5px solid var(--navy);border-radius:8px;padding:10px;text-align:center;background:rgba(13,27,42,.04);">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--navy);">S</div>
+              <div style="font-size:10px;color:var(--navy);font-weight:500;">미착용 ✓</div>
+            </div>
+            <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center;cursor:pointer;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ts);">A</div>
+              <div style="font-size:10px;color:var(--th);">최상</div>
+            </div>
+            <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center;cursor:pointer;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ts);">B</div>
+              <div style="font-size:10px;color:var(--th);">상</div>
+            </div>
+            <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center;cursor:pointer;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--ts);">C</div>
+              <div style="font-size:10px;color:var(--th);">중</div>
+            </div>
+          </div>
+        </div>
+        <!-- Chat Notice Preview -->
+        <div style="background:#FFF8EC;border:1px solid #F5C97A;border-radius:var(--r);padding:14px 16px;">
+          <div style="font-size:12px;font-weight:500;color:#8A6010;margin-bottom:6px;">채팅방 자동 공지 미리보기</div>
+          <div style="background:#fff;border-radius:8px;padding:10px 12px;font-size:12px;color:var(--ts);line-height:1.6;">
+            [판매글 업데이트 알림]<br>
+            판매자가 게시글 내용을 수정하였습니다.<br>
+            상세 설명이 변경되었습니다. 판매글을 다시 확인해 주세요.
+          </div>
+          <div style="font-size:11px;color:#8A6010;margin-top:8px;">저장 시 채팅 중인 구매자 채팅방에 자동 발송됩니다.</div>
+        </div>
+      </div>
+      <!-- Right Panel -->
+      <div style="width:280px;flex-shrink:0;">
+        <!-- Delete Warning -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:10px;">삭제 가능 조건</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+              <span style="color:var(--ts);">판매 중 상태 — OK</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+              <span style="color:var(--ts);">거래 진행 중 — 삭제 불가</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></div>
+              <span style="color:var(--ts);">예약 중 — 삭제 불가</span>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-sm" style="width:100%;border-color:#F5A5A5;color:#C0201F;background:#FEF0F0;cursor:not-allowed;" disabled>삭제 불가 (거래 진행 중)</button>
+          </div>
+        </div>
+        <!-- Price Drop Notice -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;">
+          <div style="font-size:13px;font-weight:500;margin-bottom:6px;">가격 인하 알림</div>
+          <div style="font-size:12px;color:var(--ts);line-height:1.6;margin-bottom:10px;">가격을 인하하면 이 판매글을 찜한 구매자 <strong>3명</strong>에게 자동으로 알림이 발송됩니다.</div>
+          <div style="background:var(--surf);border-radius:var(--r);padding:10px;font-size:12px;color:var(--th);">현재 가격: 78,000원<br>찜한 사용자: 3명</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 14 : 구매 확정 + 거래 완료 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 14 &nbsp;›&nbsp; <strong>구매 확정 + 거래 완료</strong> &nbsp;—&nbsp; UC-TRD-006 · 009 · PAY-003 · 004</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/trade/confirm/1042</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-links"><div class="gnav-link active">거래 관리</div></div><div class="gnav-right"><div class="nav-ava">LM</div></div></div>
+  <div style="max-width:640px;margin:0 auto;padding:40px 24px;">
+    <!-- Trade Status Full -->
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:24px;margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:500;margin-bottom:18px;">거래 진행 현황</div>
+      <div class="ts-bar">
+        <div class="ts-step done"><div class="ts-circle done"><div class="ts-dot"></div></div><div class="ts-label">구매 요청</div></div>
+        <div class="ts-line done"></div>
+        <div class="ts-step done"><div class="ts-circle done"><div class="ts-dot"></div></div><div class="ts-label">판매자 수락</div></div>
+        <div class="ts-line done"></div>
+        <div class="ts-step done"><div class="ts-circle done"><div class="ts-dot"></div></div><div class="ts-label">결제 완료</div></div>
+        <div class="ts-line done"></div>
+        <div class="ts-step" style=""><div class="ts-circle cur"><div class="ts-dot"></div></div><div class="ts-label" style="color:var(--navy);font-weight:500;">배송 중</div></div>
+        <div class="ts-line"></div>
+        <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">구매 확정</div></div>
+        <div class="ts-line"></div>
+        <div class="ts-step"><div class="ts-circle"></div><div class="ts-label">거래 완료</div></div>
+      </div>
+    </div>
+    <!-- Order Summary -->
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;">주문 정보</div>
+      <div style="display:flex;gap:14px;align-items:center;margin-bottom:16px;">
+        <div style="width:64px;height:74px;border-radius:9px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div class="jersey jnav" style="transform:scale(.7);"><div class="jb"><div class="js"></div><div class="jn">7</div></div></div>
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:500;">손흥민 23/24 홈 마킹 유니폼</div>
+          <div style="font-size:12px;color:var(--th);margin-top:3px;">토트넘 · S등급 · Size M</div>
+          <div style="font-size:14px;font-weight:500;margin-top:6px;">81,000원 (배송비 포함)</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="info-row"><span>판매자</span><span class="info-val">킥마니아_김준혁</span></div>
+      <div class="info-row"><span>결제일</span><span class="info-val">2024.01.14</span></div>
+      <div class="info-row"><span>배송 방법</span><span class="info-val">택배 배송</span></div>
+      <div class="info-row" style="border-bottom:none;"><span>운송장 번호</span><span class="info-val" style="color:var(--red);">CJ대한통운 · 1234-5678-9012</span></div>
+    </div>
+    <!-- Escrow Info -->
+    <div style="background:#EBF8F1;border:1px solid #7FD4A5;border-radius:var(--r);padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">
+      <div style="width:16px;height:16px;border-radius:3px;background:var(--green);flex-shrink:0;margin-top:1px;"></div>
+      <div style="font-size:12px;color:#1A7A40;line-height:1.6;"><strong>에스크로 보관 중</strong><br>결제 금액 81,000원이 RE:FORM에 안전 보관 중입니다. 구매 확정 후 판매자에게 정산됩니다. 배송 완료 후 5일이 지나면 자동 구매 확정됩니다.</div>
+    </div>
+    <!-- Confirm Button -->
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px;">물건을 받으셨나요?</div>
+      <div style="font-size:13px;color:var(--ts);line-height:1.6;margin-bottom:16px;">상품을 수령하고 이상이 없다면 구매를 확정해 주세요. 확정 후에는 취소가 불가능합니다.</div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-o btn-lg" style="flex:1;">이의 제기 (DISPUTED)</button>
+        <button class="btn btn-p btn-xl" style="flex:2;">구매 확정하기</button>
+      </div>
+    </div>
+    <!-- Auto confirm notice -->
+    <div style="background:var(--surf);border-radius:var(--r);padding:12px 16px;font-size:12px;color:var(--th);line-height:1.6;text-align:center;">
+      배송 완료 후 5일이 경과하면 자동으로 구매가 확정됩니다. (자동 확정까지 <strong style="color:var(--tx);">3일 남음</strong>)
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 15 : 매너 평가 작성 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 15 &nbsp;›&nbsp; <strong>거래 후 매너 평가</strong> &nbsp;—&nbsp; UC-MEM-006 · TRD-012</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/review/write/1042</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span></div><div class="gnav-right"><div class="nav-ava">LM</div></div></div>
+  <div style="max-width:560px;margin:0 auto;padding:48px 24px;">
+    <!-- Complete Banner -->
+    <div style="background:var(--navy);border-radius:var(--rl);padding:24px;margin-bottom:24px;text-align:center;position:relative;overflow:hidden;">
+      <div style="position:absolute;right:-20px;top:-20px;width:120px;height:120px;border-radius:50%;border:20px solid rgba(255,255,255,.05);"></div>
+      <div style="width:52px;height:52px;border-radius:50%;background:var(--green);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+        <div style="width:16px;height:10px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);margin-top:-3px;"></div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:1px;margin-bottom:4px;">거래 완료!</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);">손흥민 23/24 홈 마킹 유니폼 · 81,000원</div>
+    </div>
+    <!-- Review Form -->
+    <div class="form-section">
+      <div style="font-size:16px;font-weight:500;margin-bottom:4px;">판매자 매너 평가</div>
+      <div style="font-size:13px;color:var(--ts);margin-bottom:20px;">킥마니아_김준혁님과의 거래는 어떠셨나요?</div>
+      <!-- Seller Info -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:14px;background:var(--surf);border-radius:var(--r);">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--navy2);display:flex;align-items:center;justify-content:center;font-size:15px;color:rgba(255,255,255,.8);font-weight:500;flex-shrink:0;">KJ</div>
+        <div>
+          <div style="font-size:14px;font-weight:500;">킥마니아_김준혁</div>
+          <div style="font-size:12px;color:var(--th);">기존 매너 점수: ★★★★ 4.7</div>
+        </div>
+        <div style="margin-left:auto;"><div class="chip cn" style="font-size:10px;">판매자</div></div>
+      </div>
+      <!-- Star Rating -->
+      <div style="margin-bottom:20px;">
+        <label class="form-label">매너 점수 (1~5점)</label>
+        <div class="star-row" style="justify-content:center;">
+          <div class="star on" style="font-size:28px;width:52px;height:52px;">★</div>
+          <div class="star on" style="font-size:28px;width:52px;height:52px;">★</div>
+          <div class="star on" style="font-size:28px;width:52px;height:52px;">★</div>
+          <div class="star on" style="font-size:28px;width:52px;height:52px;">★</div>
+          <div class="star" style="font-size:28px;width:52px;height:52px;color:var(--th);">★</div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:13px;color:var(--gold);font-weight:500;">4점 — 좋았어요</div>
+      </div>
+      <!-- Quick Tags -->
+      <div style="margin-bottom:16px;">
+        <label class="form-label">빠른 평가 선택</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="chip cn" style="cursor:pointer;">포장이 꼼꼼해요</div>
+          <div class="chip cn" style="cursor:pointer;">응답이 빨라요</div>
+          <div class="chip co" style="cursor:pointer;">설명과 동일해요</div>
+          <div class="chip co" style="cursor:pointer;">친절해요</div>
+          <div class="chip co" style="cursor:pointer;">빠른 발송</div>
+          <div class="chip co" style="cursor:pointer;">정품이에요</div>
+        </div>
+      </div>
+      <!-- Text Review -->
+      <div style="margin-bottom:20px;">
+        <label class="form-label">후기 작성 <span style="color:var(--th);font-weight:400;">(선택)</span></label>
+        <textarea class="form-textarea" style="background:#fff;min-height:90px;" placeholder="거래 경험을 자유롭게 작성해 주세요...">포장도 꼼꼼하고 빠른 발송 감사합니다. 상품 상태가 설명과 동일해서 만족스러운 거래였어요!</textarea>
+      </div>
+      <!-- Deadline Notice -->
+      <div style="background:#FFF8EC;border:1px solid #F5C97A;border-radius:var(--r);padding:10px 14px;font-size:12px;color:#8A6010;margin-bottom:20px;">
+        작성 기한: 거래 완료 후 <strong>5일 이내</strong> (남은 기간: 4일 23시간)
+      </div>
+      <button class="btn btn-p btn-xl" style="width:100%;">매너 평가 제출</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 16 : 관리자 — 회원 관리 상세 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 16 &nbsp;›&nbsp; <strong>관리자 — 회원 관리 상세</strong> &nbsp;—&nbsp; UC-ADM-001</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/admin/members</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span> <span style="font-size:13px;color:rgba(255,255,255,.4);font-family:'DM Sans',sans-serif;font-weight:400;">ADMIN</span></div><div class="gnav-right"><div class="chip cr" style="font-size:11px;">관리자</div><div class="nav-ava" style="background:var(--ts);">AD</div></div></div>
+  <div class="page-body">
+    <div class="sidebar" style="min-height:500px;">
+      <div class="sidebar-label">관리 메뉴</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 대시보드</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 신고 관리 <div class="chip cr" style="font-size:9px;padding:1px 5px;margin-left:auto;">7</div></div>
+      <div class="sidebar-item active"><div class="sidebar-icon aic"></div> 회원 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 게시글 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 출금 요청 <div class="chip ca" style="font-size:9px;padding:1px 5px;margin-left:auto;">3</div></div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 분쟁 관리 <div class="chip cr" style="font-size:9px;padding:1px 5px;margin-left:auto;">2</div></div>
+    </div>
+    <div class="main-content">
+      <!-- Search + Filter -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">
+        <input class="form-input" style="background:#fff;max-width:320px;" placeholder="닉네임, 이메일 검색..." />
+        <div class="chip co">전체</div>
+        <div class="chip co">정상</div>
+        <div class="chip cr">정지</div>
+        <div class="chip co">탈퇴</div>
+        <button class="btn btn-o btn-sm" style="margin-left:auto;">CSV 내보내기</button>
+      </div>
+      <!-- Table -->
+      <div class="adm-table">
+        <div class="adm-th" style="grid-template-columns:2fr 2fr 1fr 1fr 1fr 1.5fr;">
+          <div>닉네임</div><div>이메일</div><div>가입일</div><div>거래 수</div><div>상태</div><div>조치</div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 2fr 1fr 1fr 1fr 1.5fr;background:#F8F9FB;">
+          <div>
+            <div style="font-size:13px;font-weight:500;">킥마니아_김준혁</div>
+            <div style="font-size:11px;color:var(--th);">경고 0회</div>
+          </div>
+          <div style="font-size:12px;color:var(--ts);">kick_kim@email.com</div>
+          <div style="font-size:12px;">2023.03.12</div>
+          <div style="font-size:13px;font-weight:500;">47회</div>
+          <div><div class="chip cg" style="font-size:10px;">정상</div></div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">상세</button>
+            <button class="btn btn-sm" style="font-size:11px;padding:0 8px;height:28px;border-color:#F5C97A;color:#8A6010;background:#FFF8EC;">정지</button>
+          </div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 2fr 1fr 1fr 1fr 1.5fr;">
+          <div>
+            <div style="font-size:13px;font-weight:500;">레알팬_이수진</div>
+            <div style="font-size:11px;color:var(--red);">경고 2회</div>
+          </div>
+          <div style="font-size:12px;color:var(--ts);">real_lee@email.com</div>
+          <div style="font-size:12px;">2023.07.20</div>
+          <div style="font-size:13px;font-weight:500;">12회</div>
+          <div><div class="chip ca" style="font-size:10px;">주의</div></div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">상세</button>
+            <button class="btn btn-sm" style="font-size:11px;padding:0 8px;height:28px;border-color:#F5A5A5;color:#C0201F;background:#FEF0F0;">정지</button>
+          </div>
+        </div>
+        <div class="adm-tr" style="grid-template-columns:2fr 2fr 1fr 1fr 1fr 1.5fr;">
+          <div>
+            <div style="font-size:13px;font-weight:500;">홍길동_유니폼</div>
+            <div style="font-size:11px;color:var(--red);">경고 3회 · 신고 대상</div>
+          </div>
+          <div style="font-size:12px;color:var(--ts);">hong_gd@email.com</div>
+          <div style="font-size:12px;">2024.01.02</div>
+          <div style="font-size:13px;font-weight:500;">3회</div>
+          <div><div class="chip cr" style="font-size:10px;">정지</div></div>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-o btn-sm" style="font-size:11px;padding:0 8px;height:28px;">상세</button>
+            <button class="btn btn-n btn-sm" style="font-size:11px;padding:0 8px;height:28px;">강제탈퇴</button>
+          </div>
+        </div>
+      </div>
+      <!-- Member Detail (expanded) -->
+      <div style="margin-top:20px;font-size:14px;font-weight:500;margin-bottom:12px;">회원 상세 — 킥마니아_김준혁</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;">
+          <div style="font-size:12px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">기본 정보</div>
+          <div class="info-row"><span>이메일</span><span class="info-val">kick_kim@email.com</span></div>
+          <div class="info-row"><span>가입일</span><span class="info-val">2023.03.12</span></div>
+          <div class="info-row"><span>최근 로그인</span><span class="info-val">2024.01.15 14:23</span></div>
+          <div class="info-row"><span>매너 점수</span><span class="info-val">★★★★ 4.8</span></div>
+          <div class="info-row"><span>활동 포인트</span><span class="info-val">1,240P</span></div>
+          <div class="info-row" style="border-bottom:none;"><span>정산 포인트</span><span class="info-val">324,500P</span></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;">
+          <div style="font-size:12px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">거래 요약</div>
+          <div class="info-row"><span>총 판매</span><span class="info-val">47회</span></div>
+          <div class="info-row"><span>총 구매</span><span class="info-val">12회</span></div>
+          <div class="info-row"><span>신고 받음</span><span class="info-val">0회</span></div>
+          <div class="info-row"><span>경고</span><span class="info-val">0회</span></div>
+          <div class="info-row" style="border-bottom:none;padding-top:14px;">
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-o btn-sm">채팅 내역 조회</button>
+              <button class="btn btn-sm" style="border-color:#F5C97A;color:#8A6010;background:#FFF8EC;">이용 정지</button>
+              <button class="btn btn-sm" style="border-color:#F5A5A5;color:#C0201F;background:#FEF0F0;">강제 탈퇴</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- SCREEN 17 : 관리자 — 분쟁 처리 상세 -->
+<!-- ══════════════════════════════════════════════ -->
+<div class="pg-sep">화면 17 &nbsp;›&nbsp; <strong>관리자 — 분쟁 처리 상세</strong> &nbsp;—&nbsp; UC-ADM-006</div>
+<div class="browser">
+  <div class="browser-bar">
+    <div class="b-dot" style="background:#FF5F57"></div>
+    <div class="b-dot" style="background:#FEBC2E"></div>
+    <div class="b-dot" style="background:#28C840"></div>
+    <div class="b-url">reform.co.kr/admin/disputes/58</div>
+  </div>
+  <div class="gnav"><div class="gnav-logo">RE:<span>FORM</span> <span style="font-size:13px;color:rgba(255,255,255,.4);font-family:'DM Sans',sans-serif;font-weight:400;">ADMIN</span></div><div class="gnav-right"><div class="chip cr" style="font-size:11px;">관리자</div><div class="nav-ava" style="background:var(--ts);">AD</div></div></div>
+  <div class="page-body">
+    <div class="sidebar" style="min-height:500px;">
+      <div class="sidebar-label">관리 메뉴</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 대시보드</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 신고 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 회원 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 게시글 관리</div>
+      <div class="sidebar-item"><div class="sidebar-icon"></div> 출금 요청</div>
+      <div class="sidebar-item active"><div class="sidebar-icon aic"></div> 분쟁 관리 <div class="chip cr" style="font-size:9px;padding:1px 5px;margin-left:auto;">2</div></div>
+    </div>
+    <div class="main-content">
+      <!-- Dispute Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div>
+          <div style="font-size:18px;font-weight:500;">분쟁 #58 — 상세 검토</div>
+          <div style="font-size:12px;color:var(--th);margin-top:2px;">접수일: 2024.01.15 · 상태: DISPUTED</div>
+        </div>
+        <div class="chip cr" style="margin-left:auto;">DISPUTED</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <!-- Trade Info -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;">
+          <div style="font-size:12px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">거래 정보</div>
+          <div style="display:flex;gap:12px;margin-bottom:14px;align-items:center;">
+            <div style="width:52px;height:60px;border-radius:8px;background:var(--surf2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <div class="jersey jnav" style="transform:scale(.65);"><div class="jb"><div class="js"></div><div class="jn">7</div></div></div>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:500;">손흥민 23/24 홈 마킹 유니폼</div>
+              <div style="font-size:12px;color:var(--th);">S등급 · M · 81,000원</div>
+            </div>
+          </div>
+          <div class="info-row"><span>판매자</span><span class="info-val">킥마니아_김준혁</span></div>
+          <div class="info-row"><span>구매자</span><span class="info-val">유니폼마니아_이민수</span></div>
+          <div class="info-row"><span>결제일</span><span class="info-val">2024.01.10</span></div>
+          <div class="info-row" style="border-bottom:none;"><span>에스크로 금액</span><span class="info-val" style="color:var(--green);font-weight:500;">81,000원 보관 중</span></div>
+        </div>
+        <!-- Dispute Reason -->
+        <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;">
+          <div style="font-size:12px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">이의 제기 내용</div>
+          <div style="background:#FEF0F0;border-radius:var(--r);padding:12px;font-size:13px;color:var(--tx);line-height:1.7;margin-bottom:12px;">
+            구매자 주장: 상품 상태가 S등급이라고 하였으나, 실제 수령 시 소매 부분에 세탁 흔적과 작은 얼룩이 있었습니다. 등급 허위 기재로 인한 환불을 요청합니다.
+          </div>
+          <div style="font-size:11px;color:var(--th);">제기일: 2024.01.15 · 첨부 사진: 3장</div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <div style="width:60px;height:60px;border-radius:7px;background:var(--surf2);"></div>
+            <div style="width:60px;height:60px;border-radius:7px;background:var(--surf2);"></div>
+            <div style="width:60px;height:60px;border-radius:7px;background:var(--surf2);"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Chat Log -->
+      <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:18px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:500;color:var(--th);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">채팅 내역 (관리자 열람)</div>
+        <div style="display:flex;flex-direction:column;gap:10px;background:var(--surf);border-radius:var(--r);padding:14px;max-height:200px;overflow-y:auto;">
+          <div style="max-width:65%;">
+            <div style="background:#fff;border:1px solid var(--bd);border-radius:4px 12px 12px 12px;padding:9px 12px;font-size:12px;line-height:1.5;">안녕하세요! 손흥민 유니폼 정말 상태 좋아 보이네요.</div>
+            <div style="font-size:10px;color:var(--th);margin-top:3px;">유니폼마니아_이민수 · 01.10 14:14</div>
+          </div>
+          <div style="max-width:65%;align-self:flex-end;">
+            <div style="background:var(--navy);color:#fff;border-radius:12px 4px 12px 12px;padding:9px 12px;font-size:12px;line-height:1.5;">네, 태그 부착 새 제품 맞습니다!</div>
+            <div style="font-size:10px;color:var(--th);margin-top:3px;text-align:right;">킥마니아_김준혁 · 01.10 14:16</div>
+          </div>
+          <div style="max-width:65%;">
+            <div style="background:#fff;border:1px solid var(--bd);border-radius:4px 12px 12px 12px;padding:9px 12px;font-size:12px;line-height:1.5;">상품 받았는데 소매에 얼룩이 있어요. 사진 보내드릴게요.</div>
+            <div style="font-size:10px;color:var(--th);margin-top:3px;">유니폼마니아_이민수 · 01.14 18:42</div>
+          </div>
+        </div>
+      </div>
+      <!-- Decision -->
+      <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:20px;">
+        <div style="font-size:14px;font-weight:500;margin-bottom:14px;">관리자 처리 결정</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div style="border:1.5px solid var(--bd);border-radius:var(--r);padding:14px;cursor:pointer;">
+            <div style="font-size:13px;font-weight:500;color:var(--tx);margin-bottom:4px;">환불 처리</div>
+            <div style="font-size:12px;color:var(--ts);line-height:1.5;">구매자에게 81,000원 환불<br>에스크로 해제 후 결제 취소 처리</div>
+          </div>
+          <div style="border:1.5px solid var(--navy);border-radius:var(--r);padding:14px;cursor:pointer;background:rgba(13,27,42,.03);">
+            <div style="font-size:13px;font-weight:500;color:var(--navy);margin-bottom:4px;">거래 완료 처리</div>
+            <div style="font-size:12px;color:var(--ts);line-height:1.5;">판매자에게 에스크로 해제<br>정산 배치 대상으로 등록</div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="form-label">처리 메모 (내부용)</label>
+          <textarea class="form-textarea" style="background:var(--surf);min-height:70px;" placeholder="처리 사유 및 메모 입력..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-o btn-lg">취소</button>
+          <button class="btn btn-sm" style="height:44px;padding:0 24px;border-color:#F5A5A5;color:#C0201F;background:#FEF0F0;font-size:14px;">환불 처리</button>
+          <button class="btn btn-n btn-lg" style="flex:1;">거래 완료 처리</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:20px;font-size:11px;color:var(--th);border-top:1px solid var(--bd);background:#fff;margin-top:4px;">
+  RE:FORM 추가 와이어프레임 — 화면 10~17 (로그인·회원가입·온보딩·판매글수정·구매확정·매너평가·관리자 회원·분쟁)
+</div>
+                                                                                                                       
