@@ -284,6 +284,85 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.Re
   )
 }
 
+// ── 선행 조건 한 줄 안내 ──────────────────────────────────────────────────────
+
+interface PreflightHintsProps {
+  email: string
+  isEmailValid: boolean
+  nickname: string
+  isNicknameValid: boolean
+  password: string
+  isPwValid: boolean
+  pwConfirm: string
+  isPwMatch: boolean
+  isTermsService: boolean   // [필수] 이용약관 동의 여부
+  isTermsPrivacy: boolean   // [필수] 개인정보처리방침 동의 여부
+}
+
+/**
+ * PreflightHints — 미충족 조건을 우선순위 순으로 한 줄씩 빨간 텍스트로 표시
+ *
+ * - 비밀번호 입력이 시작된 이후에만 렌더링 (외부 gate: password.length > 0)
+ * - 우선순위: 이메일 → 닉네임 → 비밀번호 강도 → 비밀번호 확인 → 필수 약관
+ * - 한 번에 가장 먼저 해결해야 할 조건 하나만 표시
+ */
+function PreflightHints({
+  email, isEmailValid,
+  nickname, isNicknameValid,
+  password, isPwValid,
+  pwConfirm, isPwMatch,
+  isTermsService, isTermsPrivacy,
+}: PreflightHintsProps) {
+  // 비밀번호 개별 요건 레이블 (미충족 항목만 추출해 한 줄로 합침)
+  const unmetPwLabels = [
+    { label: '8자 이상',    met: password.length >= 8 },
+    { label: '대문자',      met: /[A-Z]/.test(password) },
+    { label: '숫자',        met: /[0-9]/.test(password) },
+    { label: '특수문자',    met: /[^A-Za-z0-9]/.test(password) },
+  ]
+    .filter((r) => !r.met)
+    .map((r) => r.label)
+
+  // 우선순위 순으로 첫 번째 미충족 조건 하나만 반환
+  let message: string | null = null
+
+  if (!isEmailValid) {
+    message = email ? '올바른 이메일 형식이 아닙니다.' : '이메일 주소를 입력해 주세요.'
+  } else if (!isNicknameValid) {
+    message = nickname.trim().length > 0
+      ? '닉네임은 2~20자 사이로 입력해 주세요.'
+      : '닉네임을 입력해 주세요.'
+  } else if (!isPwValid) {
+    // 미충족 요건을 "·" 구분자로 이어붙여 한 줄로 표시
+    message = unmetPwLabels.length > 0
+      ? `비밀번호에 ${unmetPwLabels.join(' · ')} 조건이 필요합니다.`
+      : '비밀번호 보안 수준을 높여 주세요.'
+  } else if (!isPwMatch) {
+    message = pwConfirm
+      ? '비밀번호 확인이 일치하지 않습니다.'
+      : '비밀번호 확인을 입력해 주세요.'
+  } else if (!isTermsService || !isTermsPrivacy) {
+    message = !isTermsService && !isTermsPrivacy
+      ? '이용약관 및 개인정보처리방침에 동의해 주세요.'
+      : !isTermsService
+      ? '이용약관 동의가 필요합니다.'
+      : '개인정보처리방침 동의가 필요합니다.'
+  }
+
+  if (!message) return null
+
+  return (
+    <p
+      className="text-[12px] mb-3 leading-relaxed"
+      style={{ color: 'var(--color-error)' }}
+      role="status"
+      aria-live="polite"
+    >
+      {message}
+    </p>
+  )
+}
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export default function RegisterPage() {
@@ -558,6 +637,22 @@ export default function RegisterPage() {
                 <XIcon size={14} strokeWidth={2} className="flex-shrink-0 mt-0.5" />
                 {serverError}
               </div>
+            )}
+
+            {/* 선행 조건 안내 — 미충족 항목이 있을 때만 표시 */}
+            {!canSubmit && !isPending && password.length > 0 && (
+              <PreflightHints
+                email={email}
+                isEmailValid={isEmailValid}
+                nickname={nickname}
+                isNicknameValid={isNicknameValid}
+                password={password}
+                isPwValid={isPwValid}
+                pwConfirm={pwConfirm}
+                isPwMatch={isPwMatch}
+                isTermsService={terms.service}
+                isTermsPrivacy={terms.privacy}
+              />
             )}
 
             {/* 다음 단계 버튼 */}

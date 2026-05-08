@@ -137,7 +137,7 @@ export default function LoginPage() {
         <div
           className="text-[48px] text-white mb-2 leading-none"
           style={{
-            fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif",
+            fontFamily: "'IAMAPLAYER',Giants,sans-serif",
             letterSpacing: '4px',
           }}
         >
@@ -211,14 +211,13 @@ export default function LoginPage() {
 
           {/* 구글 */}
           <button
-            type="button"
-            onClick={redirectToGoogle}
-            className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium transition-colors hover:bg-[var(--color-surface-raised)]"
-            style={{
-              background: 'var(--color-surface)',
-              color: 'var(--color-text-main)',
-              border: '1.5px solid var(--color-border-strong)',
-            }}
+              type="button"
+              onClick={redirectToGoogle}
+              className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium transition-colors
+             bg-[var(--color-surface)]
+             text-[var(--color-text-main)]
+             border-[1.5px] border-solid border-[var(--color-surface-sunken)]
+             hover:bg-[var(--color-surface-raised)]"
           >
             <GoogleIcon />
             Google로 계속하기

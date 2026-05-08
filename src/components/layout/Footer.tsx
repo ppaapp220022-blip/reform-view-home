@@ -46,13 +46,13 @@ export default function Footer() {
             <div className="mt-3.5 flex gap-1.5 flex-wrap">
               <span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--color-primary)] text-white tracking-[0.08em]"
-                style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+                style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
               >
                 SAFE TRADE
               </span>
               <span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--color-gold)] text-[var(--color-primary)] tracking-[0.08em]"
-                style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+                style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
               >
                 MVP VERIFIED
               </span>
@@ -79,13 +79,13 @@ export default function Footer() {
         <div className="mt-8 pt-[18px] border-t border-[var(--color-border)] flex justify-between items-center">
           <span
             className="text-[12px] tracking-[0.08em] text-[var(--color-text-sub)]"
-            style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
           >
             © 2025 RE:FORM. ALL RIGHTS RESERVED.
           </span>
           <span
             className="text-[12px] tracking-[0.08em] text-[var(--color-text-sub)]"
-            style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
           >
             RESELL · COMMUNITY · UNIFORMS
           </span>

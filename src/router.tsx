@@ -14,17 +14,20 @@ import MainLayout from './components/layout/MainLayout'
 import AuthLayout from './components/layout/AuthLayout'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
+import OnboardingPage from './pages/auth/OnboardingPage'
+import WelcomePage from './pages/auth/WelcomePage'
 import HomePage from './pages/HomePage'
 
 // ── 구현된 페이지 import (추가되면 여기에) ──────────────────────────────────
 // ...
 
 /** 미구현 페이지 임시 플레이스홀더 */
+// eslint-disable-next-line react-refresh/only-export-components
 const Placeholder = ({ name }: { name: string }) => (
   <div className="max-w-[1280px] mx-auto px-7 py-16">
     <h1
       className="text-4xl text-[var(--color-primary)] mb-2"
-      style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif", letterSpacing: '0.04em' }}
+      style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", letterSpacing: '0.04em' }}
     >
       {name}
     </h1>
@@ -39,7 +42,8 @@ const router = createBrowserRouter([
     children: [
       { path: '/login',      element: <LoginPage /> },
       { path: '/register',   element: <RegisterPage /> },
-      { path: '/onboarding', element: <Placeholder name="온보딩" /> },
+      { path: '/onboarding', element: <OnboardingPage /> },
+      { path: '/welcome',    element: <WelcomePage /> },
     ],
   },
 
@@ -74,10 +78,8 @@ const router = createBrowserRouter([
       // 관리자
       { path: '/admin',                element: <Placeholder name="관리자 대시보드" /> },
       { path: '/admin/members/:id',    element: <Placeholder name="회원 관리 상세" /> },
-      { path: '/admin/disputes/:id',   element: <Placeholder name="분쟁 처리 상세" /> },
-
-      // 404
-      { path: '*', element: <Placeholder name="404 Not Found" /> },
+      { path: '/admin/disputes/:id',   element: <Placeholder name="분쟁 조정 상세" /> },
+      { path: '/admin/reports/:id',    element: <Placeholder name="신고 처리 상세" /> },
     ],
   },
 ])

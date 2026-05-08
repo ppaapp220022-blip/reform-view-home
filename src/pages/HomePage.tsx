@@ -2,7 +2,7 @@
  * HomePage — 홈 피드 (Screen 1)
  *
  * 구성:
- *   SportCategoryBar   — 종목 탭 + 리그 칩 (GNB 바로 아래)
+ *   SportFilterBar   — 종목 탭 + 리그 칩 (GNB 바로 아래)
  *   HeroSection        — navy 배경, 피처 상품 + 통계
  *   [Sidebar | Grid]   — 필터 사이드바(220px) + 상품 5열 그리드
  *   AuctionSection     — LIVE 경매 3열
@@ -15,40 +15,40 @@ import { Link } from 'react-router-dom'
 import { Heart, ChevronRight, SlidersHorizontal } from 'lucide-react'
 import type {
   ListingItem, AuctionItem, HomeFilter,
-  Grade, SportCategory,
+  Grade, SportFilter,
 } from '../types/listing'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
 const MOCK_LISTINGS: ListingItem[] = [
-  { id:1, title:'맨체스터 유나이티드 23/24 홈 어센틱', team:'맨체스터 유나이티드', league:'EPL', price:78000, grade:'S', size:'M', tradeType:'delivery', jerseyColor:'#B5222B', jerseyNumber:'7', likedCount:24, isLiked:false, sport:'soccer', timeAgo:'2시간 전' },
-  { id:2, title:'리버풀 FC 07/08 어웨이 레플리카', team:'리버풀 FC', league:'EPL', price:55000, grade:'A', size:'L', tradeType:'both', jerseyColor:'#C8102E', jerseyNumber:'10', likedCount:18, isLiked:true, sport:'soccer', timeAgo:'5시간 전' },
-  { id:3, title:'첼시 FC 11/12 홈 어센틱', team:'첼시 FC', league:'EPL', price:43000, grade:'B', size:'XL', tradeType:'delivery', jerseyColor:'#034694', jerseyNumber:'11', likedCount:7, isLiked:false, sport:'soccer', timeAgo:'어제' },
-  { id:4, title:'레알 마드리드 21/22 서드 킷', team:'레알 마드리드', league:'라리가', price:92000, grade:'S', size:'S', tradeType:'direct', jerseyColor:'#6B0078', jerseyNumber:'9', likedCount:41, isLiked:false, sport:'soccer', timeAgo:'3일 전' },
-  { id:5, title:'전북 현대 2024 홈 어센틱', team:'전북 현대', league:'K리그', price:66000, grade:'S', size:'M', tradeType:'delivery', jerseyColor:'#1A7A40', jerseyNumber:'27', likedCount:12, isLiked:false, sport:'soccer', timeAgo:'1주 전' },
-  { id:6, title:'바르셀로나 22/23 어웨이 레플리카', team:'FC 바르셀로나', league:'라리가', price:48000, grade:'A', size:'M', tradeType:'delivery', jerseyColor:'#A50044', jerseyNumber:'10', likedCount:33, isLiked:true, sport:'soccer', timeAgo:'4시간 전' },
-  { id:7, title:'두산 베어스 2023 홈 유니폼', team:'두산 베어스', league:'KBO', price:59000, grade:'S', size:'L', tradeType:'delivery', jerseyColor:'#002147', jerseyNumber:'36', likedCount:9, isLiked:false, sport:'baseball', timeAgo:'6시간 전' },
-  { id:8, title:'KT 위즈 2024 어웨이 유니폼', team:'KT 위즈', league:'KBO', price:44000, grade:'B', size:'XL', tradeType:'both', jerseyColor:'#D50032', jerseyNumber:'22', likedCount:5, isLiked:false, sport:'baseball', timeAgo:'2일 전' },
-  { id:9, title:'서울 SK 나이츠 23/24 홈', team:'서울 SK 나이츠', league:'KBL', price:71000, grade:'A', size:'M', tradeType:'direct', jerseyColor:'#E3001B', jerseyNumber:'14', likedCount:16, isLiked:false, sport:'basketball', timeAgo:'어제' },
-  { id:10, title:'인천 대한항공 점보스 유니폼', team:'인천 대한항공', league:'V리그', price:38000, grade:'C', size:'S', tradeType:'delivery', jerseyColor:'#003087', jerseyNumber:'5', likedCount:3, isLiked:false, sport:'volleyball', timeAgo:'3일 전' },
+  { id:1, title:'맨체스터 유나이티드 23/24 홈 어센틱', team:'맨체스터 유나이티드', league:'EPL', price:78000, grade:'S', size:'M', deliveryType:'DELIVERY', jerseyColor:'#B5222B', jerseyNumber:'7', likedCount:24, isLiked:false, sport:'SOCCER', timeAgo:'2시간 전' },
+  { id:2, title:'리버풀 FC 07/08 어웨이 레플리카', team:'리버풀 FC', league:'EPL', price:55000, grade:'A', size:'L', deliveryType:'BOTH', jerseyColor:'#C8102E', jerseyNumber:'10', likedCount:18, isLiked:true, sport:'SOCCER', timeAgo:'5시간 전' },
+  { id:3, title:'첼시 FC 11/12 홈 어센틱', team:'첼시 FC', league:'EPL', price:43000, grade:'B', size:'XL', deliveryType:'DELIVERY', jerseyColor:'#034694', jerseyNumber:'11', likedCount:7, isLiked:false, sport:'SOCCER', timeAgo:'어제' },
+  { id:4, title:'레알 마드리드 21/22 서드 킷', team:'레알 마드리드', league:'라리가', price:92000, grade:'S', size:'S', deliveryType:'DIRECT', jerseyColor:'#6B0078', jerseyNumber:'9', likedCount:41, isLiked:false, sport:'SOCCER', timeAgo:'3일 전' },
+  { id:5, title:'전북 현대 2024 홈 어센틱', team:'전북 현대', league:'K리그', price:66000, grade:'S', size:'M', deliveryType:'DELIVERY', jerseyColor:'#1A7A40', jerseyNumber:'27', likedCount:12, isLiked:false, sport:'SOCCER', timeAgo:'1주 전' },
+  { id:6, title:'바르셀로나 22/23 어웨이 레플리카', team:'FC 바르셀로나', league:'라리가', price:48000, grade:'A', size:'M', deliveryType:'DELIVERY', jerseyColor:'#A50044', jerseyNumber:'10', likedCount:33, isLiked:true, sport:'SOCCER', timeAgo:'4시간 전' },
+  { id:7, title:'두산 베어스 2023 홈 유니폼', team:'두산 베어스', league:'KBO', price:59000, grade:'S', size:'L', deliveryType:'DELIVERY', jerseyColor:'#002147', jerseyNumber:'36', likedCount:9, isLiked:false, sport:'BASEBALL', timeAgo:'6시간 전' },
+  { id:8, title:'KT 위즈 2024 어웨이 유니폼', team:'KT 위즈', league:'KBO', price:44000, grade:'B', size:'XL', deliveryType:'BOTH', jerseyColor:'#D50032', jerseyNumber:'22', likedCount:5, isLiked:false, sport:'BASEBALL', timeAgo:'2일 전' },
+  { id:9, title:'서울 SK 나이츠 23/24 홈', team:'서울 SK 나이츠', league:'KBL', price:71000, grade:'A', size:'M', deliveryType:'DIRECT', jerseyColor:'#E3001B', jerseyNumber:'14', likedCount:16, isLiked:false, sport:'BASKETBALL', timeAgo:'어제' },
+  { id:10, title:'인천 대한항공 점보스 유니폼', team:'인천 대한항공', league:'V리그', price:38000, grade:'C', size:'S', deliveryType:'DELIVERY', jerseyColor:'#003087', jerseyNumber:'5', likedCount:3, isLiked:false, sport:'VOLLEYBALL', timeAgo:'3일 전' },
 ]
 
 const MOCK_AUCTIONS: AuctionItem[] = [
-  { id:101, title:'KIA 타이거즈 우승 기념 어센틱', team:'KIA 타이거즈', league:'KBO', currentPrice:287000, grade:'S', jerseyColor:'#D50032', sport:'baseball', timeLeft:{hours:2, minutes:34, seconds:17}, bidCount:12, isLive:true },
-  { id:102, title:'맨유 퍼거슨 시대 레트로 홈', team:'맨체스터 유나이티드', league:'EPL', currentPrice:145000, grade:'A', jerseyColor:'#B5222B', sport:'soccer', timeLeft:{hours:0, minutes:48, seconds:55}, bidCount:7, isLive:true },
-  { id:103, title:'대한민국 국가대표 2002 어센틱', team:'대한민국', league:'국가대표', currentPrice:520000, grade:'S', jerseyColor:'#C0392B', sport:'soccer', timeLeft:{hours:5, minutes:12, seconds:40}, bidCount:23, isLive:true },
+  { id:101, title:'KIA 타이거즈 우승 기념 어센틱', team:'KIA 타이거즈', league:'KBO', currentPrice:287000, grade:'S', jerseyColor:'#D50032', sport:'BASEBALL', timeLeft:{hours:2, minutes:34, seconds:17}, bidCount:12, isLive:true },
+  { id:102, title:'맨유 퍼거슨 시대 레트로 홈', team:'맨체스터 유나이티드', league:'EPL', currentPrice:145000, grade:'A', jerseyColor:'#B5222B', sport:'SOCCER', timeLeft:{hours:0, minutes:48, seconds:55}, bidCount:7, isLive:true },
+  { id:103, title:'대한민국 국가대표 2002 어센틱', team:'대한민국', league:'국가대표', currentPrice:520000, grade:'S', jerseyColor:'#C0392B', sport:'SOCCER', timeLeft:{hours:5, minutes:12, seconds:40}, bidCount:23, isLive:true },
 ]
 
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
-const SPORT_TABS: { key: SportCategory; label: string }[] = [
+const SPORT_TABS: { key: SportFilter; label: string }[] = [
   { key:'all',        label:'전체' },
-  { key:'soccer',     label:'축구' },
-  { key:'baseball',   label:'야구' },
-  { key:'basketball', label:'농구' },
-  { key:'volleyball', label:'배구' },
-  { key:'golf',       label:'골프' },
-  { key:'etc',        label:'기타' },
+  { key:'BASEBALL',   label:'야구' },
+  { key:'SOCCER',     label:'축구' },
+  { key:'BASKETBALL', label:'농구' },
+  { key:'VOLLEYBALL', label:'배구' },
+  { key:'ESPORTS',    label:'e스포츠' },
+  { key:'ETC',        label:'기타' },
 ]
 
 const LEAGUES = ['전체', 'EPL', '라리가', '분데스리가', '세리에A', 'K리그', 'KBO', 'KBL', 'V리그']
@@ -130,7 +130,7 @@ function Jersey({ color, number, size = 'sm' }: JerseyProps) {
           textAnchor="middle"
           fontSize={numSize}
           fill="rgba(255,255,255,0.35)"
-          fontFamily="'Bebas Neue', sans-serif"
+          fontFamily="Giants, sans-serif"
         >
           {number}
         </text>
@@ -312,7 +312,7 @@ function AuctionCard({ item }: { item: AuctionItem }) {
           <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>현재 입찰가</p>
           <p
             className="text-[22px] leading-none text-white"
-            style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
           >
             {formatPrice(item.currentPrice)}
           </p>
@@ -332,7 +332,7 @@ function AuctionCard({ item }: { item: AuctionItem }) {
               >
                 <div
                   className="text-[18px] text-white leading-none"
-                  style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
                 >
                   {padTime(val)}
                 </div>
@@ -343,7 +343,7 @@ function AuctionCard({ item }: { item: AuctionItem }) {
               {i < 2 && (
                 <span
                   className="text-[18px] leading-none pb-2"
-                  style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif", color: 'rgba(255,255,255,0.3)' }}
+                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'rgba(255,255,255,0.3)' }}
                 >
                   :
                 </span>
@@ -358,12 +358,12 @@ function AuctionCard({ item }: { item: AuctionItem }) {
 
 // ── 종목 카테고리 바 ──────────────────────────────────────────────────────────
 
-interface SportCategoryBarProps {
-  active: SportCategory
-  onSelect: (s: SportCategory) => void
+interface SportFilterBarProps {
+  active: SportFilter
+  onSelect: (s: SportFilter) => void
 }
 
-function SportCategoryBar({ active, onSelect }: SportCategoryBarProps) {
+function SportFilterBar({ active, onSelect }: SportFilterBarProps) {
   return (
     <div
       className="sticky top-[56px] z-30 flex items-center overflow-x-auto"
@@ -436,7 +436,7 @@ function HeroSection() {
           </p>
           <h2
             className="text-[48px] sm:text-[56px] leading-[1] text-white mb-3"
-            style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif", letterSpacing: '2px' }}
+            style={{ fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif", letterSpacing: '2px' }}
           >
             MAN UTD 23/24<br />
             <span style={{ color: 'var(--color-accent)' }}>HOME</span> AUTHENTIC
@@ -475,7 +475,7 @@ function HeroSection() {
               <div key={lbl}>
                 <p
                   className="text-[28px] leading-none text-white"
-                  style={{ fontFamily: "'IAMAPLAYER','Bebas Neue',sans-serif" }}
+                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
                 >
                   {num}
                 </p>
@@ -573,13 +573,13 @@ function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
       <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
         style={{ color: 'var(--color-text-hint)' }}>거래 방식</p>
       <div className="flex gap-2 px-5">
-        {([['all','전체'],['delivery','택배'],['direct','직거래']] as const).map(([key, label]) => {
-          const isActive = filter.tradeType === key
+        {([['all','전체'],['DELIVERY','택배'],['DIRECT','직거래']] as const).map(([key, label]) => {
+          const isActive = filter.deliveryType === key
           return (
             <button
               key={key}
               type="button"
-              onClick={() => set('tradeType', key)}
+              onClick={() => set('deliveryType', key)}
               className="text-[11px] px-2.5 py-1 rounded transition-colors"
               style={{
                 background: isActive ? 'var(--color-primary)' : 'transparent',
@@ -614,7 +614,7 @@ export default function HomePage() {
     sport: 'all',
     league: 'all',
     grade: 'all',
-    tradeType: 'all',
+    deliveryType: 'all',
     sort: 'latest',
   })
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
@@ -624,7 +624,7 @@ export default function HomePage() {
   function handleLike(id: number) {
     setLikedIds((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next
     })
   }
@@ -634,14 +634,14 @@ export default function HomePage() {
     if (filter.sport !== 'all' && item.sport !== filter.sport) return false
     if (filter.league !== 'all' && item.league !== filter.league) return false
     if (filter.grade !== 'all' && item.grade !== filter.grade) return false
-    if (filter.tradeType !== 'all' && item.tradeType !== filter.tradeType) return false
+    if (filter.deliveryType !== 'all' && item.deliveryType !== filter.deliveryType) return false
     return true
   }).map((item) => ({ ...item, isLiked: likedIds.has(item.id) || item.isLiked }))
 
   return (
     <div style={{ background: 'var(--color-bg)' }}>
       {/* 종목 카테고리 바 */}
-      <SportCategoryBar
+      <SportFilterBar
         active={filter.sport}
         onSelect={(s) => setFilter((f) => ({ ...f, sport: s }))}
       />

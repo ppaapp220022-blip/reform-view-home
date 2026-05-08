@@ -25,7 +25,7 @@
 ## 폰트
 - Display: `Bebas Neue` (Google Fonts) — h1, 로고
 - Body: `DM Sans` (Google Fonts) + `Pretendard` (로컬 fallback, Korean)
-- Mono: JetBrains Mono / Fira Code
+- Mono: ui-monospace (시스템 기본값, @font-face 선언 없음)
 
 ## 파일 구조 (주요)
 ```
@@ -313,3 +313,91 @@ report / notification
 - [done] router.tsx — / Placeholder → HomePage 교체
 - [done] tsc --noEmit 통과
 - 다음: 상품 상세 페이지 (ListingDetailPage) 또는 검색 결과 페이지
+
+## 회원가입 선행 조건 안내 추가 <!-- 2026-05-08 -->
+- [done] `RegisterPage.tsx` — PreflightHints 컴포넌트 추가
+  - 버튼 비활성 시 (`!canSubmit && !isPending`) 다음 단계 버튼 위에 오렌지 힌트 블록 표시
+  - 미충족 조건만 목록으로 표시 (이메일/닉네임/비밀번호/비밀번호 확인/필수 약관)
+  - 비밀번호 강도 부족 시 미충족 요건(8자/대문자/숫자/특수문자) 세부 표시
+  - HintItem 헬퍼 컴포넌트 추가 (bullet dot + 안내 텍스트)
+  - AlertCircle 아이콘 (lucide-react) 사용
+
+## 온보딩 페이지 (Step 2) 구현 완료 <!-- 2026-05-08 -->
+- [done] `authApi.ts` — SportType 타입 + saveInterestSetting 함수 추가 (POST /user/interest-setting)
+- [done] `src/features/auth/hooks/useOnboarding.ts` — useMutation, 성공 시 / 홈으로 이동
+- [done] `src/pages/auth/OnboardingPage.tsx` — Step 2 (관심 설정)
+  - StepIndicator current=2 (RegisterPage와 동일 디자인, 페이지 내 재정의)
+  - 5개 종목 카드 (SOCCER/BASEBALL/BASKETBALL/VOLLEYBALL/ESPORTS)
+    - 인라인 SVG 종목 아이콘 (24x24, stroke 1.5px)
+    - IAMAPLAYER 영문 라벨 + 한글 라벨
+    - 선택 시 accent(red) 테두리 배경
+    - 동일 카드 재클릭 시 선택 해제
+  - 구단 칩 목록 (종목 선택 후 fadeInUp 애니메이션으로 노출)
+    - 축구 16개(K리그+해외) / 야구 10개(KBO) / 농구 10개(KBL+NBA) / 배구 9개(V리그) / 이스포츠 8개(LCK)
+    - 선택 시 accent 칩, 재클릭 해제 가능
+    - 구단 선택은 optional
+  - 완료하기 버튼 (종목 선택 필수) + 나중에 설정하기(건너뛰기) 버튼
+  - 서버 에러 인라인 표시
+- [done] router.tsx — /onboarding Placeholder → OnboardingPage 교체
+- [done] tsc --noEmit 통과
+- 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
+
+## 온보딩 페이지 전면 재작성 <!-- 2026-05-08 -->
+- [done] `authApi.ts` — InterestSettingRequest: sport/team 단수 → sports[]/leagues[]/teams[]/keywords[] 다중 배열로 변경
+- [done] `OnboardingPage.tsx` 전면 재작성 (863줄)
+  - 종목 복수 선택 (toggleSport, 선택 해제 시 리그·팀 연쇄 제거)
+  - 관심 리그 칩 (종목 선택 후 fadeInUp 노출, 복수 선택)
+  - 관심 구단 카드 (리그 선택 후 노출, 최대 5개, 팀 컬러 스와치)
+  - 관심 키워드 입력 (Enter/쉼표로 태그 추가, Backspace로 마지막 제거)
+  - 선택 요약 뱃지 영역 (하단 고정, 종목/리그/구단/키워드 모두 표시, X로 개별 제거)
+  - max-w-[680px] (Register보다 넓게)
+- [done] tsc --noEmit 통과
+- 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
+
+## WelcomePage (Step 3) 구현 완료 <!-- 2026-05-08 -->
+- [done] `useOnboarding.ts` — navigate 목적지 / → /welcome 으로 변경, router state로 interests 전달
+- [done] `src/pages/auth/WelcomePage.tsx` — Step 3 완료 환영 페이지 (581줄)
+  - StepIndicator current=3 (1·2 green 체크)
+  - 헤드라인: "WELCOME TO THE SQUAD" (IAMAPLAYER 32px)
+  - PlayerCard: 트레이딩 카드 스타일 (팀컬러 상단바·아바타·닉네임·통계·스피드라인)
+  - BadgeUnlock: "NEW PLAYER 배지 획득" 골드 알림
+  - FeedPreview: 관심 종목 mock 매물 카운트 (종목별 고정값 합산)
+  - 관심 요약 칩: router state의 sports/teams 표시
+  - CTA: "홈 피드 보러가기"(primary) + "첫 유니폼 판매하기"(accent)
+- [done] router.tsx — /welcome 라우트 추가 (AuthLayout 하위)
+- [done] tsc --noEmit 통과
+- 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
+
+## 폰트 정리 <!-- 2026-05-08 -->
+- [done] `tailwind.config.ts` mono — JetBrains Mono / Fira Code 제거, ui-monospace만 유지
+- [done] CLAUDE.md — "폰트 사용 규칙" 섹션 추가 (4종 허용 폰트 표, 절대 금지, 추가 절차)
+- [done] memory.md 폰트 항목 교정
+- 허용 폰트 확정: DM Sans / Pretendard / Bebas Neue / IAMAPLAYER (4종)
+
+## Giants 폰트 시스템 전환 완료 <!-- 2026-05-08 -->
+
+- Google Fonts (Bebas Neue + DM Sans) 전면 제거
+- Giants Regular/Bold/Inline 로컬 woff2 추가 (`public/fonts/`)
+- `font-inline` Tailwind 클래스 → `Giants-Inline` 패밀리
+- `font-display` → `Giants` (Bold)
+- `font-sans` → `Giants` (Regular) + Pretendard fallback
+- `font-player` → `IAMAPLAYER` + Giants fallback (Bebas Neue 제거)
+- Giants-Inline 적용처: LoginPage 브랜드 로고, HomePage 히어로 h2, WelcomePage "WELCOME TO THE SQUAD"
+- authApi.ts에 SportType / InterestSettingRequest / saveInterestSetting 복원 (linter revert 복구)
+- CLAUDE.md 폰트 표 + 인라인 예시 Giants 시스템으로 갱신
+- tsc --noEmit 통과 (에러 0)
+
+## 다음 작업 후보
+
+- SearchPage 구현 (`/search`)
+- ListingDetailPage 구현 (`/listing/:id`)
+- MypagePage 구현 (`/mypage`)
+
+## 버그 수정 <!-- 2026-05-08 -->
+
+- router.tsx: 파일 말단 잘림 복원 (bash heredoc 재작성), eslint-disable 주석 추가
+- HomePage.tsx / RegisterPage.tsx: NUL 바이트 제거 (Invalid character ESLint 에러 해소)
+- HomePage.tsx: 삼항 표현식 statement -> if/else 변환 (no-unused-expressions)
+- WelcomePage.tsx: sports / teams useMemo 안정화 (react-hooks/exhaustive-deps)
+- LoginPage.tsx: 브랜드 로고 폰트 Giants-Inline -> IAMAPLAYER 복원
+- CLAUDE.md: 브랜드 로고 규칙 섹션 추가 (IAMAPLAYER 또는 SVG만 허용, Giants-Inline 금지)

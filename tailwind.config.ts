@@ -107,18 +107,23 @@ export default {
       // FONT FAMILY
       // ────────────────────────────────────────────────────────────
       fontFamily: {
-        // 스포티 디스플레이 — 로고, 대형 헤딩 (Google Fonts)
-        display: ['"Bebas Neue"', 'sans-serif'],
+        // Giants Bold — 스포티 한글+영문 임팩트 헤딩 (로컬 @font-face, weight 700)
+        // 용도: 섹션 타이틀, 버튼 라벨, 브랜드 크롬
+        display: ['Giants', 'Pretendard', 'sans-serif'],
 
-        // 로컬 커스텀 디스플레이 — 스포티 임팩트 헤딩
-        // !!!  영문·숫자만 지원 (한글 미지원). 한글 혼용 시 Bebas Neue로 fallback
-        player: ['"IAMAPLAYER"', '"Bebas Neue"', 'sans-serif'],
+        // Giants Inline — 인라인 스트로크 장식 디스플레이 (로컬 @font-face)
+        // 용도: 히어로 대형 헤딩, 로고 주변, 특별한 임팩트 순간
+        inline: ['"Giants-Inline"', 'Giants', 'sans-serif'],
 
-        // 주 본문 — DM Sans (Latin) + Pretendard (Korean) fallback
-        sans: ['"DM Sans"', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
+        // IAMAPLAYER — 영문·숫자 전용 스포티 디스플레이 (로컬 @font-face)
+        // !!!  한글 미지원 — 한글 혼용 시 Giants로 자동 fallback
+        player: ['"IAMAPLAYER"', 'Giants', 'sans-serif'],
 
-        // 모노스페이스
-        mono: ['"JetBrains Mono"', '"Fira Code"', 'ui-monospace', 'monospace'],
+        // 주 본문 — Giants Regular (한글+영문) + Pretendard fallback
+        sans: ['Giants', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
+
+        // 모노스페이스 — @font-face 미선언, 시스템 기본값만 사용
+        mono: ['ui-monospace', 'monospace'],
       },
 
       // ────────────────────────────────────────────────────────────

@@ -83,3 +83,34 @@ export async function checkNickname(nickname: string): Promise<boolean> {
   })
   return data.available
 }
+
+// ── 관심 설정 (온보딩) ─────────────────────────────────────────────────────────
+
+/**
+ * 사용자가 선택할 수 있는 종목 타입
+ * OnboardingPage / WelcomePage / useOnboarding 에서 공유
+ */
+export type SportType = 'soccer' | 'baseball' | 'basketball' | 'volleyball' | 'esports'
+
+/**
+ * 관심 설정 저장 요청 바디
+ * - sports:   선택한 종목 코드 배열
+ * - leagues:  선택한 리그명 배열
+ * - teams:    선택한 팀명 배열
+ * - keywords: 직접 입력한 키워드 배열
+ */
+export interface InterestSettingRequest {
+  sports:   SportType[]
+  leagues:  string[]
+  teams:    string[]
+  keywords: string[]
+}
+
+/**
+ * 관심 설정 저장
+ * POST /auth/interests
+ * 성공 시 서버가 빈 응답(204) 또는 확인 메시지를 반환
+ */
+export async function saveInterestSetting(body: InterestSettingRequest): Promise<void> {
+  await apiClient.post('/auth/interests', body)
+}

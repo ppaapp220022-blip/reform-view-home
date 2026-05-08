@@ -98,6 +98,63 @@ src/
 - 스포츠 전용 아이콘(유니폼, 종목 등) 등 Lucide에 없는 것만 커스텀 SVG로 작성
 - stroke 굵기: 24px → 2px / 20px → 1.75px / 16px → 1.5px
 
+### 폰트 사용 규칙 !!!
+
+**이 프로젝트에서 사용 가능한 폰트는 아래 5종뿐이다.**
+모두 `public/fonts/`에 woff2 파일로 로컬 로드됨. Google Fonts CDN 의존 없음.
+
+| 폰트명 | 파일 | Tailwind 클래스 | 용도 |
+|---|---|---|---|
+| `Giants` (Regular 400) | `Giants-Regular.woff2` | `font-sans` / `font-display` | 한글+영문 본문, 헤딩, 라벨 (기본 서체) |
+| `Giants` (Bold 700) | `Giants-Bold.woff2` | `font-sans font-bold` / `font-display font-bold` | 강조 헤딩, 임팩트 타이틀 |
+| `Giants-Inline` | `Giants-Inline.woff2` | `font-inline` | 히어로 대형 헤딩, 장식 디스플레이 (한글 혼용 시 Giants fallback) |
+| `IAMAPLAYER` | `IAMAPLAYER.woff2` | `font-player` | 숫자·영문 전용 스포티 디스플레이 (한글 금지) |
+| `Pretendard` | `Pretendard-*.woff2` (5 weights) | `font-sans` (fallback) | 한글 본문 시스템 fallback |
+
+**절대 금지 사항**
+- 위 4종 외의 폰트를 `fontFamily` 인라인 스타일이나 Tailwind 설정에 추가하는 것
+- 예: `JetBrains Mono`, `Fira Code`, `Inter`, `Roboto`, `Noto Sans` 등 — @font-face 없이 이름만 쓰면 FOUT(폰트 깜빡임) 또는 무의미한 선언
+- 모노스페이스가 필요하면 `font-mono` (→ `ui-monospace, monospace` 시스템 기본값) 사용
+
+**새 폰트 추가 절차** (허가 후에만)
+1. `src/index.css`에 `@font-face` 또는 `@import` 추가
+2. `tailwind.config.ts`의 `fontFamily`에 등록
+3. 이 표에 행 추가 + memory.md 기록
+
+**인라인 fontFamily 작성 규칙**
+```tsx
+// 올바른 예 — 히어로 대형 헤딩 (Giants-Inline 우선, IAMAPLAYER 숫자 fallback)
+style={{ fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif" }}
+
+// 올바른 예 — 스포티 숫자·영문 (IAMAPLAYER 우선)
+style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+
+// 올바른 예 — 본문
+style={{ fontFamily: "'Giants','Pretendard',sans-serif" }}
+
+// 잘못된 예 — 선언 없는 폰트
+style={{ fontFamily: "'JetBrains Mono', monospace" }}  // 금지
+style={{ fontFamily: "'Bebas Neue',sans-serif" }}       // 금지 (제거됨)
+style={{ fontFamily: "'DM Sans',sans-serif" }}          // 금지 (제거됨)
+```
+
+### 브랜드 로고 규칙 <!-- 2026-05-08 -->
+
+**로고 워드마크(`RE:FORM`)는 반드시 아래 중 하나만 사용한다.**
+
+1. **벡터 SVG** — `public/` 또는 `src/assets/` 에 저장된 로고 파일 (`logo.svg` 등)
+2. **IAMAPLAYER 폰트** — 숫자·영문 전용 스포티 디스플레이 폰트로 로고 텍스트 렌더링
+
+```tsx
+// 올바른 예 — IAMAPLAYER 폰트로 로고 텍스트
+<div style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", letterSpacing: '4px' }}>
+  RE:<span style={{ color: 'var(--color-accent)' }}>FORM</span>
+</div>
+```
+
+**Giants-Inline은 로고에 사용 금지** — 히어로 헤딩·장식 디스플레이 전용이며,
+브랜드 아이덴티티(로고)와 혼재되면 타이포 일관성이 무너짐.
+
 ### 다크모드
 - **모든 페이지·컴포넌트에 다크모드 기본 탑재**
 - 색상은 반드시 CSS 변수(`--color-*`) 사용 — 하드코딩 hex 금지
