@@ -5,16 +5,16 @@
  *   SportFilterBar   — 종목 탭 + 리그 칩 (GNB 바로 아래)
  *   HeroSection        — navy 배경, 피처 상품 + 통계
  *   [Sidebar | Grid]   — 필터 사이드바(220px) + 상품 5열 그리드
- *   AuctionSection     — LIVE 경매 3열
  *
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
  * 데이터: 목 데이터 (백엔드 미연동)
  */
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { Heart, SlidersHorizontal } from 'lucide-react'
+import { formatPrice } from '../utils/format'
 import type {
-  ListingItem, AuctionItem, HomeFilter,
+  ListingItem, HomeFilter,
   Grade, SportFilter,
 } from '../types/listing'
 
@@ -33,11 +33,6 @@ const MOCK_LISTINGS: ListingItem[] = [
   { id:10, title:'인천 대한항공 점보스 유니폼', team:'인천 대한항공', league:'V리그', price:38000, grade:'C', size:'S', deliveryType:'DELIVERY', jerseyColor:'#003087', jerseyNumber:'5', likedCount:3, isLiked:false, sport:'VOLLEYBALL', timeAgo:'3일 전' },
 ]
 
-const MOCK_AUCTIONS: AuctionItem[] = [
-  { id:101, title:'KIA 타이거즈 우승 기념 어센틱', team:'KIA 타이거즈', league:'KBO', currentPrice:287000, grade:'S', jerseyColor:'#D50032', sport:'BASEBALL', timeLeft:{hours:2, minutes:34, seconds:17}, bidCount:12, isLive:true },
-  { id:102, title:'맨유 퍼거슨 시대 레트로 홈', team:'맨체스터 유나이티드', league:'EPL', currentPrice:145000, grade:'A', jerseyColor:'#B5222B', sport:'SOCCER', timeLeft:{hours:0, minutes:48, seconds:55}, bidCount:7, isLive:true },
-  { id:103, title:'대한민국 국가대표 2002 어센틱', team:'대한민국', league:'국가대표', currentPrice:520000, grade:'S', jerseyColor:'#C0392B', sport:'SOCCER', timeLeft:{hours:5, minutes:12, seconds:40}, bidCount:23, isLive:true },
-]
 
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
@@ -68,13 +63,6 @@ const SORT_OPTIONS: { key: HomeFilter['sort']; label: string }[] = [
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
 
-function formatPrice(n: number) {
-  return n.toLocaleString('ko-KR') + '원'
-}
-
-function padTime(n: number) {
-  return String(n).padStart(2, '0')
-}
 
 /** 등급별 배경색 */
 function gradeStyle(grade: Grade): React.CSSProperties {
@@ -84,7 +72,12 @@ function gradeStyle(grade: Grade): React.CSSProperties {
     B: 'var(--color-text-sub)',
     C: 'var(--color-text-hint)',
   }
-  return { background: map[grade], color: '#fff' }
+  return {
+    background: map[grade],
+    color: '#fff',
+    // Tier 1: 등급 레이블(S/A/B/C)은 영문 단독 → IAMAPLAYER
+    fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+  }
 }
 
 // ── 유니폼 SVG 일러스트 ────────────────────────────────────────────────────────
@@ -210,7 +203,11 @@ function ProductCard({ item, onLike }: ProductCardProps) {
         </p>
         <p
           className="text-[16px] font-medium"
-          style={{ color: 'var(--color-primary)' }}
+          style={{
+            color: 'var(--color-primary)',
+            // Tier 1: 가격(₩ + 숫자)은 IAMAPLAYER
+            fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+          }}
         >
           {formatPrice(item.price)}
         </p>
@@ -233,128 +230,6 @@ function ProductCard({ item, onLike }: ProductCardProps) {
   )
 }
 
-// ── 경매 카드 ─────────────────────────────────────────────────────────────────
-
-function AuctionCard({ item }: { item: AuctionItem }) {
-  const { hours, minutes, seconds } = item.timeLeft
-  const isUrgent = hours === 0 && minutes < 60
-
-  return (
-    <div
-      className="rounded-[var(--r-card)] overflow-hidden shadow-card"
-      style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-      }}
-    >
-      {/* 상단: 썸네일 + 정보 */}
-      <div className="flex gap-4 p-4">
-        {/* 유니폼 썸네일 */}
-        <div
-          className="relative w-20 h-24 rounded-[9px] flex items-center justify-center flex-shrink-0 overflow-hidden"
-          style={{ background: 'var(--color-surface-sunken)' }}
-        >
-          <div style={{ transform: 'scale(0.75)' }}>
-            <Jersey color={item.jerseyColor} />
-          </div>
-          {/* LIVE 배지 */}
-          {item.isLive && (
-            <span
-              className="absolute top-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded tracking-[0.5px]"
-              style={{ background: 'var(--color-accent)', color: '#fff' }}
-            >
-              LIVE
-            </span>
-          )}
-        </div>
-
-        {/* 텍스트 */}
-        <div className="flex-1 min-w-0">
-          <p
-            className="text-[11px] font-medium uppercase tracking-[0.5px] mb-1"
-            style={{ color: 'var(--color-text-hint)' }}
-          >
-            {item.team} · {item.league}
-          </p>
-          <p
-            className="text-[15px] font-medium leading-snug mb-2"
-            style={{ color: 'var(--color-text-main)' }}
-          >
-            {item.title}
-          </p>
-          <div className="flex gap-1.5">
-            <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-              style={gradeStyle(item.grade)}
-            >
-              {item.grade}
-            </span>
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded"
-              style={{
-                background: 'rgba(255,46,77,0.08)',
-                color: 'var(--color-accent)',
-                border: '1px solid rgba(255,46,77,0.2)',
-              }}
-            >
-              입찰 {item.bidCount}회
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 하단: 현재가 + 타이머 (navy 배경) */}
-      <div
-        className="flex items-center gap-6 px-4 py-3"
-        style={{ background: 'var(--color-primary)' }}
-      >
-        <div>
-          <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>현재 입찰가</p>
-          <p
-            className="text-[22px] leading-none text-white"
-            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
-          >
-            {formatPrice(item.currentPrice)}
-          </p>
-        </div>
-
-        {/* 타이머 */}
-        <div className="flex items-center gap-1.5 ml-auto">
-          {[
-            { val: hours,   unit: 'HR' },
-            { val: minutes, unit: 'MIN' },
-            { val: seconds, unit: 'SEC' },
-          ].map(({ val, unit }, i) => (
-            <div key={unit} className="flex items-center gap-1.5">
-              <div
-                className="rounded-[5px] px-2 py-1 text-center min-w-[38px]"
-                style={{ background: isUrgent ? 'rgba(255,46,77,0.3)' : 'rgba(255,255,255,0.12)' }}
-              >
-                <div
-                  className="text-[18px] text-white leading-none"
-                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
-                >
-                  {padTime(val)}
-                </div>
-                <div className="text-[8px] uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {unit}
-                </div>
-              </div>
-              {i < 2 && (
-                <span
-                  className="text-[18px] leading-none pb-2"
-                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'rgba(255,255,255,0.3)' }}
-                >
-                  :
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ── 종목 카테고리 바 ──────────────────────────────────────────────────────────
 
@@ -715,35 +590,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 경매 섹션 */}
-          <div className="mt-2 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-semibold" style={{ color: 'var(--color-text-main)' }}>
-                  실시간 경매
-                </h2>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded"
-                  style={{ background: 'var(--color-accent)', color: '#fff' }}
-                >
-                  LIVE {MOCK_AUCTIONS.length}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="flex items-center gap-0.5 text-[12px] transition-colors hover:opacity-80"
-                style={{ color: 'var(--color-accent)' }}
-              >
-                전체 보기 <ChevronRight size={14} strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {MOCK_AUCTIONS.map((item) => (
-                <AuctionCard key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
         </main>
       </div>
     </div>

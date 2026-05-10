@@ -21,8 +21,8 @@ import type { SportType } from '../../features/auth/api/authApi'
 
 // ── 종목 한글 레이블 맵 ────────────────────────────────────────────────────────
 const SPORT_LABEL: Record<SportType, string> = {
+    BASEBALL:   '야구',
   SOCCER:     '축구',
-  BASEBALL:   '야구',
   BASKETBALL: '농구',
   VOLLEYBALL: '배구',
   ESPORTS:    '이스포츠',
@@ -272,7 +272,7 @@ function PlayerCard({
               key={n}
               size={10}
               strokeWidth={0}
-              fill={n <= Math.round(mannerScore) ? '#FFB800' : 'rgba(255,255,255,0.2)'}
+              fill={n <= Math.round(Math.min(5, Math.max(0, mannerScore))) ? '#FFB800' : 'rgba(255,255,255,0.2)'}
             />
           ))}
         </div>
@@ -358,7 +358,8 @@ function BadgeUnlock() {
         <Star size={16} strokeWidth={0} fill="#FFB800" />
       </div>
       <div>
-        <p className="text-[13px] font-semibold" style={{ color: 'var(--color-text-main)' }}>
+        {/* 배지 획득 타이틀: 잘 보여야 하므로 font-display(Giants) */}
+        <p className="text-[13px] font-display font-semibold" style={{ color: 'var(--color-text-main)' }}>
           NEW PLAYER 배지 획득
         </p>
         <p className="text-[11px]" style={{ color: 'var(--color-text-hint)' }}>
@@ -439,7 +440,8 @@ export default function WelcomePage() {
   const teamColor = useMemo(() => getPrimaryTeamColor(teams), [teams])
 
   /** 초기 매너 점수 */
-  const mannerScore = user?.mannerScore ?? 36.5
+  /** mannerScore: 0~5.0 스케일 (당근마켓 별점 방식). 신규 가입자 기본값 3.65 ≈ ★★★★ */
+  const mannerScore = user?.mannerScore ?? 3.65
 
   /** 매물 카운트 (mock) */
   const feedCount = useMemo(() => getMockCount(sports), [sports])

@@ -4,22 +4,52 @@
  * 레이아웃 구조:
  * - MainLayout  → GNB + Footer 있는 일반 페이지
  * - AuthLayout  → 로그인/회원가입/온보딩 (GNB 없음)
- *
- * 페이지 구현 시:
- *   1. src/pages/에 컴포넌트 생성
- *   2. 아래 import 주석 해제 + element 교체
  */
 import { createBrowserRouter } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import AuthLayout from './components/layout/AuthLayout'
-import LoginPage from './pages/auth/LoginPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import OnboardingPage from './pages/auth/OnboardingPage'
-import WelcomePage from './pages/auth/WelcomePage'
-import HomePage from './pages/HomePage'
 
-// ── 구현된 페이지 import (추가되면 여기에) ──────────────────────────────────
-// ...
+// ── Auth ──────────────────────────────────────────────────────────────────────
+import LoginPage       from './pages/auth/LoginPage'
+import RegisterPage    from './pages/auth/RegisterPage'
+import OnboardingPage  from './pages/auth/OnboardingPage'
+import WelcomePage     from './pages/auth/WelcomePage'
+
+// ── 메인 ─────────────────────────────────────────────────────────────────────
+import HomePage        from './pages/HomePage'
+
+// ── 검색 ─────────────────────────────────────────────────────────────────────
+import SearchPage      from './pages/search/SearchPage'
+
+// ── 판매글 ───────────────────────────────────────────────────────────────────
+import ListingDetailPage from './pages/listing/ListingDetailPage'
+import ListingCreatePage from './pages/listing/ListingCreatePage'
+
+// ── 마이페이지 ────────────────────────────────────────────────────────────────
+import MyPage          from './pages/mypage/MyPage'
+
+// ── 채팅 ─────────────────────────────────────────────────────────────────────
+import ChatPage        from './pages/chat/ChatPage'
+
+// ── 커뮤니티 ─────────────────────────────────────────────────────────────────
+import CommunityPage        from './pages/community/CommunityPage'
+import CommunityDetailPage from './pages/community/CommunityDetailPage'
+
+// ── 결제 / 거래 ──────────────────────────────────────────────────────────────
+import PaymentPage       from './pages/payment/PaymentPage'
+import PaymentSuccessPage from './pages/payment/PaymentSuccessPage'
+import PaymentFailPage    from './pages/payment/PaymentFailPage'
+import TradeConfirmPage  from './pages/trade/TradeConfirmPage'
+import ReviewPage        from './pages/trade/ReviewPage'
+
+// ── 판매글 수정 ──────────────────────────────────────────────────────────────
+import ListingEditPage    from './pages/listing/ListingEditPage'
+
+// ── 관리자 ───────────────────────────────────────────────────────────────────
+import AdminDashboardPage     from './pages/admin/AdminDashboardPage'
+import AdminMemberDetailPage  from './pages/admin/AdminMemberDetailPage'
+import AdminDisputeDetailPage from './pages/admin/AdminDisputeDetailPage'
+import AdminReportDetailPage  from './pages/admin/AdminReportDetailPage'
 
 /** 미구현 페이지 임시 플레이스홀더 */
 // eslint-disable-next-line react-refresh/only-export-components
@@ -53,33 +83,36 @@ const router = createBrowserRouter([
     children: [
       // 메인
       { path: '/',       element: <HomePage /> },
-      { path: '/search', element: <Placeholder name="검색 결과" /> },
-      { path: '/likes',  element: <Placeholder name="관심 목록" /> },
+      { path: '/search', element: <SearchPage /> },
+      { path: '/likes',  element: <MyPage /> },   // 찜 목록 → MyPage 찜 탭으로 통합
 
       // 판매글
-      { path: '/listing/new',      element: <Placeholder name="판매글 작성" /> },
-      { path: '/listing/:id',      element: <Placeholder name="판매글 상세" /> },
-      { path: '/listing/:id/edit', element: <Placeholder name="판매글 수정" /> },
+      { path: '/listing/new',      element: <ListingCreatePage /> },
+      { path: '/listing/:id',      element: <ListingDetailPage /> },
+      { path: '/listing/:id/edit', element: <ListingEditPage /> },
 
       // 거래 / 결제
-      { path: '/trade/:id/confirm', element: <Placeholder name="구매 확정" /> },
-      { path: '/trade/:id/review',  element: <Placeholder name="매너 평가" /> },
-      { path: '/payment/:id',       element: <Placeholder name="결제" /> },
+      { path: '/trade/:id/confirm', element: <TradeConfirmPage /> },
+      { path: '/trade/:id/review',  element: <ReviewPage /> },
+      { path: '/payment/:id',       element: <PaymentPage /> },
+      { path: '/payment/success',   element: <PaymentSuccessPage /> },
+      { path: '/payment/fail',      element: <PaymentFailPage /> },
 
       // 채팅
-      { path: '/chat', element: <Placeholder name="채팅" /> },
+      { path: '/chat', element: <ChatPage /> },
 
       // 마이페이지
-      { path: '/mypage', element: <Placeholder name="마이페이지" /> },
+      { path: '/mypage', element: <MyPage /> },
 
       // 커뮤니티
-      { path: '/community', element: <Placeholder name="커뮤니티" /> },
+      { path: '/community',      element: <CommunityPage /> },
+      { path: '/community/:id', element: <CommunityDetailPage /> },
 
       // 관리자
-      { path: '/admin',                element: <Placeholder name="관리자 대시보드" /> },
-      { path: '/admin/members/:id',    element: <Placeholder name="회원 관리 상세" /> },
-      { path: '/admin/disputes/:id',   element: <Placeholder name="분쟁 조정 상세" /> },
-      { path: '/admin/reports/:id',    element: <Placeholder name="신고 처리 상세" /> },
+      { path: '/admin',                element: <AdminDashboardPage /> },
+      { path: '/admin/members/:id',    element: <AdminMemberDetailPage /> },
+      { path: '/admin/disputes/:id',   element: <AdminDisputeDetailPage /> },
+      { path: '/admin/reports/:id',    element: <AdminReportDetailPage /> },
     ],
   },
 ])

@@ -18,11 +18,58 @@
 - [ ] 다크모드 양쪽(라이트/다크)에서 색상 대비 확인
 - [ ] 이모지 없음, 하드코딩 hex 없음, 존재하지 않는 변수명 없음
 
-## 파일 수정 시 주의사항
+## 파일 수정 시 주의사항 !!!
 
-**Edit 툴은 약 20KB 이상의 파일을 수정할 때 파일을 잘라먹는 버그가 있음.**
-- 큰 파일(~20KB 이상) 수정 시에는 Edit 툴 대신 bash(`sed`, `awk`, `cat >>` 등)를 우선 사용할 것
-- 수정 후에는 반드시 `grep -n "</html>"` 및 `tail` 로 파일 끝이 정상인지 검증할 것
+### 파일 잘림 버그 — 원인과 대응 전략
+
+이 프로젝트의 파일들은 Windows↔Linux 마운트를 통해 접근되며, 파일 쓰기 도구들이 대용량 파일을 잘라먹는 고질적 버그가 있음.
+
+#### 도구별 버그 수준
+| 도구 | 버그 수준 | 대응 |
+|---|---|---|
+| Edit 툴 | ~20KB 이상에서 뒷부분 truncation | **사용 금지** (소형 파일 제외) |
+| Write 툴 | 마운트 경계에서 truncation | **사용 금지** |
+| Python `open(w)` | 마운트 경계에서 가끔 truncation | 사용 가능하나 **반드시 검증 필수** |
+| `sed -i` | 타깃 라인만 수정, 재작성 없음 | **가장 안전** (단순 교체 시 우선) |
+
+#### 필수 수정 프로토콜 (매번 반드시 따를 것)
+
+```bash
+# 1. 수정 전: 원본 줄 수 기록
+BEFORE=$(wc -l < 파일경로)
+
+# 2. 수정 (Python 또는 sed)
+
+# 3. 수정 후: 줄 수 + 파일 끝 즉시 검증
+AFTER=$(wc -l < 파일경로)
+echo "전: $BEFORE줄 → 후: $AFTER줄"
+tail -5 파일경로
+```
+
+- 줄 수가 대폭 감소했으면 → 즉시 git checkout으로 복구 후 재시도
+- 파일 끝이 `}` 또는 `}
+` 으로 끝나지 않으면 → 잘린 것
+
+#### 수정 방식 우선순위
+1. **`sed -i`** — 단순 문자열 교체 (가장 안전, 파일 전체 재작성 없음)
+2. **Python read→modify→write** — 복잡한 변환 시 사용, 반드시 검증 포함
+3. Edit / Write 툴 — 소형 파일(< 5KB)에서만 허용
+
+#### Python 쓰기 템플릿 (검증 내장)
+```python
+import subprocess
+
+path = '파일경로'
+before = int(subprocess.check_output(['wc', '-l', path]).split()[0])
+with open(path, 'r') as f:
+    c = f.read()
+# ... 수정 ...
+with open(path, 'w') as f:
+    f.write(c)
+after = int(subprocess.check_output(['wc', '-l', path]).split()[0])
+assert after >= before * 0.9, f"파일 잘림 의심! {before}→{after}줄"
+print(f"OK: {before}→{after}줄")
+```
 
 ## 마운트 파일시스템 주의사항
 
@@ -98,45 +145,81 @@ src/
 - 스포츠 전용 아이콘(유니폼, 종목 등) 등 Lucide에 없는 것만 커스텀 SVG로 작성
 - stroke 굵기: 24px → 2px / 20px → 1.75px / 16px → 1.5px
 
-### 폰트 사용 규칙 !!!
+### 폰트 사용 규칙 !!! <!-- 2026-05-09 업데이트: 3-Tier 규칙 확립 -->
 
-**이 프로젝트에서 사용 가능한 폰트는 아래 5종뿐이다.**
-모두 `public/fonts/`에 woff2 파일로 로컬 로드됨. Google Fonts CDN 의존 없음.
+#### 폰트 3-Tier 규칙 (우선순위 순)
 
-| 폰트명 | 파일 | Tailwind 클래스 | 용도 |
-|---|---|---|---|
-| `Giants` (Regular 400) | `Giants-Regular.woff2` | `font-sans` / `font-display` | 한글+영문 본문, 헤딩, 라벨 (기본 서체) |
-| `Giants` (Bold 700) | `Giants-Bold.woff2` | `font-sans font-bold` / `font-display font-bold` | 강조 헤딩, 임팩트 타이틀 |
-| `Giants-Inline` | `Giants-Inline.woff2` | `font-inline` | 히어로 대형 헤딩, 장식 디스플레이 (한글 혼용 시 Giants fallback) |
-| `IAMAPLAYER` | `IAMAPLAYER.woff2` | `font-player` | 숫자·영문 전용 스포티 디스플레이 (한글 금지) |
-| `Pretendard` | `Pretendard-*.woff2` (5 weights) | `font-sans` (fallback) | 한글 본문 시스템 fallback |
+| Tier | 조건 | 폰트 | Tailwind 클래스 | 인라인 스타일 |
+|---|---|---|---|---|
+| **1 (최우선)** | 영문(알파벳)·숫자만 쓰이는 곳 | `IAMAPLAYER` | `font-player` | `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` |
+| **2 (기본)** | 본문·디폴트 텍스트 (한글 포함) | `Pretendard` | `font-sans` (명시 불필요) | `fontFamily: "'Pretendard',Giants,sans-serif"` |
+| **3 (강조)** | 두꺼운 글씨·잘 보여야 하는 텍스트 | `Giants` | `font-display` | `fontFamily: "'Giants','Pretendard',sans-serif"` |
 
-**절대 금지 사항**
-- 위 4종 외의 폰트를 `fontFamily` 인라인 스타일이나 Tailwind 설정에 추가하는 것
-- 예: `JetBrains Mono`, `Fira Code`, `Inter`, `Roboto`, `Noto Sans` 등 — @font-face 없이 이름만 쓰면 FOUT(폰트 깜빡임) 또는 무의미한 선언
-- 모노스페이스가 필요하면 `font-mono` (→ `ui-monospace, monospace` 시스템 기본값) 사용
+**Tier 판단 기준**
+- 영문+숫자만: 가격(`₩89,000`), 등번호, 거리(`1.2km`), 영문 레이블(`LIVE`, `TRADE`, `SOLD`, 섹션 헤더 영문) → **IAMAPLAYER**
+- 일반 본문, 설명, 한글 레이블, 입력창, 폼 안내문, 소셜 로그인 버튼 → **Pretendard (기본, 별도 클래스 불필요)**
+- h1~h6 태그, 섹션 타이틀, 내비게이션 메뉴, 버튼 레이블, 카드 대형 제목, empty state 타이틀 → **Giants (font-display)**
+
+**CSS 자동 처리 (별도 클래스 불필요)**
+- `h1~h6` 태그 → CSS `@layer base`에서 Giants 자동 적용
+- `button` 태그 → CSS `@layer base`에서 Giants 자동 적용
+- 일반 텍스트(`p`, `span`, `div`) → html 기본값 Pretendard 자동 적용
+
+**`font-display` 클래스를 명시해야 하는 경우**
+```tsx
+// h태그가 아닌데 굵고 잘 보여야 할 때
+<p className="font-display font-bold text-base">실시간 경매</p>
+<span className="font-display font-semibold">필터</span>
+<div className="font-display font-bold">최종 결제액</div>
+```
+
+**`font-player` 클래스 또는 인라인으로 IAMAPLAYER를 써야 할 때**
+```tsx
+// 가격, 숫자, 영문 레이블 (한글 절대 금지)
+<span className="font-player">₩89,000</span>
+<span style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}>LIVE 3</span>
+<span style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}>23/24</span>
+```
+
+**허용 폰트 목록 (5종, 이외 추가 금지)**
+
+| 폰트명 | 파일 | 역할 |
+|---|---|---|
+| `Giants` (Regular 400) | `Giants-Regular.woff2` | Tier 3 강조 텍스트 |
+| `Giants` (Bold 700) | `Giants-Bold.woff2` | Tier 3 강조 헤딩 |
+| `Giants-Inline` | `Giants-Inline.woff2` | 히어로 대형 헤딩·장식 디스플레이 전용 (`font-inline`) |
+| `IAMAPLAYER` | `IAMAPLAYER.woff2` | Tier 1 영문·숫자 전용 (`font-player`) |
+| `Pretendard` | `Pretendard-*.woff2` (5 weights) | Tier 2 기본 본문 (`font-sans`) |
+
+**절대 금지**
+- 위 5종 외의 폰트 추가 (`JetBrains Mono`, `Inter`, `Roboto` 등)
+- IAMAPLAYER에 한글 사용 (폴백 폰트로 깨져 보임)
+- Giants-Inline을 로고에 사용 (히어로 헤딩 전용)
+- 모노스페이스 필요 시 → `font-mono` (시스템 기본값) 사용
+
+**인라인 fontFamily 작성 규칙**
+```tsx
+// Tier 1: 영문·숫자 전용 (IAMAPLAYER)
+style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+
+// Tier 2: 본문 (Pretendard) — 인라인 명시가 필요한 경우에만
+style={{ fontFamily: "'Pretendard',Giants,sans-serif" }}
+
+// Tier 3: 강조 (Giants) — 인라인 명시가 필요한 경우에만
+style={{ fontFamily: "'Giants','Pretendard',sans-serif" }}
+
+// 히어로 대형 헤딩 (Giants-Inline + IAMAPLAYER fallback)
+style={{ fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif" }}
+
+// 금지 예시
+style={{ fontFamily: "'Bebas Neue',sans-serif" }}   // 금지 (제거됨)
+style={{ fontFamily: "'DM Sans',sans-serif" }}       // 금지 (제거됨)
+```
 
 **새 폰트 추가 절차** (허가 후에만)
 1. `src/index.css`에 `@font-face` 또는 `@import` 추가
 2. `tailwind.config.ts`의 `fontFamily`에 등록
 3. 이 표에 행 추가 + memory.md 기록
-
-**인라인 fontFamily 작성 규칙**
-```tsx
-// 올바른 예 — 히어로 대형 헤딩 (Giants-Inline 우선, IAMAPLAYER 숫자 fallback)
-style={{ fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif" }}
-
-// 올바른 예 — 스포티 숫자·영문 (IAMAPLAYER 우선)
-style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
-
-// 올바른 예 — 본문
-style={{ fontFamily: "'Giants','Pretendard',sans-serif" }}
-
-// 잘못된 예 — 선언 없는 폰트
-style={{ fontFamily: "'JetBrains Mono', monospace" }}  // 금지
-style={{ fontFamily: "'Bebas Neue',sans-serif" }}       // 금지 (제거됨)
-style={{ fontFamily: "'DM Sans',sans-serif" }}          // 금지 (제거됨)
-```
 
 ### 브랜드 로고 규칙 <!-- 2026-05-08 -->
 

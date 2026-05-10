@@ -61,7 +61,8 @@ export default function Footer() {
 
           {FOOTER_COLS.map(({ heading, links }) => (
             <div key={heading}>
-              <div className="text-[13px] font-bold text-[var(--color-text-main)] mb-3">
+              {/* 섹션 헤더: 굵고 잘 보여야 하므로 font-display(Giants) */}
+              <div className="text-[13px] font-display font-bold text-[var(--color-text-main)] mb-3">
                 {heading}
               </div>
               {links.map((label) => (

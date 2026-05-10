@@ -198,11 +198,11 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={redirectToKakao}
-            className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium transition-opacity hover:opacity-90 active:opacity-75"
+            className="w-full h-[52px] rounded-[10px] border-0 flex items-center gap-3 px-5 text-[14px] font-medium transition-opacity hover:opacity-90 active:opacity-75"
             style={{
+              /* 카카오 브랜드 전용 색상 — CSS 변수/Tailwind 불가 */
               background: '#FEE500',
               color: '#191919',
-              border: 'none',
             }}
           >
             <KakaoIcon />
@@ -213,11 +213,9 @@ export default function LoginPage() {
           <button
               type="button"
               onClick={redirectToGoogle}
-              className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium transition-colors
-             bg-[var(--color-surface)]
-             text-[var(--color-text-main)]
-             border-[1.5px] border-solid border-[var(--color-surface-sunken)]
-             hover:bg-[var(--color-surface-raised)]"
+              className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium
+            bg-[var(--color-surface)] text-[var(--color-text-main)]
+            border border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-raised)]"
           >
             <GoogleIcon />
             Google로 계속하기

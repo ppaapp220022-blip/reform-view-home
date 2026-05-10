@@ -70,7 +70,15 @@ The original codebase mentions React + Vite + TS + Tailwind. No source repo was 
 
 **Palette.** Two-color brand (Navy `#002147` + Red `#FF2E4D`) layered over cool neutral surfaces. Navy carries 90% of the chrome — headers, primary buttons, prices, body type. Red is **reserved**: hot CTAs, "라이브" badges, error states, the dot in the `R:F` colon. Gold `#FFB800` and Neon Green `#00FFAB` exist but are **trophy/special-mode accents** — use sparingly (sold-status, MVP tags). Surfaces are a cool gray (`#E8EBF0` page bg, white cards).
 
-**Type.** Pretendard 400/500/600/700/800 for everything Korean. **IAMAPLAYER** is the brand display face — only valid for **A–Z, 0–9, basic punctuation** (no Hangul). Use it for: numbers (price, jersey #s, distances), English labels (TRADE, LIVE, SOLD), section headers that read in English. Bebas Neue is the web fallback when IAMAPLAYER fails to load. **Never** put Hangul in IAMAPLAYER — it falls through to the Bebas/Pretendard fallback chain and looks broken.
+**Type — 3-Tier Font Rule.** <!-- 2026-05-09 -->
+
+**Tier 1 (최우선): IAMAPLAYER** — A–Z, 0–9, 기본 구두점만 지원. 가격(`₩89,000`), 등번호, 거리, 영문 레이블(TRADE, LIVE, SOLD, HOT TAGS 등). 한글 절대 금지 — Giants/Pretendard 폴백으로 깨져 보임. Tailwind: `font-player` 또는 인라인 `fontFamily:"'IAMAPLAYER',Giants,sans-serif"`.
+
+**Tier 2 (기본): Pretendard 400–800** — 한글+영문 본문, 설명, 레이블, 입력창, 폼 안내. html 기본 폰트 = Pretendard이므로 `font-sans`를 별도 명시할 필요 없음.
+
+**Tier 3 (강조): Giants Regular/Bold** — h1~h6(CSS 자동), button(CSS 자동), 섹션 타이틀, 내비게이션 레이블, empty state 타이틀, 중요 UI 패널 헤더. Tailwind: `font-display font-bold`. 한글+영문 모두 지원.
+
+**장식 전용: Giants-Inline** — 히어로 대형 헤딩, 브랜드 임팩트 순간만. 로고에 사용 금지. Tailwind: `font-inline`.
 
 **Spacing.** 8px grid. Tailwind extras at 18 / 52 / 60 / 72 / 88 / 104 / 120 / 136 px. Cards have **16px inner padding** on mobile, 20–24 on desktop. Tab bar height **64px**, GNB **56px**.
 

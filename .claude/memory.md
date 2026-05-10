@@ -401,3 +401,221 @@ report / notification
 - WelcomePage.tsx: sports / teams useMemo 안정화 (react-hooks/exhaustive-deps)
 - LoginPage.tsx: 브랜드 로고 폰트 Giants-Inline -> IAMAPLAYER 복원
 - CLAUDE.md: 브랜드 로고 규칙 섹션 추가 (IAMAPLAYER 또는 SVG만 허용, Giants-Inline 금지)
+
+## 페이지 구현 완료 (2차 세션) <!-- 2026-05-09 -->
+
+### 구현된 페이지 목록
+
+| 페이지 | 경로 | 파일 |
+|---|---|---|
+| 판매글 상세 | `/listing/:id` | `src/pages/listing/ListingDetailPage.tsx` |
+| 판매글 작성 | `/listing/new` | `src/pages/listing/ListingCreatePage.tsx` |
+| 검색 결과 | `/search` | `src/pages/search/SearchPage.tsx` |
+| 마이페이지 | `/mypage` | `src/pages/mypage/MyPage.tsx` |
+| 채팅 | `/chat` | `src/pages/chat/ChatPage.tsx` |
+| 커뮤니티 | `/community` | `src/pages/community/CommunityPage.tsx` |
+| 결제 | `/payment/:id` | `src/pages/payment/PaymentPage.tsx` |
+| 구매 확정 | `/trade/:id/confirm` | `src/pages/trade/TradeConfirmPage.tsx` |
+| 매너 평가 | `/trade/:id/review` | `src/pages/trade/ReviewPage.tsx` |
+
+- [done] `src/router.tsx` — 9개 페이지 import 연결 완료
+- [done] tsc --noEmit 통과 (에러 0)
+- 모든 페이지: 목 데이터 사용 (백엔드 미연동)
+- 모든 페이지: 다크모드 CSS 변수 적용, 모바일 반응형
+
+### 남은 Placeholder 페이지
+
+- `/listing/:id/edit` — 판매글 수정 (Placeholder)
+- `/admin` 계열 3개 — 관리자 대시보드 (Placeholder)
+
+## 다음 할 일 <!-- 2026-05-09 -->
+- [ ] 백엔드 API 연동 (useQuery 교체) 시작
+- [ ] 판매글 수정 페이지 (`/listing/:id/edit`)
+- [ ] 관리자 대시보드 (`/admin`)
+- [ ] GNB 알림 드롭다운 구현
+- [ ] MSW(Mock Service Worker) 도입 여부 결정
+
+## 폰트 3-Tier 규칙 확립 <!-- 2026-05-09 -->
+
+- [done] `tailwind.config.ts` — font-sans: Giants→Pretendard 우선으로 변경
+- [done] `src/index.css` — html 기본 폰트 Pretendard로 변경, button 기본 폰트 Giants로 변경
+- [done] GNB.tsx — 내비 항목 + 로그인 링크에 `font-display` 추가
+- [done] Footer.tsx — 섹션 헤더에 `font-display` 추가
+- [done] 주요 페이지 — 섹션 타이틀·empty state 타이틀에 `font-display` 추가
+- [done] CLAUDE.md — 폰트 사용 규칙 섹션 3-Tier 규칙으로 전면 개정
+- [done] design-system/README.md — Type 문단 3-Tier 규칙으로 업데이트
+
+### 폰트 3-Tier 핵심 규칙 요약
+- **Tier 1 (최우선)**: 영문·숫자만 → IAMAPLAYER (`font-player`)
+- **Tier 2 (기본)**: 본문·한글 → Pretendard (`font-sans`, 기본값)
+- **Tier 3 (강조)**: 두꺼운/잘 보여야 할 텍스트 → Giants (`font-display`)
+
+### CSS 자동 처리 (클래스 불필요)
+- h1~h6 → Giants (CSS @layer base)
+- button → Giants (CSS @layer base)
+- 일반 div/p/span → Pretendard (html 기본값)
+
+### font-display 명시가 필요한 비-heading 요소
+- 섹션 타이틀 (`<p>`, `<div>`, `<span>` 중 굵은 한글 제목)
+- 내비게이션 레이블 (Link, span)
+- Empty state 타이틀
+- 중요 UI 패널 헤더 (드로어 헤더, 모달 헤더 등)
+
+<!-- 2026-05-09 -->
+## Task 6 완료: 금액 포맷 통일
+- `src/utils/format.ts` 신규 생성: `formatPrice(n)` → `₩` + `toLocaleString('ko-KR')`
+- formatPrice 적용: HomePage, SearchPage, ChatPage, ListingDetailPage, MyPage, PaymentPage, TradeConfirmPage, ListingCreatePage
+- 가격 span에 `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` 추가
+- 한글 배지(등급/상태)에 `fontFamily: "'Giants','Pretendard',sans-serif"` 추가 (SearchPage, ListingDetailPage, MyPage)
+
+## Task 7 완료: 다크모드 Navy Dark Theme (A안)
+- `src/index.css` @media + .dark 블록 양쪽 수정
+- `--color-primary: #002147` (고정, 다크모드 불변)
+- `--color-primary-hover: #1A3051`
+- `--color-bg: #010F1C` / `--color-surface: #001930` / `--color-surface-raised: #00244A` / `--color-surface-sunken: #000C15`
+- 파일 잘림 버그 발생 → Python으로 끝부분 복구
+
+## Task 8 완료: 경매 코드 전면 제거
+- `src/pages/HomePage.tsx`: MOCK_AUCTIONS, AuctionCard 컴포넌트, 경매 섹션 JSX, padTime 함수 모두 제거
+- `src/types/listing.ts`: AuctionItem 인터페이스 제거
+- AuctionItem import 제거
+
+## 스타일 일관성 작업 <!-- 2026-05-09 -->
+
+### 수정 내용
+- [done] `HomePage.tsx` — ProductCard 등급배지(S/A/B/C) + 가격에 IAMAPLAYER 폰트 추가
+  - `gradeStyle()` return에 `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` 추가
+  - 가격 `<p>` style에 동일 fontFamily 추가
+- [done] `WelcomePage.tsx` — mannerScore 버그 수정
+  - fallback `36.5` → `3.65` (0~5 스케일로 통일, 신규 가입자 ★★★★ 수준)
+  - Star fill 로직에 `Math.min(5, Math.max(0, ...))` 클램핑 추가
+- [done] `LoginPage.tsx` — 소셜 버튼 인라인 스타일 일관성
+  - 카카오: `border: 'none'` → Tailwind `border-0`, style에 브랜드 hex만 + 주석
+  - 구글: className 들여쓰기 정리, border 색 `--color-border` 로 수정
+
+### ESLint 안전장치 추가 <!-- 2026-05-09 -->
+- [done] `eslint.config.js` — `no-restricted-syntax` warn 룰 추가
+  - `style={{}}` 안에 CSS 변수(`var(--color-*)`)를 값으로 쓰면 경고
+  - 메시지: "Tailwind className의 bg-[var(--color-*)] 형식으로 대체하라"
+  - warn 수준 (빌드 통과, 코드 리뷰에서 확인 용도)
+  - 허용: 동적 값(computed), 브랜드 전용 hex(카카오 #FEE500 등)
+
+### 인라인 스타일 원칙 (확립)
+| 상황 | 방법 |
+|---|---|
+| CSS 변수 색상 | Tailwind `bg-[var(--color-*)]`, `text-[var(--color-*)]` |
+| 브랜드 전용 hex (Kakao, Google) | `style={{}}` 허용, 반드시 주석 |
+| 동적 값 (teamColor, computed) | `style={{}}` 허용 |
+| 복잡한 인라인 (그라디언트 등) | `style={{}}` 허용, 라이트/다크 양쪽 명시 |
+
+## 전체 페이지 구현 완료 <!-- 2026-05-10 -->
+
+### 이번 세션에서 추가된 페이지 (5개)
+
+| 페이지 | 경로 | 파일 | 줄 수 |
+|---|---|---|---|
+| 판매글 수정 | `/listing/:id/edit` | `ListingEditPage.tsx` | 715 |
+| 관리자 대시보드 | `/admin` | `AdminDashboardPage.tsx` | 527 |
+| 회원 관리 상세 | `/admin/members/:id` | `AdminMemberDetailPage.tsx` | 579 |
+| 분쟁 처리 상세 | `/admin/disputes/:id` | `AdminDisputeDetailPage.tsx` | 440 |
+| 신고 처리 상세 | `/admin/reports/:id` | `AdminReportDetailPage.tsx` | 459 |
+
+- [done] `src/router.tsx` — 모든 Placeholder 제거, 실제 컴포넌트 연결
+- [done] `tsc --noEmit` ALL PASS (에러 0)
+- Placeholder 컴포넌트 정의만 남아있음 (사용되는 라우트 없음, 추후 제거 가능)
+
+### 총 구현 현황: 19개 페이지 전체 완료
+Auth: Login / Register / Onboarding / Welcome (4)
+Main: Home / Search (2)
+Listing: Detail / Create / Edit (3)
+Trade: TradeConfirm / Review (2)
+Payment: Payment (1)
+Chat: Chat (1)
+Community: Community (1)
+MyPage: MyPage (1)
+Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
+
+### 다음 할 일
+- [ ] 백엔드 API 연동 (useQuery 교체)
+- [ ] GNB 알림 드롭다운 구현
+- [ ] MSW(Mock Service Worker) 도입 여부 결정
+- [ ] 관리자 라우트 인증 가드 (Role.ADMIN 체크)
+
+## 백엔드 반영 작업 완료 <!-- 2026-05-10 -->
+
+### 백엔드 머지 후 프론트 반영 항목 (5종)
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | `TradeStatus.RECEIVED` 타입 누락 수정 | [done] |
+| 2 | 결제 API 연동 (Toss Payments SDK + init/confirm/cancel) | [done] |
+| 3 | STOMP WebSocket 채팅 연동 | [done] |
+| 4 | 커뮤니티 게시글 상세 페이지 + 대댓글 UI 구현 | [done] |
+| 5 | 결제 취소/환불 UI (PaymentFailPage) | [done] |
+
+### 신규 생성 파일
+
+| 파일 | 설명 |
+|---|---|
+| `src/features/payment/api/paymentApi.ts` | 결제 API 함수 (init/confirm/cancel) |
+| `src/features/payment/hooks/usePayment.ts` | 결제 React Query 훅 |
+| `src/features/chat/api/chatApi.ts` | 채팅 REST API 함수 |
+| `src/features/chat/hooks/useStompChat.ts` | STOMP WebSocket 훅 |
+| `src/features/community/api/communityApi.ts` | 커뮤니티 REST API 함수 |
+| `src/pages/payment/PaymentSuccessPage.tsx` | 결제 성공 콜백 페이지 |
+| `src/pages/payment/PaymentFailPage.tsx` | 결제 실패 콜백 페이지 |
+| `src/pages/community/CommunityDetailPage.tsx` | 커뮤니티 상세 + 대댓글 UI |
+
+### 주요 변경 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/pages/payment/PaymentPage.tsx` | Toss Widget SDK 연동, init→confirm 플로우 구현 |
+| `src/pages/chat/ChatPage.tsx` | STOMP WebSocket 실시간 채팅 연동, RECEIVED 상태 대응 |
+| `src/pages/community/CommunityPage.tsx` | 게시글 클릭 시 /community/:id 상세 이동 |
+| `src/types/listing.ts` | TradeStatus에 RECEIVED 추가 |
+| `src/router.tsx` | /payment/success, /payment/fail, /community/:id 라우트 추가 |
+
+### 패키지 추가
+- `@tosspayments/payment-widget-sdk` — Toss Payments 결제 위젯 SDK
+- `@stomp/stompjs` — STOMP WebSocket 클라이언트
+
+### STOMP 백엔드 엔드포인트
+- WebSocket 연결: `ws://{server}/stomp/chat`
+- 발행: `/pub/chat`
+- 구독: `/sub/chat/{chatId}`
+
+### Toss 결제 플로우
+1. `POST /api/payments/init` → tossOrderId 발급
+2. `loadPaymentWidget().requestPayment({orderId: tossOrderId, successUrl, failUrl})`
+3. 성공 redirect → `/payment/success?paymentKey&orderId&amount`
+4. `POST /api/payments/confirm` → 최종 승인
+5. 실패/취소 redirect → `/payment/fail?code&message`
+
+### 환경변수 (추후 .env에 추가 필요)
+- `VITE_TOSS_CLIENT_KEY` — Toss 클라이언트 키 (현재 테스트 키 하드코딩)
+- `VITE_WS_BASE_URL` — WebSocket 서버 URL (현재 ws://localhost:8080 하드코딩)
+
+## 다음 할 일 <!-- 2026-05-10 업데이트 -->
+- [ ] .env 파일 생성 (VITE_TOSS_CLIENT_KEY, VITE_WS_BASE_URL, VITE_API_BASE_URL)
+- [ ] 백엔드 API 연동 (useQuery 교체) — listing/trade/member Controller 구현 대기
+- [ ] GNB 알림 드롭다운 구현 (NotificationType: TRADE/CHAT/PRICE_DROP/REVIEW/SYSTEM)
+- [ ] 커뮤니티 Controller 백엔드 구현 대기 (DTO는 완성)
+- [ ] 채팅방 REST API 백엔드 구현 대기 (/api/chats)
+
+<!-- 2026-05-11 session 3 -->
+## Task 8 — ReportModal 구현 [done]
+- `src/components/ui/ReportModal.tsx` 신규 (3-step: select→detail→done)
+- `ListingDetailPage` — reportMenuOpen/reportModalOpen 분리, ReportModal 연결 (targetType="POST")
+- `CommunityDetailPage` — Flag 아이콘 + 신고 버튼, ReportModal 연결 (targetType="COMMUNITY_POST")
+
+## Task 9 — MyPage PointWallet pending 추가 [done]
+- `MyPage.tsx` MOCK_USER에 `pendingPoints: 37000` 추가
+- PointsTab 그리드에 "정산 대기" 카드 추가 (col-span-2, warning 색상, Clock 아이콘)
+- 백엔드 PointWalletVO.pending 필드 반영
+
+## Task 10 — ListingDetailPage 채팅하기 API 연동 [done]
+- `SellerCard`에 `listingId: number` prop 추가
+- `handleChatClick`: `createChatRoom({ postId: listingId })` 호출 → `/chat/{chatId}` navigate
+- 로딩 스피너 + "채팅방 연결 중..." 텍스트 표시
+- API 실패 시 fallback: `/chat` 목록으로 이동

@@ -254,7 +254,7 @@ function DetailScreenD({ item, liked, onLike, onBack, dark }) {
             <Badge kind="soft">컨디션 {item.cond}</Badge>
             {item.hot ? <Badge kind="accent" sport>HOT</Badge> : null}
           </div>
-          <h1 style={{ fontFamily: 'Pretendard', fontWeight: 800, fontSize: 28, margin: '14px 0 6px', letterSpacing: '-0.02em', lineHeight: 1.25, color: fg }} data-text-main>
+          <h1 style={{ fontFamily: 'IAMAPLAYER', fontWeight: 800, fontSize: 28, margin: '14px 0 6px', letterSpacing: '-0.02em', lineHeight: 1.25, color: fg }} data-text-main>
             {item.title}
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: sub, fontSize: 13 }} data-text-sub>

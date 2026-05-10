@@ -107,20 +107,28 @@ export default {
       // FONT FAMILY
       // ────────────────────────────────────────────────────────────
       fontFamily: {
-        // Giants Bold — 스포티 한글+영문 임팩트 헤딩 (로컬 @font-face, weight 700)
-        // 용도: 섹션 타이틀, 버튼 라벨, 브랜드 크롬
-        display: ['Giants', 'Pretendard', 'sans-serif'],
+        // ── 폰트 3-Tier 규칙 ──────────────────────────────────────
+        // TIER 1 (최우선): 영문·숫자만 쓰이는 곳 → font-player (IAMAPLAYER)
+        // TIER 2 (기본):   본문·디폴트 텍스트    → font-sans  (Pretendard)
+        // TIER 3 (강조):   두꺼운·잘 보여야 할 곳 → font-display (Giants)
+        // ──────────────────────────────────────────────────────────
 
-        // Giants Inline — 인라인 스트로크 장식 디스플레이 (로컬 @font-face)
-        // 용도: 히어로 대형 헤딩, 로고 주변, 특별한 임팩트 순간
-        inline: ['"Giants-Inline"', 'Giants', 'sans-serif'],
-
-        // IAMAPLAYER — 영문·숫자 전용 스포티 디스플레이 (로컬 @font-face)
+        // TIER 1 — IAMAPLAYER: 영문·숫자 전용 스포티 디스플레이
+        // 클래스: font-player
         // !!!  한글 미지원 — 한글 혼용 시 Giants로 자동 fallback
         player: ['"IAMAPLAYER"', 'Giants', 'sans-serif'],
 
-        // 주 본문 — Giants Regular (한글+영문) + Pretendard fallback
-        sans: ['Giants', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
+        // TIER 2 — Pretendard: 한글+영문 본문 기본 폰트
+        // 클래스: font-sans (기본값 — 명시 불필요)
+        sans: ['Pretendard', 'Giants', 'system-ui', '-apple-system', 'sans-serif'],
+
+        // TIER 3 — Giants: 두꺼운 헤딩·섹션 타이틀·버튼 라벨 등 강조 텍스트
+        // 클래스: font-display
+        display: ['Giants', 'Pretendard', 'sans-serif'],
+
+        // 장식 전용 — Giants-Inline: 히어로 대형 헤딩, 특별한 임팩트 순간
+        // 클래스: font-inline (한글 혼용 시 Giants fallback)
+        inline: ['"Giants-Inline"', 'Giants', 'sans-serif'],
 
         // 모노스페이스 — @font-face 미선언, 시스템 기본값만 사용
         mono: ['ui-monospace', 'monospace'],

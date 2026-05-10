@@ -71,7 +71,7 @@ export default function BottomTabBar() {
             aria-current={isActive ? 'page' : undefined}
             className="flex-1 flex flex-col items-center gap-0.5 border-none bg-transparent cursor-pointer"
             style={{
-              fontFamily: 'inherit', /* html에서 Giants + Pretendard 상속 */
+              fontFamily: 'inherit', /* button 기본: Giants (굵고 잘 보여야 하는 탭 레이블) */
               fontSize: 10,
               /* 활성: accent(red) — 라이트/다크 모두에서 선명히 보임 */
               /* 비활성: text-sub — 충분히 눈에 띄되 활성과 대비 유지 */

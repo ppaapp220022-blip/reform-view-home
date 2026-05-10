@@ -38,6 +38,7 @@ export type TradeStatus =
   | 'ACCEPTED'
   | 'PAID'
   | 'IN_PROGRESS'
+  | 'RECEIVED'
   | 'CONFIRMED'
   | 'COMPLETED'
   | 'CANCELED'
@@ -66,20 +67,6 @@ export interface ListingItem {
   timeAgo: string                     // "3시간 전" 등 표시용 문자열
 }
 
-/** 경매 아이템 */
-export interface AuctionItem {
-  id: number
-  title: string
-  team: string
-  league: string
-  currentPrice: number
-  grade: Grade
-  jerseyColor: string
-  sport: Sport
-  timeLeft: { hours: number; minutes: number; seconds: number }
-  bidCount: number
-  isLive: boolean
-}
 
 /** 홈 피드 필터 상태 */
 export interface HomeFilter {
