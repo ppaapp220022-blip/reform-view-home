@@ -430,8 +430,17 @@ export default function WelcomePage() {
    * sports / teams를 useMemo로 안정화 — 매 렌더마다 새 배열 참조가 생기면
    * 하위 useMemo의 deps 비교가 항상 달라져 불필요한 재계산이 발생함
    */
-  const sports = useMemo(() => state.sports ?? [], [state.sports])
-  const teams  = useMemo(() => state.teams  ?? [], [state.teams])
+  // useOnboarding이 sport(단일)·team(단일)으로 전달 — 배열 형식과 호환되도록 정규화
+  const sports = useMemo(() => {
+    if (Array.isArray(state.sports)) return state.sports as string[]
+    if (state.sport) return [state.sport as string]
+    return []
+  }, [state.sports, state.sport])
+  const teams  = useMemo(() => {
+    if (Array.isArray(state.teams)) return state.teams as string[]
+    if (state.team) return [state.team as string]
+    return []
+  }, [state.teams, state.team])
 
   /** 닉네임 — authStore에서 읽거나 '선수' 폴백 */
   const nickname = user?.nickname ?? '선수'

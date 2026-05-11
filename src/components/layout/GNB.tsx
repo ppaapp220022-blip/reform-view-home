@@ -13,7 +13,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Search, Bell, Heart, MessageCircle,
+  Search, Bell,
   ShoppingBag, MessageSquare, Tag, Star, Info, X,
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
@@ -257,10 +257,13 @@ function NotificationButton({ className }: { className?: string }) {
 }
 
 // ── 네비게이션 아이템 ─────────────────────────────────────────────────────────
+// 검색창 제거 후 확보된 공간에 채팅·마이페이지 링크 추가
 const NAV_ITEMS = [
   { id: 'home',      label: '홈',       path: '/' },
   { id: 'market',    label: '마켓',     path: '/search' },
   { id: 'community', label: '커뮤니티', path: '/community' },
+  { id: 'chat',      label: '채팅',     path: '/chat' },
+  { id: 'mypage',    label: '마이페이지', path: '/mypage' },
 ] as const
 
 // ── 메인 GNB ─────────────────────────────────────────────────────────────────
@@ -273,6 +276,8 @@ export default function GNB() {
     if (location.pathname === '/') return 'home'
     if (location.pathname.startsWith('/search')) return 'market'
     if (location.pathname.startsWith('/community')) return 'community'
+    if (location.pathname.startsWith('/chat')) return 'chat'
+    if (location.pathname.startsWith('/mypage')) return 'mypage'
     return null
   }
   const activeId = getActiveId()
@@ -328,32 +333,8 @@ export default function GNB() {
           })}
         </nav>
 
-        {/* 검색창 */}
-        <div
-          className="flex-1 max-w-[520px] ml-3 flex items-center gap-2 bg-[var(--color-surface-sunken)] border border-[var(--color-border)] rounded-full px-4 py-[9px] cursor-text"
-          onClick={() => navigate('/search')}
-        >
-          <Search size={18} className="text-[var(--color-text-sub)] shrink-0" />
-          <span className="flex-1 text-sm text-[var(--color-text-hint)] select-none">
-            구단·선수·시즌으로 검색
-          </span>
-        </div>
-
-        {/* 우측 아이콘 */}
+        {/* 우측 액션 영역 — 채팅·마이페이지는 nav로 이동, 알림만 아이콘 유지 */}
         <div className="flex items-center gap-2 ml-auto">
-          <button onClick={() => navigate('/mypage')} className={iconBtnCls} aria-label="찜 목록">
-            <Heart size={20} />
-          </button>
-          <button
-            onClick={() => navigate('/chat')}
-            className={`relative ${iconBtnCls}`}
-            aria-label="채팅"
-          >
-            <MessageCircle size={20} />
-            {/* 채팅 읽지 않음 dot */}
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[var(--color-accent)] border-2 border-[var(--color-surface)]" />
-          </button>
-
           {/* 알림 버튼 (드롭다운 포함) */}
           <NotificationButton />
 

@@ -181,7 +181,7 @@ function FilterContent({
   return (
     <div className="flex flex-col h-full">
       {/* 헤더 */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom:`1px solid ${border}` }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--color-border)" }}>
         <span className="text-sm font-display font-bold" style={{ color:'var(--color-text-main)' }}>필터</span>
         <button onClick={onReset} className="flex items-center gap-1 text-xs transition-colors" style={{ color:'var(--color-accent)' }}>
           <RotateCcw size={12} />초기화

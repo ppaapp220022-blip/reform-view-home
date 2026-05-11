@@ -3,6 +3,9 @@
  *
  * TanStack Query useMutation 래퍼.
  * 성공 시 authStore에 유저/토큰 저장 후 홈으로 이동.
+ *
+ * NOTE: 백엔드 SecurityConfig 활성화 이후 실제 동작.
+ *       현재는 /api/auth/login 엔드포인트 미구현 상태.
  */
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -11,14 +14,14 @@ import useAuthStore from '../../../store/authStore'
 
 export function useLogin() {
   const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
+  const loginStore = useAuthStore((s) => s.login)
 
   return useMutation({
     mutationFn: (body: LoginRequest) => loginWithEmail(body),
 
-    onSuccess: ({ accessToken, user }) => {
+    onSuccess: ({ accessToken, refreshToken, user }) => {
       // 전역 스토어에 유저/토큰 저장 (localStorage도 내부에서 처리)
-      login(user, accessToken)
+      loginStore(user, accessToken, refreshToken)
       navigate('/', { replace: true })
     },
 

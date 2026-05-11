@@ -4,6 +4,8 @@
  * 성공 시 /welcome으로 이동.
  *   - router state로 선택한 interests를 전달해 WelcomePage에서 요약 표시
  * 건너뛰기(skip) 시에는 훅 외부에서 직접 navigate('/') 호출.
+ *
+ * 백엔드 OnboardingRequestDTO: { sport (단일), team (선택), keywords[] }
  */
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -26,9 +28,9 @@ export function useOnboarding() {
       navigate('/welcome', {
         replace: true,
         state: {
-          sports:   variables.sports,
-          leagues:  variables.leagues,
-          teams:    variables.teams,
+          // WelcomePage에서 관심 요약 표시용
+          sport:    variables.sport,
+          team:     variables.team,
           keywords: variables.keywords,
         },
       })

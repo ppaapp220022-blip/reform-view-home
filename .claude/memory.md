@@ -619,3 +619,72 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `handleChatClick`: `createChatRoom({ postId: listingId })` 호출 → `/chat/{chatId}` navigate
 - 로딩 스피너 + "채팅방 연결 중..." 텍스트 표시
 - API 실패 시 fallback: `/chat` 목록으로 이동
+
+## 백엔드 API 연동 완료 (1차) <!-- 2026-05-11 -->
+
+### 연동 범위
+
+| 레이어 | 파일 | 상태 |
+|---|---|---|
+| 공통 타입 | `src/types/api.ts` | ApiResponse / PageResponse 타입 정의 [done] |
+| Axios 인터셉터 | `src/lib/axios.ts` | X-Member-Id 헤더 + ApiResponse 자동 언래핑 [done] |
+| 인증 스토어 | `src/store/authStore.ts` | refreshToken + memberId localStorage 저장 [done] |
+| 인증 API | `src/features/auth/api/authApi.ts` | 백엔드 DTO 불일치 수정 (register/checkNickname/saveInterestSetting) [done] |
+| 판매글 API | `src/features/listing/api/listingApi.ts` | PostController 전 엔드포인트 [done] (신규) |
+| 거래 API | `src/features/trade/api/tradeApi.ts` | TradeController 전 엔드포인트 [done] (신규) |
+| 마이페이지 API | `src/features/mypage/api/memberApi.ts` | MemberController 전 엔드포인트 [done] (신규) |
+| 알림 API | `src/features/notification/api/notificationApi.ts` | NotificationController [done] (신규) |
+| 포인트 API | `src/features/payment/api/pointApi.ts` | PointController [done] (신규) |
+| 커뮤니티 타입 | `src/types/community.ts` | 백엔드 DTO 필드명 정합성 수정 [done] |
+| 커뮤니티 API | `src/features/community/api/communityApi.ts` | 타입 정합성 수정 [done] |
+
+### 핵심 변경 사항
+
+- **X-Member-Id 헤더**: SecurityConfig 비활성 상태에서 사용자 식별용. localStorage.memberId 자동 주입
+- **ApiResponse 언래핑**: `{ success, message, data }` 래퍼 → axios 인터셉터 자동 언래핑. PaymentController/PointController (비래핑) 는 통과
+- **register 요청 바디**: `marketingAgreed` → `agreeMarketing`, `agreeTerms: true`, `agreePrivacy: true` 추가
+- **saveInterestSetting 엔드포인트**: `/auth/interests` → `/users/me/interest-setting`
+- **OnboardingRequestDTO**: sports[](배열) → sport(단일 enum), teams[] → team(단일 string)
+- **로그인 엔드포인트 미구현**: SecurityConfig 활성화 대기 중, `/api/auth/login` endpoint 없음
+
+### 연동 미완 (백엔드 미구현)
+
+- 커뮤니티 Controller: DTO/도메인만 완성, REST 엔드포인트 없음 → 404 예상
+- 채팅 REST Controller: STOMP WebSocket만 있음, /api/chats 없음
+- 이메일 로그인: SecurityConfig 활성화 후 동작
+
+### 다음 할 일 업데이트
+
+- [ ] 페이지에서 목 데이터 → useQuery (listingApi/tradeApi/memberApi) 교체
+- [ ] GNB 알림 드롭다운 (notificationApi 연결)
+- [ ] 로그인 엔드포인트 백엔드 구현 대기
+
+## UI/UX 개선 작업 완료 <!-- 2026-05-11 session 4 -->
+
+### SearchPage 버그 수정 [done]
+- `FilterContent` 컴포넌트 line 184: `${border}` (정의되지 않은 변수) ReferenceError
+- 해결: `className="border-b"` + `style={{ borderColor: "var(--color-border)" }}` 로 교체
+- 중복 className 병합 (Python으로 수정)
+
+### GNB 개선 [done]
+- 장식용 검색 div → `<form>` + `<input>` (submit 시 `/search?q={keyword}` 이동)
+- 이후 방향 전환: 검색창 전체 제거, 더 유용한 페이지 링크로 교체
+- NAV_ITEMS 5개: 홈/마켓/커뮤니티/채팅/마이페이지
+- Heart + MessageCircle 아이콘 버튼 제거
+- `getActiveId()` 함수 추가 (chat/mypage 경로 정확히 매핑)
+
+### 전역 폰트 크기 18px 설정 [done]
+- `src/index.css` line 308: `html { font-size: 16px }` → `html { font-size: 18px }`
+- 모든 Tailwind rem 기반 폰트 크기 비례 확대 (개별 컴포넌트 수정 없음)
+
+### ChatPage PC 레이아웃 전면 재작성 [done]
+- `src/pages/chat/ChatPage.tsx` 450줄 → 616줄 (완전 재작성)
+- `SidebarPanel` (360px 데스크탑): 검색 입력 + 읽지않음 뱃지 + 거래상태 칩 + 방 수 표시
+- `RoomItem`: 거래상태 컬러 뱃지, ShoppingBag 아이콘 + 상품명, 큰 아바타(w-11)
+- `ChatRoomPanel` 헤더: 데스크탑 가격 표시 + vertical divider + 컬러 상태 뱃지
+- `EmptyState`: 대형 아이콘, 데스크탑 안내 문구
+- 데스크탑 컨테이너: `max-w-[1200px] mx-auto my-6 px-6 rounded-2xl border shadow`
+- 높이 관리: `flex flex-1 overflow-hidden` + `min-h-0` (calc(100vh) 하드코딩 제거)
+- 모바일: 기존 UX 동일 (목록↔채팅방 토글)
+- `MainLayout.tsx`: `<main className="flex-1 flex flex-col pb-16 md:pb-0">` (flex-col 추가)
+- tsc --noEmit 통과 (에러 0)

@@ -596,10 +596,11 @@ export default function OnboardingPage() {
     const finalKeywords = kwInput.trim()
       ? [...keywords, ...kwInput.split(/[,，]/).map((s) => s.trim()).filter(Boolean)]
       : keywords
+    // 백엔드 OnboardingRequestDTO: sport(단일), team(단일 선택), keywords[]
+    // UI에서 복수 선택 가능하지만 백엔드는 단일 값만 수신
     saveInterest({
-      sports:   selectedSports,
-      leagues:  selectedLeagues,
-      teams:    selectedTeams,
+      sport:    selectedSports[0] ?? 'SOCCER',     // 첫 번째 선택 종목
+      team:     selectedTeams[0] ?? undefined,     // 첫 번째 선택 구단 (없으면 undefined)
       keywords: finalKeywords,
     })
   }

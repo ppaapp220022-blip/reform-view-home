@@ -1,0 +1,137 @@
+/**
+ * memberApi.ts — 마이페이지 / 회원 프로필 관련 API 함수 모음
+ *
+ * 백엔드 MemberController (/api/users/me) 엔드포인트 연동
+ *
+ * GET   /api/users/me                   — 내 프로필 조회
+ * PATCH /api/users/me                   — 내 프로필 수정 (multipart)
+ * POST  /api/users/me/interest-setting  — 관심 설정 저장
+ * GET   /api/users/me/interest-setting  — 관심 설정 조회
+ * GET   /api/users/me/reviews           — 받은 매너 리뷰 목록 조회
+ *
+ * 응답은 모두 ApiResponse<T> 래퍼 — axios 인터셉터에서 자동 언래핑
+ * 모든 엔드포인트에 X-Member-Id 헤더 필요 (axios 인터셉터에서 자동 주입)
+ */
+import apiClient from '../../../lib/axios'
+import type { PageResponse } from '../../../types/api'
+import type { SportType, InterestSettingRequest, InterestSettingResponse } from '../../auth/api/authApi'
+
+// ── 응답 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────
+
+export type { SportType, InterestSettingRequest, InterestSettingResponse }
+
+/**
+ * 회원 상태 (MemberStatus enum)
+ * ACTIVE    — 정상 계정
+ * SUSPENDED — 정지 계정
+ * WITHDRAWN — 탈퇴 계정
+ */
+export type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
+
+/**
+ * 회원 권한 (Role enum)
+ */
+export type Role = 'USER' | 'ADMIN'
+
+/**
+ * 내 프로필 응답 (ProfileResponseDTO)
+ * 마이페이지 전반에서 사용
+ */
+export interface ProfileResponse {
+  memberId: number
+  email: string
+  nickname: string
+  profileImageUrl: string | null
+  bio: string | null
+  mannerScore: number            // BigDecimal → number
+  role: Role
+  status: MemberStatus
+  pointBalance: number           // 총 보유 포인트
+  pointWithdrawable: number      // 출금 가능 포인트
+  pointPending: number           // 정산 대기 포인트
+  totalSales: number             // 완료 판매 건수
+  totalPurchases: number         // 완료 구매 건수
+  interest: InterestSettingResponse | null
+  createdAt: string              // ISO 8601
+}
+
+/**
+ * 프로필 수정 요청 (ProfileUpdateRequestDTO 기준)
+ * 변경할 필드만 전송 (undefined 제외)
+ */
+export interface ProfileUpdateRequest {
+  nickname?: string
+  bio?: string
+  profileImage?: File           // 프로필 이미지 파일
+}
+
+/**
+ * 받은 매너 리뷰 항목 (ReviewResponseDTO)
+ */
+export interface ReviewItem {
+  mannerId: number
+  tradeId: number
+  buyer: { memberId: number; nickname: string; profileImageUrl: string | null }
+  seller: { memberId: number; nickname: string; profileImageUrl: string | null }
+  score: number                  // 1~5
+  content: string | null
+  createdAt: string
+}
+
+// ── API 함수 ──────────────────────────────────────────────────────────────────
+
+/**
+ * 내 프로필 조회
+ * GET /api/users/me
+ */
+export async function getMyProfile(): Promise<ProfileResponse> {
+  const { data } = await apiClient.get<ProfileResponse>('/users/me')
+  return data
+}
+
+/**
+ * 내 프로필 수정
+ * PATCH /api/users/me (multipart/form-data)
+ * 변경할 필드만 포함하여 전송
+ */
+export async function updateMyProfile(request: ProfileUpdateRequest): Promise<ProfileResponse> {
+  const fd = new FormData()
+  if (request.nickname) fd.append('nickname', request.nickname)
+  if (request.bio !== undefined) fd.append('bio', request.bio)
+  if (request.profileImage) fd.append('profileImage', request.profileImage)
+
+  const { data } = await apiClient.patch<ProfileResponse>('/users/me', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data
+}
+
+/**
+ * 관심 설정 저장
+ * POST /api/users/me/interest-setting
+ * 온보딩·마이페이지 설정 변경 시 호출
+ */
+export async function saveInterestSetting(request: InterestSettingRequest): Promise<void> {
+  await apiClient.post('/users/me/interest-setting', request)
+}
+
+/**
+ * 관심 설정 조회
+ * GET /api/users/me/interest-setting
+ */
+export async function getInterestSetting(): Promise<InterestSettingResponse> {
+  const { data } = await apiClient.get<InterestSettingResponse>('/users/me/interest-setting')
+  return data
+}
+
+/**
+ * 받은 매너 리뷰 목록 조회
+ * GET /api/users/me/reviews
+ */
+export async function getMyReviews(params?: {
+  page?: number
+  size?: number
+}): Promise<PageResponse<ReviewItem>> {
+  const { data } = await apiClient.get<PageResponse<ReviewItem>>('/users/me/reviews', { params })
+  return data
+}

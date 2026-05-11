@@ -28,7 +28,7 @@ export default function MainLayout() {
        * pb-16: 모바일에서 BottomTabBar(64px) 높이만큼 하단 패딩 확보
        * md:pb-0: 데스크톱에서는 패딩 불필요
        */}
-      <main className="flex-1 pb-16 md:pb-0">
+      <main className="flex-1 flex flex-col pb-16 md:pb-0">
         <Outlet />
       </main>
 

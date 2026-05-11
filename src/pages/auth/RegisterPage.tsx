@@ -413,7 +413,9 @@ export default function RegisterPage() {
         email,
         nickname: nickname.trim(),
         password,
-        marketingAgreed: terms.marketing,
+        agreeTerms: true,
+        agreePrivacy: true,
+        agreeMarketing: terms.marketing,
       })
     },
     [canSubmit, email, nickname, password, terms.marketing, register],
