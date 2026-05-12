@@ -76,7 +76,7 @@ export interface ChatRoomCreateRequest {
  * 채팅방 생성 — 판매글에서 "채팅하기" 클릭 시 호출
  */
 export async function createChatRoom(request: ChatRoomCreateRequest): Promise<ChatRoomDetail> {
-  const { data } = await axiosInstance.post<ChatRoomDetail>('/api/chats', request)
+  const { data } = await axiosInstance.post<ChatRoomDetail>('/chats', request)
   return data
 }
 
@@ -84,7 +84,7 @@ export async function createChatRoom(request: ChatRoomCreateRequest): Promise<Ch
  * 내 채팅방 목록 조회
  */
 export async function getChatRooms(): Promise<ChatRoomSummary[]> {
-  const { data } = await axiosInstance.get<ChatRoomSummary[]>('/api/chats')
+  const { data } = await axiosInstance.get<ChatRoomSummary[]>('/chats')
   return data
 }
 
@@ -92,6 +92,22 @@ export async function getChatRooms(): Promise<ChatRoomSummary[]> {
  * 채팅방 상세 조회
  */
 export async function getChatRoomDetail(chatId: number): Promise<ChatRoomDetail> {
-  const { data } = await axiosInstance.get<ChatRoomDetail>(`/api/chats/${chatId}`)
+  const { data } = await axiosInstance.get<ChatRoomDetail>('/chats/${chatId}`)
+  return data
+}
+
+/**
+ * 채팅 메시지 이력 조회 (페이징)
+ * GET /api/chats/{chatId}/message
+ */
+export async function getMessages(chatId: number, page = 0, size = 30): Promise<{
+  content: ChatMessage[]
+  totalElements: number
+  totalPages: number
+  last: boolean
+}> {
+  const { data } = await axiosInstance.get(`/chats/${chatId}/message`, {
+    params: { page, size, sort: 'sentAt,desc' },
+  })
   return data
 }

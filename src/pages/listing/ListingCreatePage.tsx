@@ -12,11 +12,13 @@
  *   - 위험 탐지: 설명 입력 중 키워드 실시간 감지 (택배비 선불, 계좌이체 등)
  */
 import { formatPrice } from '../../utils/format'
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react'
+import { savePostDraft, getPostDraft, deletePostDraft } from '../../features/listing/api/draftApi'
 import {
   Upload, X, Sparkles, AlertTriangle, CheckCircle2,
   ChevronDown, Info, Eye, Loader2,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { Grade, Sport, DeliveryType, RiskLevel } from '../../types/listing'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -405,16 +407,55 @@ function AiPanel({
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 
 export default function ListingCreatePage() {
+  const navigate = useNavigate()
+
   const [form, setForm] = useState<ListingForm>({
     title: '', sport: 'SOCCER', league: '', team: '', jerseyNumber: '',
     size: 'M', grade: 'A', deliveryType: 'BOTH', price: '', description: '', tradeArea: '',
   })
   const [images, setImages] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+  // 초안 관련 상태
+  const [draftLoaded, setDraftLoaded] = useState(false)   // 초안 복원 알림 표시 여부
+  const [draftSaving, setDraftSaving] = useState(false)   // 저장 중 표시
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const update = useCallback(<K extends keyof ListingForm>(key: K, val: ListingForm[K]) => {
     setForm(prev => ({ ...prev, [key]: val }))
   }, [])
+
+  /* 마운트 시 초안 불러오기 */
+  useEffect(() => {
+    getPostDraft()
+      .then(draft => {
+        if (draft && (draft.title || draft.content)) {
+          setForm(prev => ({
+            ...prev,
+            title: draft.title ?? prev.title,
+            description: draft.content ?? prev.description,
+          }))
+          setDraftLoaded(true)
+        }
+      })
+      .catch(() => { /* 초안 없으면 무시 */ })
+  }, [])
+
+  /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) */
+  useEffect(() => {
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    if (!form.title && !form.description) return
+
+    draftTimerRef.current = setTimeout(() => {
+      setDraftSaving(true)
+      savePostDraft({ title: form.title, content: form.description })
+        .catch(() => { /* 자동저장 실패는 무시 */ })
+        .finally(() => setDraftSaving(false))
+    }, 1500)
+
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
+    }
+  }, [form.title, form.description])
 
   /* 종목 변경 시 리그 초기화 */
   function handleSportChange(sport: Sport) {
@@ -427,14 +468,32 @@ export default function ListingCreatePage() {
     update('description', text)
   }
 
-  /* 제출 (목) */
+  /* 제출 — createListing API 연동 */
   async function handleSubmit() {
     if (!form.title || !form.price || images.length === 0) return
     setSubmitting(true)
-    await new Promise(r => setTimeout(r, 1200))
-    setSubmitting(false)
-    // 실제 구현: navigate('/listing/새글id')
-    alert('판매글이 등록되었습니다! (목 시뮬레이션)')
+    try {
+      // TODO: 이미지 파일 업로드 연동 (현재 목 색상 배열 사용 중)
+      // 실제 파일 선택 기능 구현 후 images: File[] 전달
+      const { createListing } = await import('../../features/listing/api/listingApi')
+      const postId = await createListing({
+        title: form.title,
+        content: form.description,
+        sport: form.sport,
+        team: form.team,
+        uniformName: form.team,
+        grade: form.grade,
+        size: form.size || undefined,
+        price: Number(form.price),
+        deliveryType: form.deliveryType,
+      })
+      // 등록 성공 → 초안 삭제 후 상세 페이지 이동
+      await deletePostDraft().catch(() => {})
+      navigate(`/listing/${postId}`)
+    } catch {
+      // 에러 시 재시도 가능하도록 submitting만 해제
+      setSubmitting(false)
+    }
   }
 
   const leagueOptions = LEAGUE_MAP[form.sport].map(l => ({ value: l, label: l }))
@@ -445,13 +504,38 @@ export default function ListingCreatePage() {
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
         {/* 헤더 */}
         <div className="mb-6">
-          <h1
-            className="text-2xl font-bold mb-1"
-            style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif", letterSpacing:'0.04em' }}
-          >
-            SELL ITEM
-          </h1>
+          <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+            <h1
+              className="text-2xl font-bold"
+              style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif", letterSpacing:'0.04em' }}
+            >
+              SELL ITEM
+            </h1>
+            {/* 자동저장 표시 */}
+            {draftSaving && (
+              <span className="text-xs flex items-center gap-1" style={{ color:'var(--color-text-hint)' }}>
+                <Loader2 size={12} className="animate-spin" /> 초안 저장 중...
+              </span>
+            )}
+          </div>
           <p className="text-sm" style={{ color:'var(--color-text-sub)' }}>유니폼 정보를 입력하면 AI가 도와드립니다.</p>
+          {/* 초안 복원 알림 */}
+          {draftLoaded && (
+            <div
+              className="mt-3 flex items-center justify-between px-4 py-2.5 rounded-xl text-sm"
+              style={{ background:'var(--color-surface-raised)', border:'1px solid var(--color-border)' }}
+            >
+              <span style={{ color:'var(--color-text-sub)' }}>이전에 작성하던 초안이 복원되었습니다.</span>
+              <button
+                onClick={() => setDraftLoaded(false)}
+                className="ml-3 flex-shrink-0"
+                style={{ color:'var(--color-text-hint)' }}
+                aria-label="알림 닫기"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col xl:flex-row gap-6">

@@ -15,6 +15,7 @@
  */
 import { useState } from 'react'
 import { X, Flag, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { addReport } from '../../features/report/api/reportApi'
 
 // ── 타입 (백엔드 enum 일치) ───────────────────────────────────────────────────
 
@@ -77,8 +78,7 @@ export default function ReportModal({ targetType, targetId, onClose }: ReportMod
     setIsPending(true)
 
     try {
-      // 추후 reportApi.createReport({ targetType, targetId, reason: selectedReason, detail }) 교체
-      await new Promise(resolve => setTimeout(resolve, 800)) // 목 딜레이
+      await addReport({ targetType, targetId, reason: selectedReason, detail: detail || undefined })
       setStep('done')
     } catch (err) {
       console.error('신고 제출 실패:', err)

@@ -83,7 +83,11 @@ export interface ListingQueryParams {
   sport?: Sport
   keyword?: string
   tradeType?: DeliveryType
-  page?: number               // 0-based
+  condition?: Grade            // 컨디션 필터 (Grade 기준)
+  minPrice?: number            // 최소 가격 필터
+  maxPrice?: number            // 최대 가격 필터
+  sort?: 'latest' | 'price_asc' | 'price_desc' | 'popular'  // 정렬
+  page?: number                // 0-based
   size?: number
 }
 

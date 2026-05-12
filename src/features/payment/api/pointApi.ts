@@ -3,8 +3,11 @@
  *
  * 백엔드 PointController (/api/points) 엔드포인트 연동
  *
- * GET /api/points/wallet  — 포인트 지갑 조회 (보유/출금가능/정산대기)
- * GET /api/points/history — 포인트 내역 목록 조회
+ * GET    /api/users/me/points             — 포인트 지갑 조회 (보유/출금가능/정산대기)
+ * GET    /api/users/me/points/history      — 포인트 내역 목록 조회
+ * POST   /api/users/me/points/withdraw     — 출금 요청
+ * GET    /api/users/me/points/withdraw     — 내 출금 요청 목록
+ * DELETE /api/users/me/points/withdraw/{id}— 출금 요청 취소
  *
  * 백엔드 PointController는 ApiResponse 래퍼 없이 DTO를 직접 반환하므로
  * axios 인터셉터 언래핑 미적용 (그대로 통과)
@@ -57,10 +60,8 @@ export interface PointHistoryItem {
  * GET /api/points/wallet?memberId={memberId}
  * 마이페이지 포인트 탭에서 사용
  */
-export async function getPointWallet(memberId: number): Promise<PointWallet> {
-  const { data } = await apiClient.get<PointWallet>('/points/wallet', {
-    params: { memberId },
-  })
+export async function getPointWallet(): Promise<PointWallet> {
+  const { data } = await apiClient.get<PointWallet>('/users/me/points')
   return data
 }
 
@@ -69,9 +70,63 @@ export async function getPointWallet(memberId: number): Promise<PointWallet> {
  * GET /api/points/history?memberId={memberId}
  * 최신순 전체 목록 (서버 측 페이지네이션 없음 — 배열 반환)
  */
-export async function getPointHistory(memberId: number): Promise<PointHistoryItem[]> {
-  const { data } = await apiClient.get<PointHistoryItem[]>('/points/history', {
-    params: { memberId },
-  })
+export async function getPointHistory(): Promise<PointHistoryItem[]> {
+  const { data } = await apiClient.get<PointHistoryItem[]>('/users/me/points/history')
   return data
+}
+
+// ── 출금 요청 타입 ─────────────────────────────────────────────────────────────
+
+/** 출금 처리 상태 */
+export type WithdrawStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+/**
+ * 출금 요청 항목 (WithdrawResponseDTO)
+ * withdrawId   : 출금 요청 ID
+ * amount       : 출금 신청 금액
+ * bankName     : 은행명
+ * accountNumber: 계좌번호
+ * status       : PENDING(대기) | APPROVED(승인) | REJECTED(반려)
+ * createdAt    : 신청 일시
+ */
+export interface WithdrawItem {
+  withdrawId: number
+  amount: number
+  bankName: string
+  accountNumber: string
+  status: WithdrawStatus
+  createdAt: string          // ISO 8601
+}
+
+/** 출금 요청 본문 */
+export interface WithdrawRequest {
+  amount: number
+  bankName: string
+  accountNumber: string
+}
+
+/**
+ * 출금 요청 등록
+ * POST /api/users/me/points/withdraw
+ */
+export async function requestWithdraw(request: WithdrawRequest): Promise<WithdrawItem> {
+  const { data } = await apiClient.post<WithdrawItem>('/users/me/points/withdraw', request)
+  return data
+}
+
+/**
+ * 내 출금 요청 목록 조회
+ * GET /api/users/me/points/withdraw
+ */
+export async function getMyWithdrawList(): Promise<WithdrawItem[]> {
+  const { data } = await apiClient.get<WithdrawItem[]>('/users/me/points/withdraw')
+  return data
+}
+
+/**
+ * 출금 요청 취소
+ * DELETE /api/users/me/points/withdraw/{withdrawId}
+ */
+export async function cancelWithdraw(withdrawId: number): Promise<void> {
+  await apiClient.delete(`/users/me/points/withdraw/${withdrawId}`)
 }

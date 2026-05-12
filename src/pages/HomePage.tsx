@@ -9,30 +9,16 @@
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
  * 데이터: 목 데이터 (백엔드 미연동)
  */
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, SlidersHorizontal } from 'lucide-react'
+import { Heart, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { formatPrice } from '../utils/format'
+import { getListings } from '../features/listing/api/listingApi'
+import type { PostCard } from '../features/listing/api/listingApi'
 import type {
-  ListingItem, HomeFilter,
-  Grade, SportFilter,
+  HomeFilter, Grade, SportFilter,
 } from '../types/listing'
-
-// ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-const MOCK_LISTINGS: ListingItem[] = [
-  { id:1, title:'맨체스터 유나이티드 23/24 홈 어센틱', team:'맨체스터 유나이티드', league:'EPL', price:78000, grade:'S', size:'M', deliveryType:'DELIVERY', jerseyColor:'#B5222B', jerseyNumber:'7', likedCount:24, isLiked:false, sport:'SOCCER', timeAgo:'2시간 전' },
-  { id:2, title:'리버풀 FC 07/08 어웨이 레플리카', team:'리버풀 FC', league:'EPL', price:55000, grade:'A', size:'L', deliveryType:'BOTH', jerseyColor:'#C8102E', jerseyNumber:'10', likedCount:18, isLiked:true, sport:'SOCCER', timeAgo:'5시간 전' },
-  { id:3, title:'첼시 FC 11/12 홈 어센틱', team:'첼시 FC', league:'EPL', price:43000, grade:'B', size:'XL', deliveryType:'DELIVERY', jerseyColor:'#034694', jerseyNumber:'11', likedCount:7, isLiked:false, sport:'SOCCER', timeAgo:'어제' },
-  { id:4, title:'레알 마드리드 21/22 서드 킷', team:'레알 마드리드', league:'라리가', price:92000, grade:'S', size:'S', deliveryType:'DIRECT', jerseyColor:'#6B0078', jerseyNumber:'9', likedCount:41, isLiked:false, sport:'SOCCER', timeAgo:'3일 전' },
-  { id:5, title:'전북 현대 2024 홈 어센틱', team:'전북 현대', league:'K리그', price:66000, grade:'S', size:'M', deliveryType:'DELIVERY', jerseyColor:'#1A7A40', jerseyNumber:'27', likedCount:12, isLiked:false, sport:'SOCCER', timeAgo:'1주 전' },
-  { id:6, title:'바르셀로나 22/23 어웨이 레플리카', team:'FC 바르셀로나', league:'라리가', price:48000, grade:'A', size:'M', deliveryType:'DELIVERY', jerseyColor:'#A50044', jerseyNumber:'10', likedCount:33, isLiked:true, sport:'SOCCER', timeAgo:'4시간 전' },
-  { id:7, title:'두산 베어스 2023 홈 유니폼', team:'두산 베어스', league:'KBO', price:59000, grade:'S', size:'L', deliveryType:'DELIVERY', jerseyColor:'#002147', jerseyNumber:'36', likedCount:9, isLiked:false, sport:'BASEBALL', timeAgo:'6시간 전' },
-  { id:8, title:'KT 위즈 2024 어웨이 유니폼', team:'KT 위즈', league:'KBO', price:44000, grade:'B', size:'XL', deliveryType:'BOTH', jerseyColor:'#D50032', jerseyNumber:'22', likedCount:5, isLiked:false, sport:'BASEBALL', timeAgo:'2일 전' },
-  { id:9, title:'서울 SK 나이츠 23/24 홈', team:'서울 SK 나이츠', league:'KBL', price:71000, grade:'A', size:'M', deliveryType:'DIRECT', jerseyColor:'#E3001B', jerseyNumber:'14', likedCount:16, isLiked:false, sport:'BASKETBALL', timeAgo:'어제' },
-  { id:10, title:'인천 대한항공 점보스 유니폼', team:'인천 대한항공', league:'V리그', price:38000, grade:'C', size:'S', deliveryType:'DELIVERY', jerseyColor:'#003087', jerseyNumber:'5', likedCount:3, isLiked:false, sport:'VOLLEYBALL', timeAgo:'3일 전' },
-]
-
 
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
@@ -135,14 +121,23 @@ function Jersey({ color, number, size = 'sm' }: JerseyProps) {
 // ── 상품 카드 ─────────────────────────────────────────────────────────────────
 
 interface ProductCardProps {
-  item: ListingItem
+  item: PostCard
   onLike: (id: number) => void
+}
+
+/** 팀별 고정 색상 (실제 이미지 없을 때 폴백) */
+const JERSEY_COLORS = [
+  '#B5222B','#1A3051','#034694','#1A7A40','#A50044',
+  '#6B0078','#C8102E','#003087','#002147','#E3001B',
+]
+function fallbackColor(id: number) {
+  return JERSEY_COLORS[id % JERSEY_COLORS.length]
 }
 
 function ProductCard({ item, onLike }: ProductCardProps) {
   return (
     <Link
-      to={`/listing/${item.id}`}
+      to={`/listing/${item.postId}`}
       className="block no-underline rounded-[var(--r-card)] overflow-hidden hover:border-[var(--color-border-strong)] transition-colors"
       style={{
         background: 'var(--color-surface)',
@@ -162,13 +157,22 @@ function ProductCard({ item, onLike }: ProductCardProps) {
           {item.grade}
         </span>
 
-        {/* 유니폼 */}
-        <Jersey color={item.jerseyColor} number={item.jerseyNumber} />
+        {/* 유니폼 이미지: 실제 썸네일 우선, 없으면 색상 폴백 */}
+        {item.thumbnailUrl ? (
+          <img
+            src={item.thumbnailUrl}
+            alt={item.title}
+            className="w-full h-full object-cover"
+            style={{ position:'absolute', inset:0 }}
+          />
+        ) : (
+          <Jersey color={fallbackColor(item.postId)} number={String(item.postId % 99)} />
+        )}
 
         {/* 찜 버튼 */}
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); onLike(item.id) }}
+          onClick={(e) => { e.preventDefault(); onLike(item.postId) }}
           className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
           style={{
             background: 'rgba(255,255,255,0.92)',
@@ -180,8 +184,8 @@ function ProductCard({ item, onLike }: ProductCardProps) {
             size={13}
             strokeWidth={1.75}
             style={{
-              color: item.isLiked ? 'var(--color-accent)' : 'var(--color-text-hint)',
-              fill: item.isLiked ? 'var(--color-accent)' : 'none',
+              color: item.isWished ? 'var(--color-accent)' : 'var(--color-text-hint)',
+              fill: item.isWished ? 'var(--color-accent)' : 'none',
             }}
           />
         </button>
@@ -193,7 +197,7 @@ function ProductCard({ item, onLike }: ProductCardProps) {
           className="text-[10px] font-medium uppercase tracking-[0.5px] mb-1"
           style={{ color: 'var(--color-text-hint)' }}
         >
-          {item.team} · {item.league}
+          {item.team} · {item.sport}
         </p>
         <p
           className="text-[14px] font-medium leading-snug mb-2 line-clamp-2"
@@ -495,23 +499,37 @@ export default function HomePage() {
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
 
-  /* 찜 토글 */
-  function handleLike(id: number) {
+  /* 찜 토글 (낙관적 업데이트 — 서버 찜 API 구현 전 로컬 유지) */
+  const handleLike = useCallback((id: number) => {
     setLikedIds((prev) => {
       const next = new Set(prev)
       if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next
     })
+  }, [])
+
+  /* API 쿼리 파라미터 빌드 */
+  const queryParams = {
+    sport: filter.sport !== 'all' ? filter.sport : undefined,
+    condition: filter.grade !== 'all' ? filter.grade as Grade : undefined,
+    tradeType: filter.deliveryType !== 'all' ? filter.deliveryType : undefined,
+    sort: filter.sort,
+    size: 20,
+    page: 0,
   }
 
-  /* 클라이언트 필터링 (목 데이터용) */
-  const filtered = MOCK_LISTINGS.filter((item) => {
-    if (filter.sport !== 'all' && item.sport !== filter.sport) return false
-    if (filter.league !== 'all' && item.league !== filter.league) return false
-    if (filter.grade !== 'all' && item.grade !== filter.grade) return false
-    if (filter.deliveryType !== 'all' && item.deliveryType !== filter.deliveryType) return false
-    return true
-  }).map((item) => ({ ...item, isLiked: likedIds.has(item.id) || item.isLiked }))
+  /* 판매글 목록 조회 */
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['listings', queryParams],
+    queryFn: () => getListings(queryParams),
+    staleTime: 30_000,  // 30초 동안 재요청 없음
+  })
+
+  /* 찜 상태를 로컬 토글과 병합 */
+  const listings: PostCard[] = (data?.content ?? []).map((item) => ({
+    ...item,
+    isWished: likedIds.has(item.postId) ? !item.isWished : item.isWished,
+  }))
 
   return (
     <div style={{ background: 'var(--color-bg)' }}>
@@ -536,7 +554,7 @@ export default function HomePage() {
           {/* 필터 행 */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
             <span className="text-[13px]" style={{ color: 'var(--color-text-sub)' }}>
-              상품 <strong style={{ color: 'var(--color-text-main)' }}>{filtered.length}</strong>개
+              상품 <strong style={{ color: 'var(--color-text-main)' }}>{data?.totalElements ?? 0}</strong>개
             </span>
 
             {/* 모바일 필터 버튼 */}
@@ -573,10 +591,36 @@ export default function HomePage() {
           </div>
 
           {/* 상품 그리드 — 2열(모바일) / 3열(md) / 4열(lg) / 5열(xl) */}
-          {filtered.length > 0 ? (
+          {isLoading ? (
+            /* 스켈레톤 로딩 */
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
-              {filtered.map((item) => (
-                <ProductCard key={item.id} item={item} onLike={handleLike} />
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="rounded-[var(--r-card)] overflow-hidden animate-pulse"
+                  style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+                  <div style={{ height:160, background:'var(--color-surface-raised)' }} />
+                  <div className="p-3 flex flex-col gap-2">
+                    <div className="h-3 rounded" style={{ background:'var(--color-surface-raised)', width:'60%' }} />
+                    <div className="h-4 rounded" style={{ background:'var(--color-surface-raised)' }} />
+                    <div className="h-5 rounded" style={{ background:'var(--color-surface-raised)', width:'40%' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isError ? (
+            /* 에러 상태 */
+            <div className="py-16 text-center flex flex-col items-center gap-3">
+              <AlertCircle size={32} color="var(--color-error)" />
+              <p className="text-[15px] font-medium" style={{ color:'var(--color-text-main)' }}>
+                상품을 불러오지 못했습니다
+              </p>
+              <p className="text-[13px]" style={{ color:'var(--color-text-hint)' }}>
+                잠시 후 다시 시도해주세요.
+              </p>
+            </div>
+          ) : listings.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
+              {listings.map((item) => (
+                <ProductCard key={item.postId} item={item} onLike={handleLike} />
               ))}
             </div>
           ) : (

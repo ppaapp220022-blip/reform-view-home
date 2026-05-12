@@ -14,32 +14,17 @@
 import { formatPrice } from '../../utils/format'
 import { useState, useCallback } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Heart, MessageCircle, Share2, ChevronLeft, ChevronRight,
   Shield, Truck, MapPin, Clock, X, ChevronDown, Package,
-  Flag, MoreHorizontal,
+  Flag, MoreHorizontal, Loader2, AlertCircle,
 } from 'lucide-react'
-import type { ListingItem, Grade, PostStatus } from '../../types/listing'
+import type { Grade, PostStatus } from '../../types/listing'
 import ReportModal from '../../components/ui/ReportModal'
 import { createChatRoom } from '../../features/chat/api/chatApi'
-
-// ── 타입 확장 ─────────────────────────────────────────────────────────────────
-
-interface ListingDetail extends ListingItem {
-  description: string
-  imageColors: string[]     // 이미지 대표 색 (썸네일 플레이스홀더)
-  status: PostStatus
-  viewCount: number
-  tradeArea: string
-  seller: {
-    id: number
-    nickname: string
-    mannerScore: number
-    tradeCount: number
-    joinedAt: string
-    avatarColor: string
-  }
-}
+import { getListingDetail, getListings } from '../../features/listing/api/listingApi'
+import type { PostDetail, SellerBrief, PostCard } from '../../features/listing/api/listingApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
@@ -108,34 +93,42 @@ function mannerColor(score: number) {
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
 
 /** 이미지 갤러리 */
-function ImageGallery({ colors, jerseyNumber }: { colors: string[]; jerseyNumber?: string }) {
-  const [idx, setIdx] = useState(0)
+/** 팀별 색상 폴백 (실제 이미지 없을 때 사용) */
+const FALLBACK_COLORS = ['#B5222B','#1A3051','#034694','#1A7A40','#A50044','#6B0078']
 
-  function prev() { setIdx(i => (i - 1 + colors.length) % colors.length) }
-  function next() { setIdx(i => (i + 1) % colors.length) }
+function ImageGallery({ urls, fallbackColor = '#1A3051' }: { urls: string[]; fallbackColor?: string }) {
+  const [idx, setIdx] = useState(0)
+  const total = urls.length || 1
+
+  function prev() { setIdx(i => (i - 1 + total) % total) }
+  function next() { setIdx(i => (i + 1) % total) }
 
   return (
     <div className="flex flex-col gap-3">
       {/* 메인 이미지 */}
       <div
         className="relative rounded-2xl overflow-hidden select-none"
-        style={{ aspectRatio: '4/5', background: colors[idx] ?? '#1A3051' }}
+        style={{ aspectRatio: '4/5', background: fallbackColor }}
       >
-        {/* 속도선 패턴 */}
-        <div
-          className="absolute inset-0"
-          style={{ backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 18px)' }}
-        />
-        {/* 등번호 워터마크 */}
-        <span
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 160, color: 'rgba(255,255,255,.13)', letterSpacing: '0.04em' }}
-        >
-          {jerseyNumber ?? '-'}
-        </span>
+        {urls.length > 0 ? (
+          <img
+            src={urls[idx]}
+            alt={`상품 이미지 ${idx + 1}`}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <>
+            <div
+              className="absolute inset-0"
+              style={{ backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 18px)' }}
+            />
+            <span className="absolute inset-0 flex items-center justify-center pointer-events-none text-white opacity-20 text-9xl"
+              style={{ fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>?</span>
+          </>
+        )}
 
         {/* 이전/다음 */}
-        {colors.length > 1 && (
+        {total > 1 && (
           <>
             <button
               onClick={prev}
@@ -188,6 +181,7 @@ function ImageGallery({ colors, jerseyNumber }: { colors: string[]; jerseyNumber
           </button>
         ))}
       </div>
+      )}
     </div>
   )
 }
@@ -239,8 +233,8 @@ function GradeGuide({ onClose }: { onClose: () => void }) {
 }
 
 /** 판매자 카드 */
-function SellerCard({ seller, listingId }: { seller: ListingDetail['seller']; listingId: number }) {
-  const mc = mannerColor(seller.mannerScore)
+function SellerCard({ seller, listingId }: { seller: SellerBrief; listingId: number }) {
+  const mc = mannerColor(Number(seller.mannerScore) * 20)
   const navigate = useNavigate()
   const [isChatLoading, setIsChatLoading] = useState(false)
 
@@ -272,20 +266,20 @@ function SellerCard({ seller, listingId }: { seller: ListingDetail['seller']; li
         {/* 아바타 */}
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm"
-          style={{ background: seller.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif", letterSpacing: '0.06em' }}
+          style={{ background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif", letterSpacing: '0.06em' }}
         >
           {seller.nickname.slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm mb-0.5 truncate" style={{ color: 'var(--color-text-main)' }}>{seller.nickname}</div>
-          <div className="text-xs" style={{ color: 'var(--color-text-hint)' }}>{seller.joinedAt} 가입 · 거래 {seller.tradeCount}건</div>
+          <div className="text-xs" style={{ color: 'var(--color-text-hint)' }}>판매자</div>
         </div>
         {/* 매너점수 */}
         <div className="flex flex-col items-center flex-shrink-0">
           <span className="text-xs mb-0.5" style={{ color: 'var(--color-text-hint)' }}>매너점수</span>
-          <span className="text-lg font-bold" style={{ color: mc, fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}>{seller.mannerScore}</span>
+          <span className="text-lg font-bold" style={{ color: mc, fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}>{Number(seller.mannerScore).toFixed(1)}</span>
           <div className="w-12 h-1.5 rounded-full mt-1" style={{ background: 'var(--color-border)' }}>
-            <div className="h-full rounded-full transition-all" style={{ width: `${seller.mannerScore}%`, background: mc }} />
+            <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, Number(seller.mannerScore) * 20)}%`, background: mc }} />
           </div>
         </div>
       </div>
@@ -310,19 +304,20 @@ function SellerCard({ seller, listingId }: { seller: ListingDetail['seller']; li
 }
 
 /** 관련 상품 카드 */
-function RelatedCard({ item }: { item: ListingItem }) {
+function RelatedCard({ item }: { item: PostCard }) {
   const m = GRADE_META[item.grade]
   return (
     <Link
-      to={`/listing/${item.id}`}
+      to={`/listing/${item.postId}`}
       className="block rounded-xl overflow-hidden transition-shadow hover:shadow-md"
       style={{ border: '1px solid var(--color-border)' }}
     >
-      <div className="relative" style={{ aspectRatio: '4/5', background: item.jerseyColor ?? '#1A3051' }}>
-        <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)' }} />
-        <span className="absolute inset-0 flex items-center justify-center select-none" style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 64, color: 'rgba(255,255,255,.14)' }}>
-          {item.jerseyNumber}
-        </span>
+      <div className="relative" style={{ aspectRatio: '4/5', background: '#1A3051' }}>
+        {item.thumbnailUrl ? (
+          <img src={item.thumbnailUrl} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0" style={{ backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)' }} />
+        )}
         <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.text, border: `1px solid ${m.border}`, fontFamily: "'Giants','Pretendard',sans-serif" }}>
           {m.label}
         </span>
@@ -341,15 +336,39 @@ function RelatedCard({ item }: { item: ListingItem }) {
 
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>()
-  void id // 추후 useQuery 연동 시 사용
+  const postId = Number(id)
 
-  const [listing] = useState<ListingDetail>(MOCK_DETAIL)
-  const [liked, setLiked] = useState(listing.isLiked)
-  const [likedCount, setLikedCount] = useState(listing.likedCount)
+  const [liked, setLiked] = useState(false)
+  const [likedCount, setLikedCount] = useState(0)
   const [showGradeGuide, setShowGradeGuide] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [reportMenuOpen, setReportMenuOpen] = useState(false)
   const [reportModalOpen, setReportModalOpen] = useState(false)
+
+  /* 판매글 상세 조회 */
+  const { data: listing, isLoading, isError } = useQuery({
+    queryKey: ['listingDetail', postId],
+    queryFn: () => getListingDetail(postId),
+    enabled: !isNaN(postId),
+    staleTime: 30_000,
+  })
+
+  /* 관련 상품 조회 (같은 종목, 최대 4개) */
+  const { data: relatedData } = useQuery({
+    queryKey: ['relatedListings', listing?.sport],
+    queryFn: () => getListings({ sport: listing?.sport, size: 5, page: 0 }),
+    enabled: !!listing?.sport,
+    staleTime: 60_000,
+  })
+  const related = (relatedData?.content ?? []).filter(i => i.postId !== postId).slice(0, 4)
+
+  /* 찜 상태 초기화 (데이터 로드 후) */
+  useCallback(() => {
+    if (listing) {
+      setLiked(listing.isWished)
+      setLikedCount(listing.wishCount)
+    }
+  }, [listing])
 
   function toggleLike() {
     setLiked(prev => {
@@ -358,11 +377,36 @@ export default function ListingDetailPage() {
     })
   }
 
+  /* 로딩 */
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background:'var(--color-bg)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin" style={{ color:'var(--color-accent)' }} />
+          <p className="text-sm" style={{ color:'var(--color-text-hint)' }}>상품 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  /* 에러 / 404 */
+  if (isError || !listing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background:'var(--color-bg)' }}>
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle size={32} style={{ color:'var(--color-error)' }} />
+          <p className="text-base font-display font-bold" style={{ color:'var(--color-text-main)' }}>상품을 찾을 수 없습니다</p>
+          <Link to="/" className="text-sm font-semibold" style={{ color:'var(--color-accent)' }}>홈으로 돌아가기</Link>
+        </div>
+      </div>
+    )
+  }
+
   const gradeMeta = GRADE_META[listing.grade]
   const statusMeta = STATUS_META[listing.status]
-  const descLines = listing.description.split('\n')
+  const descLines = (listing.content ?? '').split('\n')
   const isLong = descLines.length > 5
-  const visibleDesc = showMore ? listing.description : descLines.slice(0, 5).join('\n')
+  const visibleDesc = showMore ? listing.content : descLines.slice(0, 5).join('\n')
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
@@ -371,7 +415,7 @@ export default function ListingDetailPage() {
       {reportModalOpen && (
         <ReportModal
           targetType="POST"
-          targetId={listing.id}
+          targetId={listing.postId}
           onClose={() => setReportModalOpen(false)}
         />
       )}
@@ -389,7 +433,7 @@ export default function ListingDetailPage() {
         <div className="flex flex-col lg:flex-row gap-8 xl:gap-14">
           {/* 좌: 이미지 갤러리 */}
           <div className="w-full lg:w-[420px] xl:w-[480px] flex-shrink-0">
-            <ImageGallery colors={listing.imageColors} jerseyNumber={listing.jerseyNumber} />
+            <ImageGallery urls={listing.imageUrls ?? []} fallbackColor={FALLBACK_COLORS[listing.postId % FALLBACK_COLORS.length]} />
           </div>
 
           {/* 우: 상품 정보 */}
@@ -430,7 +474,7 @@ export default function ListingDetailPage() {
             {/* 제목 */}
             <div>
               <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-text-hint)' }}>
-                {listing.league} · {listing.team}
+                {listing.sport} · {listing.team}
               </p>
               <h1 className="text-xl md:text-2xl font-bold leading-snug" style={{ color: 'var(--color-text-main)' }}>
                 {listing.title}
@@ -472,7 +516,7 @@ export default function ListingDetailPage() {
               </div>
               <div>
                 <p className="text-xs mb-1" style={{ color: 'var(--color-text-hint)' }}>거래지역</p>
-                <p className="text-sm" style={{ color: 'var(--color-text-sub)' }}>{listing.tradeArea}</p>
+                <p className="text-sm" style={{ color: 'var(--color-text-sub)' }}>-</p>
               </div>
             </div>
 
@@ -502,7 +546,7 @@ export default function ListingDetailPage() {
               <button
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors"
                 style={{ background: listing.status === 'SOLD' ? 'var(--color-text-hint)' : 'var(--color-accent)' }}
-                disabled={listing.status === 'SOLD'}
+                disabled={listing.status !== 'ON_SALE'}
               >
                 <Package size={16} />
                 {listing.status === 'SOLD' ? '판매 완료' : '거래 시작하기'}
@@ -529,14 +573,14 @@ export default function ListingDetailPage() {
 
             {/* 판매자 카드 (데스크탑: 인라인) */}
             <div className="hidden lg:block">
-              <SellerCard seller={listing.seller} listingId={listing.id} />
+              <SellerCard seller={listing.seller} listingId={listing.postId} />
             </div>
           </div>
         </div>
 
         {/* 판매자 카드 (모바일: 하단) */}
         <div className="mt-6 lg:hidden">
-          <SellerCard seller={listing.seller} listingId={listing.id} />
+          <SellerCard seller={listing.seller} listingId={listing.postId} />
         </div>
 
         {/* 관련 상품 */}
@@ -549,7 +593,7 @@ export default function ListingDetailPage() {
               RELATED ITEMS
             </h2>
             <Link
-              to="/search?sport=SOCCER"
+              to={`/search?sport=${listing.sport}`}
               className="text-xs font-semibold flex items-center gap-1 transition-colors hover:text-[var(--color-accent)]"
               style={{ color: 'var(--color-text-hint)' }}
             >
@@ -557,7 +601,7 @@ export default function ListingDetailPage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {MOCK_RELATED.map(item => <RelatedCard key={item.id} item={item} />)}
+            {related.map(item => <RelatedCard key={item.postId} item={item} />)}
           </div>
         </section>
       </div>

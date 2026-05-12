@@ -13,11 +13,15 @@
  */
 import { formatPrice } from '../../utils/format'
 import { Link } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import {
   Users, ShoppingBag, Flag, AlertOctagon,
   TrendingUp, ChevronRight, Clock, CheckCircle2,
-  XCircle, Shield, BarChart2, Bell,
+  XCircle, Shield, BarChart2, Bell, Banknote, AlertCircle,
 } from 'lucide-react'
+import { getAdminWithdrawList, processWithdraw } from '../../features/admin/api/adminApi'
+import type { AdminWithdrawItem } from '../../features/admin/api/adminApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
@@ -347,6 +351,14 @@ export default function AdminDashboardPage() {
               </table>
             </div>
           </div>
+          {/* 출금 요청 관리 — 실제 API 연동 */}
+          <div
+            className="rounded-[12px] p-5"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+          >
+            <SectionHeader title="출금 요청 관리" />
+            <WithdrawManagementSection />
+          </div>
         </div>
 
         {/* 오른쪽 */}
@@ -522,6 +534,188 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** 출금 요청 관리 섹션 — 실제 AdminController 연동 */
+export function WithdrawManagementSection() {
+  const qc = useQueryClient()
+  const [rejectReason, setRejectReason] = useState<Record<number, string>>({})
+  const [rejectOpen, setRejectOpen] = useState<number | null>(null)
+
+  const { data: list, isLoading, isError } = useQuery({
+    queryKey: ['adminWithdraws'],
+    queryFn: getAdminWithdrawList,
+    staleTime: 15_000,
+    refetchInterval: 30_000,  // 30초마다 자동 갱신
+  })
+
+  const approveMutation = useMutation({
+    mutationFn: (withdrawId: number) =>
+      processWithdraw(withdrawId, { action: 'APPROVE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['adminWithdraws'] }),
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: ({ withdrawId, reason }: { withdrawId: number; reason: string }) =>
+      processWithdraw(withdrawId, { action: 'REJECT', rejectReason: reason }),
+    onSuccess: () => {
+      setRejectOpen(null)
+      void qc.invalidateQueries({ queryKey: ['adminWithdraws'] })
+    },
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[1,2,3].map(i => (
+          <div key={i} className="h-16 rounded-xl animate-pulse" style={{ background:'var(--color-surface)' }} />
+        ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center py-8 gap-2">
+        <AlertCircle size={24} style={{ color:'var(--color-error)' }} />
+        <p className="text-sm" style={{ color:'var(--color-text-hint)' }}>출금 요청 목록을 불러오지 못했습니다.</p>
+      </div>
+    )
+  }
+
+  const pending = (list ?? []).filter((i: AdminWithdrawItem) => i.status === 'PENDING')
+  const processed = (list ?? []).filter((i: AdminWithdrawItem) => i.status !== 'PENDING')
+
+  return (
+    <div className="flex flex-col gap-5">
+      {/* 대기 중 */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Banknote size={16} color="var(--color-warning)" />
+          <h3 className="font-bold text-sm" style={{ color:'var(--color-text-main)' }}>
+            출금 대기
+            {pending.length > 0 && (
+              <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{ background:'rgba(255,149,0,.15)', color:'var(--color-warning)' }}>
+                {pending.length}건
+              </span>
+            )}
+          </h3>
+        </div>
+
+        {pending.length === 0 ? (
+          <div className="py-8 text-center rounded-xl" style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+            <CheckCircle2 size={28} className="mx-auto mb-2" style={{ color:'var(--color-success)' }} />
+            <p className="text-sm font-display font-bold" style={{ color:'var(--color-text-main)' }}>처리 대기 중인 출금 요청이 없습니다</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pending.map((item: AdminWithdrawItem) => (
+              <div key={item.withdrawId}
+                className="rounded-xl p-4"
+                style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold" style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                      {formatPrice(item.requestAmount)}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color:'var(--color-text-sub)' }}>
+                      {item.bankName} {item.accountNumber}
+                    </p>
+                    <p className="text-[11px] mt-1" style={{ color:'var(--color-text-hint)' }}>
+                      {new Date(item.createdAt).toLocaleString('ko-KR')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {/* 승인 */}
+                    <button
+                      onClick={() => approveMutation.mutate(item.withdrawId)}
+                      disabled={approveMutation.isPending}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white disabled:opacity-50"
+                      style={{ background:'var(--color-success)' }}
+                    >
+                      승인
+                    </button>
+                    {/* 반려 */}
+                    <button
+                      onClick={() => setRejectOpen(item.withdrawId)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold"
+                      style={{ background:'rgba(255,46,77,.1)', color:'var(--color-accent)' }}
+                    >
+                      반려
+                    </button>
+                  </div>
+                </div>
+
+                {/* 반려 사유 입력 */}
+                {rejectOpen === item.withdrawId && (
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      type="text"
+                      value={rejectReason[item.withdrawId] ?? ''}
+                      onChange={e => setRejectReason(prev => ({ ...prev, [item.withdrawId]: e.target.value }))}
+                      placeholder="반려 사유 입력 (최대 300자)"
+                      maxLength={300}
+                      className="flex-1 px-3 py-2 rounded-lg text-xs outline-none"
+                      style={{ border:'1px solid var(--color-border)', background:'var(--color-surface-raised)', color:'var(--color-text-main)' }}
+                    />
+                    <button
+                      onClick={() => rejectMutation.mutate({
+                        withdrawId: item.withdrawId,
+                        reason: rejectReason[item.withdrawId] ?? '',
+                      })}
+                      disabled={rejectMutation.isPending}
+                      className="px-3 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-50"
+                      style={{ background:'var(--color-accent)' }}
+                    >
+                      확인
+                    </button>
+                    <button
+                      onClick={() => setRejectOpen(null)}
+                      className="px-3 py-2 rounded-lg text-xs"
+                      style={{ background:'var(--color-surface-raised)', color:'var(--color-text-hint)' }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 처리 완료 */}
+      {processed.length > 0 && (
+        <div>
+          <h3 className="font-bold text-sm mb-3" style={{ color:'var(--color-text-main)' }}>처리 완료</h3>
+          <div className="flex flex-col gap-2">
+            {processed.map((item: AdminWithdrawItem) => (
+              <div key={item.withdrawId}
+                className="flex items-center justify-between px-4 py-3 rounded-xl"
+                style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                    {formatPrice(item.requestAmount)}
+                  </p>
+                  <p className="text-xs" style={{ color:'var(--color-text-hint)' }}>
+                    {item.bankName} {item.accountNumber}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+                  style={{
+                    background: item.status === 'APPROVED' ? 'rgba(0,179,110,.1)' : 'rgba(255,46,77,.1)',
+                    color: item.status === 'APPROVED' ? 'var(--color-success)' : 'var(--color-accent)',
+                  }}>
+                  {item.status === 'APPROVED' ? '승인' : '반려'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
