@@ -92,7 +92,7 @@ export async function getChatRooms(): Promise<ChatRoomSummary[]> {
  * 채팅방 상세 조회
  */
 export async function getChatRoomDetail(chatId: number): Promise<ChatRoomDetail> {
-  const { data } = await axiosInstance.get<ChatRoomDetail>('/chats/${chatId}`)
+  const { data } = await axiosInstance.get<ChatRoomDetail>(`/chats/${chatId}`)
   return data
 }
 
