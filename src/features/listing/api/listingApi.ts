@@ -3,17 +3,19 @@
  *
  * 백엔드 PostController (/api/listings) 엔드포인트 연동
  *
- * GET    /api/listings          — 판매글 목록 조회 (페이지네이션)
- * GET    /api/listings/{id}     — 판매글 상세 조회
- * POST   /api/listings          — 판매글 등록 (multipart/form-data)
- * PUT    /api/listings/{id}     — 판매글 수정 (multipart/form-data)
- * DELETE /api/listings/{id}     — 판매글 삭제
+ * GET    /api/listings             — 판매글 목록 조회 (필터/정렬/페이지네이션, AI 유사검색)
+ * GET    /api/listings/{id}        — 판매글 상세 조회
+ * POST   /api/listings/images      — 이미지 파일 업로드 → URL 목록 반환
+ * POST   /api/listings             — 판매글 등록 (JSON + imageUrls[])
+ * PATCH  /api/listings/{id}        — 판매글 수정 (JSON + imageUrls[])
+ * DELETE /api/listings/{id}        — 판매글 삭제 (소프트)
+ * POST   /api/listings/{id}/like   — 찜 토글 (추가/취소)
  *
- * 응답은 모두 ApiResponse<T> 래퍼 — axios 인터셉터에서 자동 언래핑
+ * 응답은 ApiResponse<T> 래퍼 — axios 인터셉터에서 자동 언래핑
  */
 import apiClient from '../../../lib/axios'
-import type { PageResponse } from '../../../types/api'
-import type { Sport, DeliveryType, Grade, PostStatus, RiskLevel } from '../../../types/listing'
+import type {PageResponse} from '../../../types/api'
+import type {Sport, DeliveryType, Grade, PostStatus, RiskLevel} from '../../../types/listing'
 
 // ── 응답 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────
 
@@ -22,7 +24,7 @@ export interface SellerBrief {
   memberId: number
   nickname: string
   profileImageUrl: string | null
-  mannerScore: number          // BigDecimal → number
+  mannerScore: number
 }
 
 /**
@@ -41,10 +43,10 @@ export interface PostCard {
   status: PostStatus
   viewCount: number
   wishCount: number
-  isWished: boolean            // 로그인 사용자 기준 찜 여부 (비로그인 시 false)
+  isWished: boolean          // 로그인 사용자 기준 찜 여부 (비로그인 시 false)
   thumbnailUrl: string | null
-  timeAgo: string              // 서버에서 계산된 "3시간 전" 형식 문자열
-  createdAt: string            // ISO 8601
+  timeAgo: string            // 서버에서 계산된 "3시간 전" 형식 문자열
+  createdAt: string          // ISO 8601
   seller: SellerBrief
 }
 
@@ -65,7 +67,7 @@ export interface PostDetail {
   price: number
   deliveryType: DeliveryType
   status: PostStatus
-  riskLevel: RiskLevel         // AI 사기 탐지 위험도
+  riskLevel: RiskLevel       // AI 사기 탐지 위험도
   viewCount: number
   wishCount: number
   isWished: boolean
@@ -73,7 +75,7 @@ export interface PostDetail {
   createdAt: string
   updatedAt: string
   seller: SellerBrief
-  tradeId: number | null       // 연결된 거래 번호 (거래 시작 이후)
+  tradeId: number | null     // 연결된 거래 번호 (거래 시작 이후)
 }
 
 // ── 요청 타입 ─────────────────────────────────────────────────────────────────
@@ -83,19 +85,19 @@ export interface ListingQueryParams {
   sport?: Sport
   keyword?: string
   tradeType?: DeliveryType
-  condition?: Grade            // 컨디션 필터 (Grade 기준)
-  minPrice?: number            // 최소 가격 필터
-  maxPrice?: number            // 최대 가격 필터
-  sort?: 'latest' | 'price_asc' | 'price_desc' | 'popular'  // 정렬
-  page?: number                // 0-based
+  condition?: Grade          // 컨디션 필터 (Grade 기준)
+  minPrice?: number          // 최소 가격 필터
+  maxPrice?: number          // 최대 가격 필터
+  sort?: 'latest' | 'price_asc' | 'price_desc' | 'popular'
+  page?: number              // 0-based
   size?: number
 }
 
 /**
- * 판매글 등록/수정 폼 데이터 (PostRequestDTO 기준)
- * multipart/form-data로 전송 — 이미지 파일 포함
+ * 판매글 등록 요청 (ListingCreateRequestDTO)
+ * 이미지는 먼저 /images 업로드 후 URL 목록을 imageUrls에 전달
  */
-export interface PostFormData {
+export interface ListingCreateRequest {
   title: string
   content: string
   sport: Sport
@@ -106,7 +108,28 @@ export interface PostFormData {
   marking?: boolean
   price: number
   deliveryType: DeliveryType
-  images?: File[]             // 첨부 이미지 파일 목록
+  imageUrls: string[]        // 사전 업로드된 이미지 URL 목록
+}
+
+/**
+ * 판매글 수정 요청 (ListingUpdateRequestDTO)
+ * PATCH이므로 변경할 필드만 전송 (undefined는 생략)
+ */
+export interface ListingUpdateRequest {
+  title?: string
+  content?: string
+  price?: number
+  grade?: Grade
+  size?: string
+  marking?: boolean
+  deliveryType?: DeliveryType
+  imageUrls?: string[]       // 새 이미지 URL 목록 (기존 이미지 대체)
+}
+
+/** 찜 토글 응답 */
+export interface WishToggleResponse {
+  isLiked: boolean
+  likeCount: number
 }
 
 // ── API 함수 ──────────────────────────────────────────────────────────────────
@@ -114,12 +137,14 @@ export interface PostFormData {
 /**
  * 판매글 목록 조회
  * GET /api/listings
- * 비로그인 시에도 접근 가능 (X-Member-Id 없이도 동작)
+ * - keyword가 있으면 AI 기반 유사 의미 검색
+ * - keyword가 없으면 필터/정렬 기반 목록 조회
+ * 비로그인 시에도 접근 가능
  */
 export async function getListings(
   params?: ListingQueryParams,
 ): Promise<PageResponse<PostCard>> {
-  const { data } = await apiClient.get<PageResponse<PostCard>>('/listings', { params })
+  const {data} = await apiClient.get<PageResponse<PostCard>>('/listings', {params})
   return data
 }
 
@@ -128,33 +153,49 @@ export async function getListings(
  * GET /api/listings/{id}
  */
 export async function getListingDetail(postId: number): Promise<PostDetail> {
-  const { data } = await apiClient.get<PostDetail>(`/listings/${postId}`)
+  const {data} = await apiClient.get<PostDetail>(`/listings/${postId}`)
   return data
 }
 
 /**
+ * 판매글 이미지 업로드
+ * POST /api/listings/images (multipart/form-data)
+ * 판매글 등록/수정 전에 먼저 호출해 imageUrls[]를 받아야 함
+ *
+ * @param files 업로드할 이미지 파일 목록
+ * @returns 업로드된 이미지 URL 목록
+ */
+export async function uploadListingImages(files: File[]): Promise<string[]> {
+  const fd = new FormData()
+  files.forEach((file) => fd.append('images', file))
+
+  const {data} = await apiClient.post<{ urls: string[] }>('/listings/images', fd, {
+    headers: {'Content-Type': 'multipart/form-data'},
+  })
+  return data.urls
+}
+
+/**
  * 판매글 등록
- * POST /api/listings (multipart/form-data)
+ * POST /api/listings (JSON)
+ * imageUrls[]는 사전에 /images API로 업로드한 URL 목록
  * @returns 생성된 판매글 ID
  */
-export async function createListing(formData: PostFormData): Promise<number> {
-  const fd = buildFormData(formData)
-  const { data } = await apiClient.post<{ id: number }>('/listings', fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+export async function createListing(request: ListingCreateRequest): Promise<number> {
+  const {data} = await apiClient.post<{ id: number }>('/listings', request)
   return data.id
 }
 
 /**
  * 판매글 수정
- * PUT /api/listings/{id} (multipart/form-data)
+ * PATCH /api/listings/{id} (JSON)
  * @returns 수정된 판매글 ID
  */
-export async function updateListing(postId: number, formData: PostFormData): Promise<number> {
-  const fd = buildFormData(formData)
-  const { data } = await apiClient.put<{ id: number }>(`/listings/${postId}`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+export async function updateListing(
+  postId: number,
+  request: ListingUpdateRequest,
+): Promise<number> {
+  const {data} = await apiClient.patch<{ id: number }>(`/listings/${postId}`, request)
   return data.id
 }
 
@@ -166,26 +207,13 @@ export async function deleteListing(postId: number): Promise<void> {
   await apiClient.delete(`/listings/${postId}`)
 }
 
-// ── 헬퍼 ──────────────────────────────────────────────────────────────────────
-
 /**
- * PostFormData → FormData 변환
- * 이미지 파일 포함, undefined/null 필드 제외
+ * 판매글 찜 토글
+ * POST /api/listings/{id}/like
+ * 로그인 필수 (미로그인 시 401 반환)
+ * @returns isLiked: 현재 찜 상태, likeCount: 최신 찜 수
  */
-function buildFormData(form: PostFormData): FormData {
-  const fd = new FormData()
-  fd.append('title', form.title)
-  fd.append('content', form.content)
-  fd.append('sport', form.sport)
-  fd.append('team', form.team)
-  fd.append('uniformName', form.uniformName)
-  fd.append('grade', form.grade)
-  if (form.size) fd.append('size', form.size)
-  if (form.marking !== undefined) fd.append('marking', String(form.marking))
-  fd.append('price', String(form.price))
-  fd.append('deliveryType', form.deliveryType)
-  if (form.images) {
-    form.images.forEach((file) => fd.append('images', file))
-  }
-  return fd
+export async function toggleWish(postId: number): Promise<WishToggleResponse> {
+  const {data} = await apiClient.post<WishToggleResponse>(`/listings/${postId}/like`)
+  return data
 }

@@ -327,13 +327,13 @@ report / notification
 - [done] `src/features/auth/hooks/useOnboarding.ts` — useMutation, 성공 시 / 홈으로 이동
 - [done] `src/pages/auth/OnboardingPage.tsx` — Step 2 (관심 설정)
   - StepIndicator current=2 (RegisterPage와 동일 디자인, 페이지 내 재정의)
-  - 5개 종목 카드 (SOCCER/BASEBALL/BASKETBALL/VOLLEYBALL/ESPORTS)
+  - 5개 종목 카드 (BASEBALL/SOCCER/BASKETBALL/VOLLEYBALL/ESPORTS)
     - 인라인 SVG 종목 아이콘 (24x24, stroke 1.5px)
     - IAMAPLAYER 영문 라벨 + 한글 라벨
     - 선택 시 accent(red) 테두리 배경
     - 동일 카드 재클릭 시 선택 해제
   - 구단 칩 목록 (종목 선택 후 fadeInUp 애니메이션으로 노출)
-    - 축구 16개(K리그+해외) / 야구 10개(KBO) / 농구 10개(KBL+NBA) / 배구 9개(V리그) / 이스포츠 8개(LCK)
+    - 야구 10개(KBO) / 축구 16개(K리그+해외) / 농구 10개(KBL+NBA) / 배구 9개(V리그) / 이스포츠 8개(LCK)
     - 선택 시 accent 칩, 재클릭 해제 가능
     - 구단 선택은 optional
   - 완료하기 버튼 (종목 선택 필수) + 나중에 설정하기(건너뛰기) 버튼
@@ -688,3 +688,127 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - 모바일: 기존 UX 동일 (목록↔채팅방 토글)
 - `MainLayout.tsx`: `<main className="flex-1 flex flex-col pb-16 md:pb-0">` (flex-col 추가)
 - tsc --noEmit 통과 (에러 0)
+
+
+## 백엔드 업데이트 반영 완료 <!-- 2026-05-14 -->
+
+### 인증 방식 전환 (가장 중요)
+- [done] `axios.ts` — X-Member-Id 헤더 완전 제거, Authorization Bearer 전용
+  - 401 시 refreshToken으로 accessToken 자동 재발급 인터셉터 추가
+  - 403 시 clearAuthAndRedirect (토큰 위조/만료/불일치)
+  - 대기 중인 요청 큐(pendingRequests) 처리
+- [done] `authStore.ts` — memberId localStorage 제거, setAccessToken() 메서드 추가
+
+### 로그인 2단계 인증 (2FA)
+- [done] `authApi.ts` — loginStep1(challenge), loginStep2(verify), 완전 재작성
+  - logout / refreshAccessToken / resetPassword / handleSocialCallback 추가
+  - 소셜 로그인 hash fragment 콜백 핸들러 (window.location.hash → 토큰 추출)
+- [done] `useLogin.ts` — step1/step2 mutate 분리 + challenge 상태 관리
+- [done] `LoginPage.tsx` — Step 1(이메일+비밀번호) → Step 2(6자리 코드 입력) 2단계 UI
+
+### 판매글 API (listingApi.ts)
+- [done] 작성/수정 multipart → JSON + imageUrls[] 방식으로 변경 (PATCH 사용)
+- [done] POST /api/listings/images — 이미지 사전 업로드 API 추가
+- [done] POST /api/listings/{id}/like — 찜 토글 (isLiked, likeCount 반환)
+- [done] minPrice / maxPrice 필터 파라미터 추가
+
+### 거래 API (tradeApi.ts)
+- [done] PATCH /api/trades/{id}/accept — 거래 수락 (판매자)
+- [done] PATCH /api/trades/{id}/shipping — 배송 정보 입력 (택배사+송장번호)
+- [done] GET /api/trades/{id}/tracking — 배송 추적 조회
+- [done] status 필터 파라미터 추가 (getMyTrades)
+- [done] courierCode / trackingNumber 필드 TradeResponse에 추가
+
+### 커뮤니티 API (communityApi.ts)
+- [done] 게시글 수정(PUT) / 삭제(DELETE) 추가
+- [done] 댓글 좋아요 경로 수정: /community/{commId}/replies/{id}/like → /community/replies/{id}/like
+- [done] 댓글 삭제 경로 수정: /community/{commId}/replies/{id} → /community/replies/{id}
+- [done] togglePostLike 응답 타입: {likeCount,isLiked} → number (백엔드 실제 응답)
+- [done] toggleReplyLike 응답 타입: {likeCount,isLiked} → number
+- [done] 인기글 조회 GET /api/community/posts/popular 추가
+
+### 회원 API (memberApi.ts)
+- [done] updateMyProfile multipart → JSON + profileImageUrl 방식으로 변경
+- [done] POST /api/users/me/profile-image — 프로필 이미지 사전 업로드 API 추가
+
+### 신규 파일 생성
+- [done] `src/features/delivery/api/deliveryApi.ts`
+  - GET /api/delivery/tracking/couriers — 택배사 목록
+  - POST /api/delivery/tracking/trace — 송장번호 배송 추적
+- [done] `src/features/draft/api/draftApi.ts`
+  - PATCH/GET/DELETE /api/drafts/posts — 게시글 임시저장
+  - PATCH/GET/DELETE /api/drafts/replies — 댓글 임시저장
+
+### 소셜 로그인 경로 확정
+- 진입: GET /api/auth/oauth2/kakao, /api/auth/oauth2/google
+- 콜백: Spring Security /login/oauth2/code/{provider} (백엔드 자동 처리)
+- 프론트 수신: window.location.hash에서 #accessToken=...&refreshToken=... 추출
+
+## 페이지 API 연동 완료 (2차) <!-- 2026-05-14 -->
+
+### 연동된 페이지 목록
+
+| 페이지 | 변경 내용 |
+|---|---|
+| `ListingCreatePage.tsx` | uploadListingImages + createListing JSON 방식 연동 |
+| `ListingEditPage.tsx` | getListingDetail 프리필 + 이미지 수정 + updateListing PATCH |
+| `ListingDetailPage.tsx` | getListingDetail + toggleWish 낙관적 UI |
+| `HomePage.tsx` | getListings (필터/정렬) + toggleWish 낙관적 UI |
+| `CommunityPage.tsx` | getCommunityPosts(sport 탭) + getPopularPosts + createCommunityPost + togglePostLike |
+| `CommunityDetailPage.tsx` | getCommunityPostDetail + getReplies + createReply + deleteReply + togglePostLike + toggleReplyLike |
+| `ChatPage.tsx` | getChatRooms + getChatRoomDetail + getMessages + useStompChat 완전 연동 |
+
+### ChatPage 핵심 설계
+- `RoomItem` → `ChatRoomSummary` 기반 (partner, lastMessage, unreadCount, post)
+- `SidebarPanel` → `ChatRoomSummary[]` + isLoading 스피너
+- `ChatRoomPanel` (래퍼) → `getChatRoomDetail` + `getMessages` 페치 후 Inner 마운트
+- `ChatRoomPanelInner` → `useStompChat({ chatId, myMemberId, initialMessages })` 초기화
+- `initialMessages` = `getMessages` 결과를 sentAt desc → 오름차순 역정렬
+- `key={activeRoomId}` → 방 전환 시 전체 remount (STOMP 재초기화 보장)
+- `getAvatarColor(memberId)` → 6색 팔레트 결정론적 배정
+- `myMemberId` → `useAuthStore(s => s.user?.id ?? 0)` (MY_ID=1 하드코딩 제거)
+- tsc --noEmit ALL PASS (에러 0)
+
+### 카테고리 설계 변경 (CommunityPage)
+- 기존 mock: free/info/question/review 카테고리
+- 실제 백엔드: sport 필드 기반 필터 (all/SOCCER/BASEBALL/BASKETBALL/VOLLEYBALL/ESPORTS)
+- 인기글 사이드바: getPopularPosts(5) API 연동
+
+## 다음 할 일 <!-- 2026-05-14 -->
+- [ ] .env 파일 생성 (VITE_TOSS_CLIENT_KEY, VITE_WS_BASE_URL, VITE_API_BASE_URL)
+- [ ] GNB 알림 드롭다운 구현 (NotificationType 기반)
+- [ ] 소셜 로그인 콜백 페이지 구현 (hash fragment 토큰 수신 → authStore.login())
+- [ ] TradeConfirmPage 배송 추적 UI (getTradeTracking + DeliveryTimeline)
+- [ ] MyPage 프로필 이미지 업로드 연동 (uploadProfileImage)
+- [ ] 관리자 라우트 인증 가드 (Role.ADMIN 체크)
+## 리그 코드 전면 제거 + ESLint 에러 수정 완료 <!-- 2026-05-14 -->
+
+### 리그 제거 범위
+- `src/types/listing.ts` — `ListingItem.league`, `HomeFilter.league` 제거
+- `src/pages/auth/OnboardingPage.tsx` — LEAGUES_BY_SPORT, TEAMS_BY_LEAGUE → TEAMS_BY_SPORT 구조 변경, LeagueChip 컴포넌트 제거, selectedLeagues 상태 제거
+- `src/pages/auth/WelcomePage.tsx` — leagues 필드 제거
+- `src/pages/HomePage.tsx` — LEAGUES 상수·필터 칩 제거, HomeFilter.league 제거
+- `src/pages/search/SearchPage.tsx` — LEAGUE_OPTIONS, league 필터 상태 전체 제거
+- `src/pages/listing/ListingCreatePage.tsx` — LEAGUE_MAP, league form 필드 제거
+- `src/pages/listing/ListingEditPage.tsx` — LEAGUE_MAP, league form 필드 제거
+- `src/pages/trade/TradeConfirmPage.tsx` — league 표시 제거
+- `src/pages/mypage/MyPage.tsx` — league mock 데이터 제거
+- `src/pages/admin/AdminDashboardPage.tsx` — kleague 관련 닉네임 교체
+
+### ESLint 에러 수정 (0 에러 달성)
+- NUL 바이트 제거: authApi.ts / communityApi.ts / axios.ts / AdminDisputeDetailPage.tsx / authStore.ts / OnboardingPage.tsx
+- 파일 잘림 복원: AdminDashboardPage.tsx (git 복구), ChatPage.tsx (git + 수동 복원), CommunityDetailPage.tsx (수동 복원), WelcomePage.tsx (git 복구)
+- 미사용 import 제거: useMemo (ListingEditPage), PostDetail (ListingDetailPage), Clock (AdminDashboardPage), User (AdminDisputeDetailPage)
+- 미사용 컴포넌트 제거: Placeholder (router.tsx)
+- setState in effect 수정:
+  - `ListingDetailPage.tsx` — useEffect + setLiked/setLikedCount 제거 → 파생 상태(`localLiked ?? listing?.isWished`)로 전환
+  - `PaymentSuccessPage.tsx` — useState lazy initializer로 파라미터 검증 → useEffect 내 setState 제거
+  - `ChatPage.tsx` — useEffect + setActiveRoomId 제거 → `selectedRoomId ?? rooms[0]?.chatId` 파생 상태로 전환
+- SearchPage.tsx 두 if문 합쳐진 것 줄바꿈 분리 (Parsing error 수정)
+
+### 최종 검증 결과
+- `npx eslint src/` → **0 errors** (1026 warnings — no-restricted-syntax 스타일 경고만)
+- `npx tsc --noEmit` → **0 errors**
+
+### CLAUDE.md 갱신
+- WebStorm 빨간줄 방지 규칙 6개 + ESLint 레벨 표 추가

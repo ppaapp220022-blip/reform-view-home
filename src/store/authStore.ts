@@ -1,27 +1,28 @@
 /**
  * Zustand 인증 스토어
  *
- * user         : 로그인한 유저 정보 (AuthUserDTO 기준)
- * accessToken  : JWT 액세스 토큰
- * refreshToken : JWT 리프레시 토큰 (SecurityConfig 활성화 이후 갱신 로직 사용)
+ * user            : 로그인한 유저 정보 (AuthUserDTO 기준)
+ * accessToken     : JWT 액세스 토큰
+ * refreshToken    : JWT 리프레시 토큰 (재발급 시 기존 토큰 유지)
  * isAuthenticated : 로그인 여부
  *
- * login()   : 로그인/회원가입 성공 후 호출 — localStorage + 스토어 동시 저장
- * logout()  : localStorage 전체 초기화 + 스토어 리셋
- * restore() : 앱 마운트 시 localStorage에서 토큰 + 유저 복원
+ * login()             : 로그인/회원가입 성공 후 호출 — localStorage + 스토어 동시 저장
+ * logout()            : localStorage 전체 초기화 + 스토어 리셋
+ * restore()           : 앱 마운트 시 localStorage에서 토큰 + 유저 복원
+ * setAccessToken()    : 토큰 재발급 후 accessToken만 교체
  */
-import { create } from 'zustand'
+import {create} from 'zustand'
 
 // ── 유저 타입 (백엔드 AuthUserDTO 기준) ────────────────────────────────────────
 
 /** 로그인/회원가입 응답에 포함되는 인증 사용자 정보 */
 export interface AuthUser {
-  id: number               // 회원 번호 (X-Member-Id 헤더 값으로도 사용)
+  id: number
   email: string
   nickname: string
   profileImageUrl?: string
   role: 'USER' | 'ADMIN'
-  mannerScore: number      // BigDecimal → 프론트에서 number로 수신
+  mannerScore: number // BigDecimal → 프론트에서 number로 수신
 }
 
 // ── 스토어 타입 ────────────────────────────────────────────────────────────────
@@ -38,6 +39,8 @@ interface AuthState {
   logout: () => void
   /** 앱 초기 마운트 시 localStorage에서 토큰·유저 복원 */
   restore: () => void
+  /** 토큰 재발급 후 accessToken만 교체 (refreshToken은 유지) */
+  setAccessToken: (accessToken: string) => void
 }
 
 // ── 스토어 구현 ────────────────────────────────────────────────────────────────
@@ -51,8 +54,7 @@ const useAuthStore = create<AuthState>((set) => ({
   login: (user, accessToken, refreshToken) => {
     // localStorage에 인증 정보 저장
     localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('memberId', String(user.id))  // X-Member-Id 헤더용
-    localStorage.setItem('authUser', JSON.stringify(user))   // restore용 유저 정보
+    localStorage.setItem('authUser', JSON.stringify(user)) // restore용 유저 정보
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken)
     }
@@ -70,10 +72,9 @@ const useAuthStore = create<AuthState>((set) => ({
     // 모든 인증 관련 localStorage 항목 제거
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
-    localStorage.removeItem('memberId')
     localStorage.removeItem('authUser')
 
-    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false })
+    set({user: null, accessToken: null, refreshToken: null, isAuthenticated: false})
   },
 
   restore: () => {
@@ -93,6 +94,12 @@ const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
       })
     }
+  },
+
+  setAccessToken: (accessToken) => {
+    // 재발급된 accessToken만 교체 (refreshToken은 그대로 유지)
+    localStorage.setItem('accessToken', accessToken)
+    set({accessToken})
   },
 }))
 

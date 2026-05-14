@@ -54,7 +54,6 @@ export interface ListingItem {
   id: number
   title: string
   team: string
-  league: string
   price: number
   grade: Grade
   size: string
@@ -71,7 +70,6 @@ export interface ListingItem {
 /** 홈 피드 필터 상태 */
 export interface HomeFilter {
   sport: SportFilter
-  league: string            // 'all' | 'EPL' | '라리가' | 'KBO' | ...
   grade: Grade | 'all'
   deliveryType: DeliveryFilter   // 구 tradeType
   sort: 'latest' | 'price_asc' | 'price_desc' | 'popular'

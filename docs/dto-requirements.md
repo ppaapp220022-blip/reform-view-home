@@ -77,7 +77,7 @@ public record PageResponse<T>(
 | `Role` | `USER`, `ADMIN` |
 | `MemberStatus` | `ACTIVE`, `SUSPENDED`, `WITHDRAWN` |
 | `Provider` | `KAKAO`, `GOOGLE` |
-| `Sport` | `SOCCER`, `BASEBALL`, `BASKETBALL`, `VOLLEYBALL`, `ESPORTS`, `ETC` |
+| `Sport` | `BASEBALL`, `SOCCER`, `BASKETBALL`, `VOLLEYBALL`, `ESPORTS`, `ETC` |
 | `Grade` | `S`, `A`, `B`, `C` |
 | `DeliveryType` | `DIRECT`, `DELIVERY`, `BOTH` |
 | `PostStatus` | `ON_SALE`, `RESERVED`, `SOLD`, `HIDDEN`, `DELETED` |

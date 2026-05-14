@@ -11,21 +11,21 @@
  *   6) CTA            — 홈 피드 / 판매하기
  *
  * 전달 데이터: useLocation().state (useOnboarding이 navigate 시 주입)
- *   { sports, leagues, teams, keywords }
+ *   { sports, teams, keywords }
  */
-import { useMemo } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Check, ShoppingBag, Plus, Star } from 'lucide-react'
+import {useMemo} from 'react'
+import {Link, useLocation, useNavigate} from 'react-router-dom'
+import {Check, ShoppingBag, Plus, Star} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
-import type { SportType } from '../../features/auth/api/authApi'
+import type {SportType} from '../../features/auth/api/authApi'
 
 // ── 종목 한글 레이블 맵 ────────────────────────────────────────────────────────
 const SPORT_LABEL: Record<SportType, string> = {
-    BASEBALL:   '야구',
-  SOCCER:     '축구',
+  BASEBALL: '야구',
+  SOCCER: '축구',
   BASKETBALL: '농구',
   VOLLEYBALL: '배구',
-  ESPORTS:    '이스포츠',
+  ESPORTS: '이스포츠',
 }
 
 // ── 팀 컬러 맵 (하드코딩 불가피 — 팀 브랜드 컬러) ─────────────────────────────
@@ -53,21 +53,22 @@ const MOCK_COUNTS: Record<SportType, number> = {
   SOCCER: 2847, BASEBALL: 1432, BASKETBALL: 893,
   VOLLEYBALL: 341, ESPORTS: 576,
 }
+
 function getMockCount(sports: SportType[]): number {
   return sports.reduce((acc, s) => acc + (MOCK_COUNTS[s] ?? 0), 0)
 }
 
 // ── StepIndicator ─────────────────────────────────────────────────────────────
-function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
+function StepIndicator({current}: { current: 1 | 2 | 3 }) {
   const steps = [
-    { n: 1, label: '계정 정보' },
-    { n: 2, label: '관심 설정' },
-    { n: 3, label: '완료' },
+    {n: 1, label: '계정 정보'},
+    {n: 2, label: '관심 설정'},
+    {n: 3, label: '완료'},
   ]
   return (
     <div className="flex items-center mb-8">
       {steps.map((step, idx) => {
-        const isDone   = step.n < current
+        const isDone = step.n < current
         const isActive = step.n === current
         return (
           <div key={step.n} className="contents">
@@ -78,15 +79,15 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
                   background: isDone
                     ? 'var(--color-success)'
                     : isActive
-                    ? 'var(--color-primary)'
-                    : 'transparent',
+                      ? 'var(--color-primary)'
+                      : 'transparent',
                   border: isDone || isActive
                     ? 'none'
                     : '2px solid var(--color-border-strong)',
                   color: isDone || isActive ? '#fff' : 'var(--color-text-hint)',
                 }}
               >
-                {isDone ? <Check size={14} strokeWidth={2.5} color="#fff" /> : step.n}
+                {isDone ? <Check size={14} strokeWidth={2.5} color="#fff"/> : step.n}
               </div>
               <span
                 className="text-[11px] whitespace-nowrap"
@@ -95,8 +96,8 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
                   color: isDone
                     ? 'var(--color-success)'
                     : isActive
-                    ? 'var(--color-text-main)'
-                    : 'var(--color-text-hint)',
+                      ? 'var(--color-text-main)'
+                      : 'var(--color-text-hint)',
                 }}
               >
                 {step.label}
@@ -105,7 +106,7 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
             {idx < steps.length - 1 && (
               <div
                 className="flex-1 h-[1.5px] mx-2 mb-5 transition-colors"
-                style={{ background: isDone ? 'var(--color-success)' : 'var(--color-border)' }}
+                style={{background: isDone ? 'var(--color-success)' : 'var(--color-border)'}}
               />
             )}
           </div>
@@ -128,10 +129,10 @@ function StepIndicator({ current }: { current: 1 | 2 | 3 }) {
  *   - 하단 멤버 태그 "RE:FORM PLAYER"
  */
 function PlayerCard({
-  nickname,
-  teamColor,
-  mannerScore,
-}: {
+                      nickname,
+                      teamColor,
+                      mannerScore,
+                    }: {
   nickname: string
   teamColor: string         // 팀 브랜드 컬러 hex
   mannerScore: number       // 0~5
@@ -154,13 +155,13 @@ function PlayerCard({
       {/* 팀컬러 상단 바 */}
       <div
         className="absolute top-0 left-0 right-0"
-        style={{ height: 6, background: teamColor }}
+        style={{height: 6, background: teamColor}}
       />
 
       {/* 스피드라인 패턴 — 브랜드 요소 (대각선 줄) */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ opacity: 0.06 }}
+        style={{opacity: 0.06}}
         aria-hidden="true"
       >
         {[-40, -20, 0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240].map((x) => (
@@ -253,7 +254,7 @@ function PlayerCard({
       {/* 포지션 + 매너 점수 */}
       <div
         className="absolute left-0 right-0 flex items-center justify-between px-7"
-        style={{ top: 184 }}
+        style={{top: 184}}
       >
         <span
           style={{
@@ -281,12 +282,12 @@ function PlayerCard({
       {/* 통계 행 */}
       <div
         className="absolute left-[28px] right-[28px] flex justify-between"
-        style={{ top: 210 }}
+        style={{top: 210}}
       >
         {[
-          { label: 'TRADE', value: '0' },
-          { label: 'SCORE', value: '36.5' },
-          { label: 'MANNER', value: '5.0' },
+          {label: 'TRADE', value: '0'},
+          {label: 'SCORE', value: '36.5'},
+          {label: 'MANNER', value: '5.0'},
         ].map((stat) => (
           <div key={stat.label} className="text-center">
             <div
@@ -318,7 +319,7 @@ function PlayerCard({
       {/* 하단 멤버 태그 */}
       <div
         className="absolute left-0 right-0 text-center"
-        style={{ bottom: 16 }}
+        style={{bottom: 16}}
       >
         <span
           style={{
@@ -353,16 +354,16 @@ function BadgeUnlock() {
       {/* 골드 배지 아이콘 */}
       <div
         className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-        style={{ background: 'rgba(255,184,0,0.18)', border: '1.5px solid rgba(255,184,0,0.5)' }}
+        style={{background: 'rgba(255,184,0,0.18)', border: '1.5px solid rgba(255,184,0,0.5)'}}
       >
-        <Star size={16} strokeWidth={0} fill="#FFB800" />
+        <Star size={16} strokeWidth={0} fill="#FFB800"/>
       </div>
       <div>
         {/* 배지 획득 타이틀: 잘 보여야 하므로 font-display(Giants) */}
-        <p className="text-[13px] font-display font-semibold" style={{ color: 'var(--color-text-main)' }}>
+        <p className="text-[13px] font-display font-semibold" style={{color: 'var(--color-text-main)'}}>
           NEW PLAYER 배지 획득
         </p>
-        <p className="text-[11px]" style={{ color: 'var(--color-text-hint)' }}>
+        <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
           첫 거래 완료 시 ROOKIE 배지로 업그레이드됩니다
         </p>
       </div>
@@ -373,7 +374,7 @@ function BadgeUnlock() {
 // ── FeedPreview ───────────────────────────────────────────────────────────────
 
 /** FeedPreview — 관심 종목 관련 매물 카운트 */
-function FeedPreview({ count, sportLabels }: { count: number; sportLabels: string[] }) {
+function FeedPreview({count, sportLabels}: { count: number; sportLabels: string[] }) {
   if (count === 0) return null
   const formatted = count.toLocaleString('ko-KR')
   const label = sportLabels.length > 0
@@ -390,18 +391,18 @@ function FeedPreview({ count, sportLabels }: { count: number; sportLabels: strin
     >
       <div
         className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
-        style={{ background: 'var(--color-accent-subtle)', border: '1.5px solid var(--color-accent)' }}
+        style={{background: 'var(--color-accent-subtle)', border: '1.5px solid var(--color-accent)'}}
       >
-        <ShoppingBag size={16} style={{ color: 'var(--color-accent)' }} strokeWidth={1.75} />
+        <ShoppingBag size={16} style={{color: 'var(--color-accent)'}} strokeWidth={1.75}/>
       </div>
       <div>
-        <p className="text-[13px] font-semibold" style={{ color: 'var(--color-text-main)' }}>
-          <span style={{ color: 'var(--color-accent)', fontVariantNumeric: 'tabular-nums' }}>
+        <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
+          <span style={{color: 'var(--color-accent)', fontVariantNumeric: 'tabular-nums'}}>
             {formatted}개
           </span>
           의 유니폼이 기다리고 있어요
         </p>
-        <p className="text-[11px]" style={{ color: 'var(--color-text-hint)' }}>
+        <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
           {label} 관심 매물 기준
         </p>
       </div>
@@ -412,15 +413,14 @@ function FeedPreview({ count, sportLabels }: { count: number; sportLabels: strin
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 interface WelcomeState {
-  sports:   SportType[]
-  leagues:  string[]
-  teams:    string[]
+  sports: SportType[]
+  teams: string[]
   keywords: string[]
 }
 
 export default function WelcomePage() {
   const location = useLocation()
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
 
   /** router state로 전달된 관심 설정 (온보딩을 건너뛴 경우 빈 배열) */
@@ -430,13 +430,13 @@ export default function WelcomePage() {
    * sports / teams를 useMemo로 안정화 — 매 렌더마다 새 배열 참조가 생기면
    * 하위 useMemo의 deps 비교가 항상 달라져 불필요한 재계산이 발생함
    */
-  // useOnboarding이 sport(단일)·team(단일)으로 전달 — 배열 형식과 호환되도록 정규화
+    // useOnboarding이 sport(단일)·team(단일)으로 전달 — 배열 형식과 호환되도록 정규화
   const sports = useMemo(() => {
-    if (Array.isArray(state.sports)) return state.sports as string[]
-    if (state.sport) return [state.sport as string]
-    return []
-  }, [state.sports, state.sport])
-  const teams  = useMemo(() => {
+      if (Array.isArray(state.sports)) return state.sports as string[]
+      if (state.sport) return [state.sport as string]
+      return []
+    }, [state.sports, state.sport])
+  const teams = useMemo(() => {
     if (Array.isArray(state.teams)) return state.teams as string[]
     if (state.team) return [state.team as string]
     return []
@@ -468,17 +468,17 @@ export default function WelcomePage() {
       }}
     >
       {/* 상단 navy 액센트 바 */}
-      <div className="h-[3px]" style={{ background: 'var(--color-primary)' }} />
+      <div className="h-[3px]" style={{background: 'var(--color-primary)'}}/>
 
       <div className="px-8 py-8">
         {/* 스텝 인디케이터 — Step 3 활성, 1·2 완료 */}
-        <StepIndicator current={3} />
+        <StepIndicator current={3}/>
 
         {/* 헤드라인 */}
         <div className="mb-7 text-center">
           <p
             className="text-[11px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: 'var(--color-success)' }}
+            style={{color: 'var(--color-success)'}}
           >
             가입 완료
           </p>
@@ -493,7 +493,7 @@ export default function WelcomePage() {
           >
             WELCOME TO THE SQUAD
           </h1>
-          <p className="text-[14px]" style={{ color: 'var(--color-text-sub)' }}>
+          <p className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
             {nickname}님, RE:FORM에 오신 걸 환영합니다.
           </p>
         </div>
@@ -509,13 +509,13 @@ export default function WelcomePage() {
 
         {/* 배지 획득 알림 */}
         <div className="mb-4">
-          <BadgeUnlock />
+          <BadgeUnlock/>
         </div>
 
         {/* 관심 종목 매물 카운트 */}
         {feedCount > 0 && (
           <div className="mb-4">
-            <FeedPreview count={feedCount} sportLabels={sportLabels} />
+            <FeedPreview count={feedCount} sportLabels={sportLabels}/>
           </div>
         )}
 
@@ -530,7 +530,7 @@ export default function WelcomePage() {
           >
             <p
               className="text-[10px] font-semibold uppercase tracking-wide mb-2"
-              style={{ color: 'var(--color-text-hint)' }}
+              style={{color: 'var(--color-text-hint)'}}
             >
               내 관심 설정
             </p>
@@ -571,7 +571,7 @@ export default function WelcomePage() {
             to="/"
             replace
             className="w-full h-[52px] rounded-[10px] text-[15px] font-semibold text-white flex items-center justify-center gap-2 transition-opacity hover:text-white hover:opacity-90"
-            style={{ background: 'var(--color-primary)' }}
+            style={{background: 'var(--color-primary)'}}
           >
             홈 피드 보러 가기
           </Link>
@@ -587,7 +587,7 @@ export default function WelcomePage() {
               color: 'var(--color-accent)',
             }}
           >
-            <Plus size={16} strokeWidth={2} />
+            <Plus size={16} strokeWidth={2}/>
             첫 유니폼 판매하기
           </button>
         </div>

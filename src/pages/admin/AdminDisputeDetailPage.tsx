@@ -12,11 +12,11 @@
  *
  * 데이터: 목 데이터 (추후 GET /admin/disputes/:id 연동)
  */
-import { formatPrice } from '../../utils/format'
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import {formatPrice} from '../../utils/format'
+import {useState} from 'react'
+import {useParams, Link} from 'react-router-dom'
 import {
-  ChevronLeft, AlertOctagon, User, CheckCircle2,
+  ChevronLeft, AlertOctagon, CheckCircle2,
   Clock, FileText, Gavel, ShieldCheck,
 } from 'lucide-react'
 
@@ -53,7 +53,7 @@ const MOCK_DISPUTE: DisputeDetail = {
   deliveryType: '택배',
   buyer: {
     id: 202,
-    nickname: 'kleague_lover',
+    nickname: 'hoops_king',
     avatarColor: '#002147',
     claim:
       '판매자가 S급이라고 했으나 실제 수령 시 B급 이하 수준의 오염이 있었습니다. ' +
@@ -70,13 +70,13 @@ const MOCK_DISPUTE: DisputeDetail = {
       '발송 전 촬영 영상을 증거로 제출합니다.',
   },
   timeline: [
-    { date: '05-04', label: '거래 요청',   done: true  },
-    { date: '05-04', label: '거래 수락',   done: true  },
-    { date: '05-05', label: '결제 완료',   done: true  },
-    { date: '05-06', label: '발송 완료',   done: true  },
-    { date: '05-08', label: '수령 확인',   done: true  },
-    { date: '05-08', label: '분쟁 신청',   done: true  },
-    { date: '-',     label: '판정 대기',   done: false },
+    {date: '05-04', label: '거래 요청', done: true},
+    {date: '05-04', label: '거래 수락', done: true},
+    {date: '05-05', label: '결제 완료', done: true},
+    {date: '05-06', label: '발송 완료', done: true},
+    {date: '05-08', label: '수령 확인', done: true},
+    {date: '05-08', label: '분쟁 신청', done: true},
+    {date: '-', label: '판정 대기', done: false},
   ],
   evidenceCount: 4,
   adminNote: '',
@@ -110,19 +110,19 @@ const RESOLUTION_OPTIONS: { key: NonNullable<Resolution>; label: string; desc: s
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export default function AdminDisputeDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const [dispute, setDispute] = useState<DisputeDetail>({ ...MOCK_DISPUTE, id: Number(id) || MOCK_DISPUTE.id })
+  const {id} = useParams<{ id: string }>()
+  const [dispute, setDispute] = useState<DisputeDetail>({...MOCK_DISPUTE, id: Number(id) || MOCK_DISPUTE.id})
   const [selectedResolution, setSelectedResolution] = useState<NonNullable<Resolution> | null>(null)
-  const [adminNote, setAdminNote]   = useState(dispute.adminNote)
+  const [adminNote, setAdminNote] = useState(dispute.adminNote)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [done, setDone]             = useState(false)
+  const [done, setDone] = useState(false)
 
   async function handleResolve() {
     if (!selectedResolution) return
     setIsSubmitting(true)
     // 목 딜레이
     await new Promise((r) => setTimeout(r, 900))
-    setDispute((prev) => ({ ...prev, resolution: selectedResolution, adminNote }))
+    setDispute((prev) => ({...prev, resolution: selectedResolution, adminNote}))
     setIsSubmitting(false)
     setDone(true)
   }
@@ -138,16 +138,16 @@ export default function AdminDisputeDetailPage() {
             bg-[var(--color-surface-raised)] border border-[var(--color-border)]
             hover:bg-[var(--color-surface-sunken)]"
         >
-          <ChevronLeft size={18} style={{ color: 'var(--color-text-sub)' }} strokeWidth={2} />
+          <ChevronLeft size={18} style={{color: 'var(--color-text-sub)'}} strokeWidth={2}/>
         </Link>
         <div>
           <div className="flex items-center gap-2">
-            <AlertOctagon size={18} style={{ color: 'var(--color-warning)' }} strokeWidth={1.75} />
-            <h1 className="text-[20px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+            <AlertOctagon size={18} style={{color: 'var(--color-warning)'}} strokeWidth={1.75}/>
+            <h1 className="text-[20px] font-bold" style={{color: 'var(--color-text-main)'}}>
               분쟁 처리
             </h1>
           </div>
-          <p className="text-[12px]" style={{ color: 'var(--color-text-hint)' }}>
+          <p className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
             분쟁 #{dispute.id} · 거래 #{dispute.tradeId} · {dispute.createdAt} 접수
           </p>
         </div>
@@ -157,14 +157,14 @@ export default function AdminDisputeDetailPage() {
       {(dispute.resolution || done) && (
         <div
           className="mb-6 px-5 py-4 rounded-[12px] flex items-center gap-3 animate-fadeInUp"
-          style={{ background: 'rgba(0,179,110,0.08)', border: '1px solid rgba(0,179,110,0.3)' }}
+          style={{background: 'rgba(0,179,110,0.08)', border: '1px solid rgba(0,179,110,0.3)'}}
         >
-          <ShieldCheck size={20} style={{ color: 'var(--color-success)' }} strokeWidth={1.75} />
+          <ShieldCheck size={20} style={{color: 'var(--color-success)'}} strokeWidth={1.75}/>
           <div>
-            <p className="text-[14px] font-semibold" style={{ color: 'var(--color-success)' }}>
+            <p className="text-[14px] font-semibold" style={{color: 'var(--color-success)'}}>
               분쟁 판정 완료
             </p>
-            <p className="text-[12px]" style={{ color: 'var(--color-text-sub)' }}>
+            <p className="text-[12px]" style={{color: 'var(--color-text-sub)'}}>
               판정:&nbsp;
               {RESOLUTION_OPTIONS.find((r) => r.key === (dispute.resolution ?? selectedResolution))?.label}
             </p>
@@ -180,32 +180,32 @@ export default function AdminDisputeDetailPage() {
           {/* 거래 개요 */}
           <div
             className="rounded-[12px] p-5"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <p className="text-[12px] font-semibold uppercase tracking-wide mb-3"
-              style={{ color: 'var(--color-text-hint)' }}>
+               style={{color: 'var(--color-text-hint)'}}>
               거래 정보
             </p>
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-[16px] font-bold mb-1" style={{ color: 'var(--color-text-main)' }}>
+                <h2 className="text-[16px] font-bold mb-1" style={{color: 'var(--color-text-main)'}}>
                   {dispute.postTitle}
                 </h2>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className="text-[11px] font-bold px-2 py-0.5 rounded-[4px] text-white"
-                    style={{ background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                    style={{background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                   >
                     {dispute.grade}
                   </span>
-                  <span className="text-[12px]" style={{ color: 'var(--color-text-hint)' }}>
+                  <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
                     {dispute.sport} · {dispute.deliveryType}
                   </span>
                 </div>
               </div>
               <p
                 className="text-[22px] font-bold flex-shrink-0"
-                style={{ color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
                 {formatPrice(dispute.price)}
               </p>
@@ -220,24 +220,24 @@ export default function AdminDisputeDetailPage() {
                       className="w-6 h-6 rounded-full flex items-center justify-center"
                       style={{
                         background: t.done ? 'var(--color-primary)' : 'var(--color-surface-sunken)',
-                        border:     t.done ? 'none' : '1.5px solid var(--color-border)',
+                        border: t.done ? 'none' : '1.5px solid var(--color-border)',
                       }}
                     >
                       {t.done ? (
-                        <CheckCircle2 size={12} color="#fff" strokeWidth={2.5} />
+                        <CheckCircle2 size={12} color="#fff" strokeWidth={2.5}/>
                       ) : (
-                        <Clock size={10} style={{ color: 'var(--color-text-hint)' }} strokeWidth={1.75} />
+                        <Clock size={10} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.75}/>
                       )}
                     </div>
                     <span
                       className="text-[9px] whitespace-nowrap"
-                      style={{ color: t.done ? 'var(--color-text-sub)' : 'var(--color-text-hint)' }}
+                      style={{color: t.done ? 'var(--color-text-sub)' : 'var(--color-text-hint)'}}
                     >
                       {t.label}
                     </span>
                     <span
                       className="text-[8px]"
-                      style={{ color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                      style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                     >
                       {t.date}
                     </span>
@@ -245,7 +245,7 @@ export default function AdminDisputeDetailPage() {
                   {i < dispute.timeline.length - 1 && (
                     <div
                       className="w-8 h-[1.5px] flex-shrink-0 mb-[22px]"
-                      style={{ background: t.done ? 'var(--color-primary)' : 'var(--color-border)' }}
+                      style={{background: t.done ? 'var(--color-primary)' : 'var(--color-border)'}}
                     />
                   )}
                 </div>
@@ -255,26 +255,26 @@ export default function AdminDisputeDetailPage() {
 
           {/* 구매자 / 판매자 주장 */}
           {[
-            { party: '구매자', data: dispute.buyer, role: 'buyer' as const },
-            { party: '판매자', data: dispute.seller, role: 'seller' as const },
-          ].map(({ party, data }) => (
+            {party: '구매자', data: dispute.buyer, role: 'buyer' as const},
+            {party: '판매자', data: dispute.seller, role: 'seller' as const},
+          ].map(({party, data}) => (
             <div
               key={party}
               className="rounded-[12px] p-5"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
-                  style={{ background: data.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                  style={{background: data.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                 >
                   {data.nickname.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+                  <p className="text-[13px] font-bold" style={{color: 'var(--color-text-main)'}}>
                     {data.nickname}
                   </p>
-                  <p className="text-[11px]" style={{ color: 'var(--color-text-hint)' }}>
+                  <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
                     {party} 주장
                   </p>
                 </div>
@@ -290,7 +290,7 @@ export default function AdminDisputeDetailPage() {
                 className="px-4 py-3 rounded-[8px] text-[13px] leading-relaxed"
                 style={{
                   background: 'var(--color-surface-sunken)',
-                  color:      'var(--color-text-sub)',
+                  color: 'var(--color-text-sub)',
                 }}
               >
                 {data.claim}
@@ -301,16 +301,16 @@ export default function AdminDisputeDetailPage() {
           {/* 제출된 증거 */}
           <div
             className="rounded-[12px] p-5"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <div className="flex items-center gap-2 mb-4">
-              <FileText size={15} style={{ color: 'var(--color-primary)' }} strokeWidth={1.75} />
-              <h3 className="text-[14px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+              <FileText size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
+              <h3 className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
                 제출 증거 ({dispute.evidenceCount}건)
               </h3>
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: dispute.evidenceCount }).map((_, i) => (
+              {Array.from({length: dispute.evidenceCount}).map((_, i) => (
                 <div
                   key={i}
                   className="aspect-square rounded-[8px] flex items-center justify-center cursor-pointer
@@ -320,11 +320,11 @@ export default function AdminDisputeDetailPage() {
                     opacity: 0.8,
                   }}
                 >
-                  <FileText size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.5} />
+                  <FileText size={16} color="rgba(255,255,255,0.7)" strokeWidth={1.5}/>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] mt-2" style={{ color: 'var(--color-text-hint)' }}>
+            <p className="text-[11px] mt-2" style={{color: 'var(--color-text-hint)'}}>
               이미지를 클릭하면 원본 파일을 확인할 수 있습니다.
             </p>
           </div>
@@ -334,11 +334,11 @@ export default function AdminDisputeDetailPage() {
         <div>
           <div
             className="rounded-[12px] p-5 sticky top-24"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <div className="flex items-center gap-2 mb-4">
-              <Gavel size={16} style={{ color: 'var(--color-primary)' }} strokeWidth={1.75} />
-              <p className="text-[14px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+              <Gavel size={16} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
+              <p className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
                 분쟁 판정
               </p>
             </div>
@@ -354,24 +354,24 @@ export default function AdminDisputeDetailPage() {
                   className="w-full text-left px-4 py-3 rounded-[10px] transition-colors border
                     disabled:cursor-default"
                   style={{
-                    background:  selectedResolution === opt.key ? `${opt.color}12` : 'var(--color-surface-raised)',
+                    background: selectedResolution === opt.key ? `${opt.color}12` : 'var(--color-surface-raised)',
                     borderColor: selectedResolution === opt.key ? opt.color : 'var(--color-border)',
                   }}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div
                       className="w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
-                      style={{ borderColor: selectedResolution === opt.key ? opt.color : 'var(--color-border)' }}
+                      style={{borderColor: selectedResolution === opt.key ? opt.color : 'var(--color-border)'}}
                     >
                       {selectedResolution === opt.key && (
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: opt.color }} />
+                        <div className="w-1.5 h-1.5 rounded-full" style={{background: opt.color}}/>
                       )}
                     </div>
-                    <span className="text-[13px] font-semibold" style={{ color: opt.color }}>
+                    <span className="text-[13px] font-semibold" style={{color: opt.color}}>
                       {opt.label}
                     </span>
                   </div>
-                  <p className="text-[11px] pl-5" style={{ color: 'var(--color-text-hint)' }}>
+                  <p className="text-[11px] pl-5" style={{color: 'var(--color-text-hint)'}}>
                     {opt.desc}
                   </p>
                 </button>
@@ -380,7 +380,7 @@ export default function AdminDisputeDetailPage() {
 
             {/* 관리자 메모 */}
             <div className="mb-4">
-              <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
+              <label className="block text-[12px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
                 관리자 메모 (내부용)
               </label>
               <textarea
@@ -404,30 +404,30 @@ export default function AdminDisputeDetailPage() {
               className="w-full h-[48px] rounded-[10px] text-[14px] font-bold text-white
                 transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed
                 flex items-center justify-center gap-2"
-              style={{ background: 'var(--color-primary)' }}
+              style={{background: 'var(--color-primary)'}}
             >
               {done ? (
                 <>
-                  <ShieldCheck size={16} strokeWidth={2} />
+                  <ShieldCheck size={16} strokeWidth={2}/>
                   판정 완료
                 </>
               ) : isSubmitting ? '처리 중...' : (
                 <>
-                  <Gavel size={16} strokeWidth={1.75} />
+                  <Gavel size={16} strokeWidth={1.75}/>
                   판정 확정
                 </>
               )}
             </button>
 
             {!selectedResolution && !dispute.resolution && !done && (
-              <p className="text-[11px] text-center mt-2" style={{ color: 'var(--color-text-hint)' }}>
+              <p className="text-[11px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 판정 유형을 먼저 선택해 주세요
               </p>
             )}
 
             {/* 유의사항 */}
-            <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-hint)' }}>
+            <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
+              <p className="text-[11px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>
                 판정 확정 후 자동으로 에스크로 환불 또는 정산이 처리됩니다.
                 양측에 판정 결과가 이메일로 발송됩니다.
               </p>

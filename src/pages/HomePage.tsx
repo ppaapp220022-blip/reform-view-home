@@ -2,20 +2,20 @@
  * HomePage — 홈 피드 (Screen 1)
  *
  * 구성:
- *   SportFilterBar   — 종목 탭 + 리그 칩 (GNB 바로 아래)
+ *   SportFilterBar   — 종목 탭 (GNB 바로 아래)
  *   HeroSection        — navy 배경, 피처 상품 + 통계
  *   [Sidebar | Grid]   — 필터 사이드바(220px) + 상품 5열 그리드
  *
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
  * 데이터: 목 데이터 (백엔드 미연동)
  */
-import { useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import { Heart, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { formatPrice } from '../utils/format'
-import { getListings } from '../features/listing/api/listingApi'
-import type { PostCard } from '../features/listing/api/listingApi'
+import {useState, useCallback} from 'react'
+import {Link} from 'react-router-dom'
+import {Heart, SlidersHorizontal, AlertCircle} from 'lucide-react'
+import {useQuery} from '@tanstack/react-query'
+import {formatPrice} from '../utils/format'
+import {getListings, toggleWish} from '../features/listing/api/listingApi'
+import type {PostCard} from '../features/listing/api/listingApi'
 import type {
   HomeFilter, Grade, SportFilter,
 } from '../types/listing'
@@ -23,28 +23,27 @@ import type {
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
 const SPORT_TABS: { key: SportFilter; label: string }[] = [
-  { key:'all',        label:'전체' },
-  { key:'BASEBALL',   label:'야구' },
-  { key:'SOCCER',     label:'축구' },
-  { key:'BASKETBALL', label:'농구' },
-  { key:'VOLLEYBALL', label:'배구' },
-  { key:'ESPORTS',    label:'e스포츠' },
-  { key:'ETC',        label:'기타' },
+  {key: 'all', label: '전체'},
+  {key: 'BASEBALL', label: '야구'},
+  {key: 'SOCCER', label: '축구'},
+  {key: 'BASKETBALL', label: '농구'},
+  {key: 'VOLLEYBALL', label: '배구'},
+  {key: 'ESPORTS', label: 'e스포츠'},
+  {key: 'ETC', label: '기타'},
 ]
 
-const LEAGUES = ['전체', 'EPL', '라리가', '분데스리가', '세리에A', 'K리그', 'KBO', 'KBL', 'V리그']
 const GRADES: { key: Grade | 'all'; label: string }[] = [
-  { key:'all', label:'전체' },
-  { key:'S', label:'S급' },
-  { key:'A', label:'A급' },
-  { key:'B', label:'B급' },
-  { key:'C', label:'C급' },
+  {key: 'all', label: '전체'},
+  {key: 'S', label: 'S급'},
+  {key: 'A', label: 'A급'},
+  {key: 'B', label: 'B급'},
+  {key: 'C', label: 'C급'},
 ]
 const SORT_OPTIONS: { key: HomeFilter['sort']; label: string }[] = [
-  { key:'latest',     label:'최신순' },
-  { key:'popular',    label:'인기순' },
-  { key:'price_asc',  label:'낮은가격' },
-  { key:'price_desc', label:'높은가격' },
+  {key: 'latest', label: '최신순'},
+  {key: 'popular', label: '인기순'},
+  {key: 'price_asc', label: '낮은가격'},
+  {key: 'price_desc', label: '높은가격'},
 ]
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
@@ -78,11 +77,11 @@ interface JerseyProps {
  * Jersey — CSS 유니폼 형태 일러스트
  * 와이어프레임의 .j 계열 클래스를 SVG/JSX로 재현
  */
-function Jersey({ color, number, size = 'sm' }: JerseyProps) {
-  const w  = size === 'lg' ? 80  : 52
-  const h  = size === 'lg' ? 96  : 64
-  const sw = size === 'lg' ? 20  : 13  // sleeve width
-  const sh = size === 'lg' ? 32  : 22  // sleeve height
+function Jersey({color, number, size = 'sm'}: JerseyProps) {
+  const w = size === 'lg' ? 80 : 52
+  const h = size === 'lg' ? 96 : 64
+  const sw = size === 'lg' ? 20 : 13  // sleeve width
+  const sh = size === 'lg' ? 32 : 22  // sleeve height
   const numSize = size === 'lg' ? 32 : 20
 
   return (
@@ -91,16 +90,16 @@ function Jersey({ color, number, size = 'sm' }: JerseyProps) {
       height={h}
       viewBox={`0 0 ${w + sw * 2} ${h}`}
       aria-hidden="true"
-      style={{ overflow: 'visible' }}
+      style={{overflow: 'visible'}}
     >
       {/* 왼쪽 소매 */}
-      <rect x={0} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9} />
+      <rect x={0} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9}/>
       {/* 오른쪽 소매 */}
-      <rect x={w + sw} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9} />
+      <rect x={w + sw} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9}/>
       {/* 몸통 */}
-      <rect x={sw} y={0} width={w} height={h} rx={4} fill={color} />
+      <rect x={sw} y={0} width={w} height={h} rx={4} fill={color}/>
       {/* 가로 스트라이프 */}
-      <rect x={sw} y={size === 'lg' ? 24 : 16} width={w} height={size === 'lg' ? 6 : 4} fill="rgba(255,255,255,0.2)" />
+      <rect x={sw} y={size === 'lg' ? 24 : 16} width={w} height={size === 'lg' ? 6 : 4} fill="rgba(255,255,255,0.2)"/>
       {/* 등번호 */}
       {number && (
         <text
@@ -127,14 +126,15 @@ interface ProductCardProps {
 
 /** 팀별 고정 색상 (실제 이미지 없을 때 폴백) */
 const JERSEY_COLORS = [
-  '#B5222B','#1A3051','#034694','#1A7A40','#A50044',
-  '#6B0078','#C8102E','#003087','#002147','#E3001B',
+  '#B5222B', '#1A3051', '#034694', '#1A7A40', '#A50044',
+  '#6B0078', '#C8102E', '#003087', '#002147', '#E3001B',
 ]
+
 function fallbackColor(id: number) {
   return JERSEY_COLORS[id % JERSEY_COLORS.length]
 }
 
-function ProductCard({ item, onLike }: ProductCardProps) {
+function ProductCard({item, onLike}: ProductCardProps) {
   return (
     <Link
       to={`/listing/${item.postId}`}
@@ -147,7 +147,7 @@ function ProductCard({ item, onLike }: ProductCardProps) {
       {/* 이미지 영역 */}
       <div
         className="relative flex items-center justify-center"
-        style={{ height: 160, background: 'var(--color-surface-sunken)' }}
+        style={{height: 160, background: 'var(--color-surface-sunken)'}}
       >
         {/* 등급 배지 */}
         <span
@@ -163,16 +163,19 @@ function ProductCard({ item, onLike }: ProductCardProps) {
             src={item.thumbnailUrl}
             alt={item.title}
             className="w-full h-full object-cover"
-            style={{ position:'absolute', inset:0 }}
+            style={{position: 'absolute', inset: 0}}
           />
         ) : (
-          <Jersey color={fallbackColor(item.postId)} number={String(item.postId % 99)} />
+          <Jersey color={fallbackColor(item.postId)} number={String(item.postId % 99)}/>
         )}
 
         {/* 찜 버튼 */}
         <button
           type="button"
-          onClick={(e) => { e.preventDefault(); onLike(item.postId) }}
+          onClick={(e) => {
+            e.preventDefault();
+            onLike(item.postId)
+          }}
           className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
           style={{
             background: 'rgba(255,255,255,0.92)',
@@ -195,13 +198,13 @@ function ProductCard({ item, onLike }: ProductCardProps) {
       <div className="p-3">
         <p
           className="text-[10px] font-medium uppercase tracking-[0.5px] mb-1"
-          style={{ color: 'var(--color-text-hint)' }}
+          style={{color: 'var(--color-text-hint)'}}
         >
           {item.team} · {item.sport}
         </p>
         <p
           className="text-[14px] font-medium leading-snug mb-2 line-clamp-2"
-          style={{ color: 'var(--color-text-main)' }}
+          style={{color: 'var(--color-text-main)'}}
         >
           {item.title}
         </p>
@@ -225,7 +228,7 @@ function ProductCard({ item, onLike }: ProductCardProps) {
           >
             {item.size}
           </span>
-          <span className="text-[10px]" style={{ color: 'var(--color-text-hint)' }}>
+          <span className="text-[10px]" style={{color: 'var(--color-text-hint)'}}>
             {item.timeAgo}
           </span>
         </div>
@@ -242,7 +245,7 @@ interface SportFilterBarProps {
   onSelect: (s: SportFilter) => void
 }
 
-function SportFilterBar({ active, onSelect }: SportFilterBarProps) {
+function SportFilterBar({active, onSelect}: SportFilterBarProps) {
   return (
     <div
       className="sticky top-[56px] z-30 flex items-center overflow-x-auto"
@@ -253,7 +256,7 @@ function SportFilterBar({ active, onSelect }: SportFilterBarProps) {
     >
       {/* 종목 탭 */}
       <div className="flex flex-shrink-0 px-8">
-        {SPORT_TABS.map(({ key, label }) => (
+        {SPORT_TABS.map(({key, label}) => (
           <button
             key={key}
             type="button"
@@ -269,26 +272,6 @@ function SportFilterBar({ active, onSelect }: SportFilterBarProps) {
           </button>
         ))}
       </div>
-
-      {/* 구분선 */}
-      <div className="w-px h-5 mx-2 flex-shrink-0" style={{ background: 'var(--color-border-strong)' }} />
-
-      {/* 리그 칩 */}
-      <div className="flex gap-2 px-2 flex-shrink-0">
-        {['EPL', '라리가', 'KBO', 'KBL'].map((lg) => (
-          <span
-            key={lg}
-            className="text-[11px] px-2.5 py-1 rounded-full cursor-pointer whitespace-nowrap transition-colors"
-            style={{
-              border: '1px solid var(--color-border-strong)',
-              color: 'var(--color-text-sub)',
-              background: 'transparent',
-            }}
-          >
-            {lg}
-          </span>
-        ))}
-      </div>
     </div>
   )
 }
@@ -299,42 +282,42 @@ function HeroSection() {
   return (
     <div
       className="relative overflow-hidden px-8 py-10"
-      style={{ background: 'var(--color-primary)' }}
+      style={{background: 'var(--color-primary)'}}
     >
       {/* 장식 원 */}
       <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full pointer-events-none"
-        style={{ border: '36px solid rgba(255,255,255,0.03)' }} />
+           style={{border: '36px solid rgba(255,255,255,0.03)'}}/>
       <div className="absolute right-20 -bottom-16 w-44 h-44 rounded-full pointer-events-none"
-        style={{ border: '24px solid rgba(255,255,255,0.03)' }} />
+           style={{border: '24px solid rgba(255,255,255,0.03)'}}/>
 
       <div className="max-w-[1126px] mx-auto flex items-center gap-12">
         {/* 텍스트 */}
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] tracking-[2px] uppercase mb-2 font-medium" style={{ color: 'var(--color-accent)' }}>
+          <p className="text-[11px] tracking-[2px] uppercase mb-2 font-medium" style={{color: 'var(--color-accent)'}}>
             FEATURED LISTING
           </p>
           <h2
             className="text-[48px] sm:text-[56px] leading-[1] text-white mb-3"
-            style={{ fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif", letterSpacing: '2px' }}
+            style={{fontFamily: "'Giants-Inline','IAMAPLAYER',Giants,sans-serif", letterSpacing: '2px'}}
           >
-            MAN UTD 23/24<br />
-            <span style={{ color: 'var(--color-accent)' }}>HOME</span> AUTHENTIC
+            MAN UTD 23/24<br/>
+            <span style={{color: 'var(--color-accent)'}}>HOME</span> AUTHENTIC
           </h2>
-          <p className="text-[13px] mb-6 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          <p className="text-[13px] mb-6 leading-relaxed" style={{color: 'rgba(255,255,255,0.5)'}}>
             Size M · Grade S · 에스크로 안전결제 지원
           </p>
           <div className="flex gap-2.5">
             <Link
               to="/listing/1"
               className="inline-flex items-center h-11 px-7 rounded-[10px] text-[15px] font-medium text-white no-underline hover:text-white transition-opacity hover:opacity-90"
-              style={{ background: 'var(--color-accent)' }}
+              style={{background: 'var(--color-accent)'}}
             >
               지금 보기
             </Link>
             <button
               type="button"
               className="h-11 px-7 rounded-[10px] text-[15px] font-medium text-white transition-colors hover:bg-white/10"
-              style={{ border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)' }}
+              style={{border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)'}}
             >
               찜하기
             </button>
@@ -343,22 +326,22 @@ function HeroSection() {
           {/* 통계 바 */}
           <div
             className="flex gap-8 mt-8 pt-6"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+            style={{borderTop: '1px solid rgba(255,255,255,0.08)'}}
           >
             {[
-              { num: '4,820', lbl: '누적 거래' },
-              { num: '31,500', lbl: '등록 상품' },
-              { num: '9,200', lbl: '활성 회원' },
-              { num: '98%', lbl: '만족도' },
-            ].map(({ num, lbl }) => (
+              {num: '4,820', lbl: '누적 거래'},
+              {num: '31,500', lbl: '등록 상품'},
+              {num: '9,200', lbl: '활성 회원'},
+              {num: '98%', lbl: '만족도'},
+            ].map(({num, lbl}) => (
               <div key={lbl}>
                 <p
                   className="text-[28px] leading-none text-white"
-                  style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                  style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                 >
                   {num}
                 </p>
-                <p className="text-[11px] mt-1 tracking-[0.5px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[11px] mt-1 tracking-[0.5px]" style={{color: 'rgba(255,255,255,0.4)'}}>
                   {lbl}
                 </p>
               </div>
@@ -368,11 +351,11 @@ function HeroSection() {
 
         {/* 유니폼 일러스트 (데스크탑만) */}
         <div className="hidden md:flex items-center justify-center w-56 flex-shrink-0 relative">
-          <div style={{ transform: 'rotate(-4deg)', opacity: 0.9 }}>
-            <Jersey color="#B5222B" number="7" size="lg" />
+          <div style={{transform: 'rotate(-4deg)', opacity: 0.9}}>
+            <Jersey color="#B5222B" number="7" size="lg"/>
           </div>
-          <div className="absolute right-6 -bottom-4" style={{ transform: 'rotate(6deg)', opacity: 0.45, zIndex: 0 }}>
-            <Jersey color="#ffffff" number="" size="lg" />
+          <div className="absolute right-6 -bottom-4" style={{transform: 'rotate(6deg)', opacity: 0.45, zIndex: 0}}>
+            <Jersey color="#ffffff" number="" size="lg"/>
           </div>
         </div>
       </div>
@@ -387,9 +370,9 @@ interface FilterSidebarProps {
   onChange: (f: HomeFilter) => void
 }
 
-function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
+function FilterSidebar({filter, onChange}: FilterSidebarProps) {
   function set<K extends keyof HomeFilter>(key: K, value: HomeFilter[K]) {
-    onChange({ ...filter, [key]: value })
+    onChange({...filter, [key]: value})
   }
 
   return (
@@ -400,35 +383,12 @@ function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
         borderRight: '1px solid var(--color-border)',
       }}
     >
-      {/* 리그 */}
-      <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-1"
-        style={{ color: 'var(--color-text-hint)' }}>리그</p>
-      {LEAGUES.map((lg) => {
-        const key = lg === '전체' ? 'all' : lg
-        const isActive = filter.league === key
-        return (
-          <button
-            key={lg}
-            type="button"
-            onClick={() => set('league', key)}
-            className="flex items-center w-full gap-2.5 px-5 py-2.5 text-[13px] text-left transition-colors"
-            style={{
-              borderLeft: `3px solid ${isActive ? 'var(--color-accent)' : 'transparent'}`,
-              background: isActive ? 'var(--color-surface-sunken)' : 'transparent',
-              color: isActive ? 'var(--color-text-main)' : 'var(--color-text-sub)',
-              fontWeight: isActive ? 500 : 400,
-            }}
-          >
-            {lg}
-          </button>
-        )
-      })}
 
       {/* 컨디션 */}
       <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
-        style={{ color: 'var(--color-text-hint)' }}>컨디션</p>
+         style={{color: 'var(--color-text-hint)'}}>컨디션</p>
       <div className="flex gap-2 px-5 flex-wrap">
-        {GRADES.map(({ key, label }) => {
+        {GRADES.map(({key, label}) => {
           const isActive = filter.grade === key
           return (
             <button
@@ -450,9 +410,9 @@ function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
 
       {/* 거래 방식 */}
       <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
-        style={{ color: 'var(--color-text-hint)' }}>거래 방식</p>
+         style={{color: 'var(--color-text-hint)'}}>거래 방식</p>
       <div className="flex gap-2 px-5">
-        {([['all','전체'],['DELIVERY','택배'],['DIRECT','직거래']] as const).map(([key, label]) => {
+        {([['all', '전체'], ['DELIVERY', '택배'], ['DIRECT', '직거래']] as const).map(([key, label]) => {
           const isActive = filter.deliveryType === key
           return (
             <button
@@ -477,7 +437,7 @@ function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
         <button
           type="button"
           className="w-full h-8 text-[12px] font-medium text-white rounded-[7px] transition-opacity hover:opacity-90"
-          style={{ background: 'var(--color-accent)' }}
+          style={{background: 'var(--color-accent)'}}
         >
           필터 적용
         </button>
@@ -491,7 +451,6 @@ function FilterSidebar({ filter, onChange }: FilterSidebarProps) {
 export default function HomePage() {
   const [filter, setFilter] = useState<HomeFilter>({
     sport: 'all',
-    league: 'all',
     grade: 'all',
     deliveryType: 'all',
     sort: 'latest',
@@ -499,13 +458,35 @@ export default function HomePage() {
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
 
-  /* 찜 토글 (낙관적 업데이트 — 서버 찜 API 구현 전 로컬 유지) */
-  const handleLike = useCallback((id: number) => {
+  /**
+   * 찜 토글 핸들러
+   * 낙관적 UI: 즉시 likedIds 상태 반전 → toggleWish API 호출 → 실패 시 롤백
+   * likedIds는 "현재 세션에서 서버 기본값을 반전한 id 목록"
+   */
+  const handleLike = useCallback(async (id: number) => {
     setLikedIds((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) { next.delete(id) } else { next.add(id) }
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
       return next
     })
+    try {
+      await toggleWish(id)
+    } catch {
+      /* API 실패 시 낙관적 변경을 롤백 */
+      setLikedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) {
+          next.delete(id)
+        } else {
+          next.add(id)
+        }
+        return next
+      })
+    }
   }, [])
 
   /* API 쿼리 파라미터 빌드 */
@@ -519,7 +500,7 @@ export default function HomePage() {
   }
 
   /* 판매글 목록 조회 */
-  const { data, isLoading, isError } = useQuery({
+  const {data, isLoading, isError} = useQuery({
     queryKey: ['listings', queryParams],
     queryFn: () => getListings(queryParams),
     staleTime: 30_000,  // 30초 동안 재요청 없음
@@ -532,29 +513,29 @@ export default function HomePage() {
   }))
 
   return (
-    <div style={{ background: 'var(--color-bg)' }}>
+    <div style={{background: 'var(--color-bg)'}}>
       {/* 종목 카테고리 바 */}
       <SportFilterBar
         active={filter.sport}
-        onSelect={(s) => setFilter((f) => ({ ...f, sport: s }))}
+        onSelect={(s) => setFilter((f) => ({...f, sport: s}))}
       />
 
       {/* 히어로 */}
-      <HeroSection />
+      <HeroSection/>
 
       {/* 본문 */}
-      <div className="flex max-w-[1280px] mx-auto" style={{ minHeight: 500 }}>
+      <div className="flex max-w-[1280px] mx-auto" style={{minHeight: 500}}>
         {/* 사이드바 — md 이상에서만 표시 */}
         <div className="hidden md:block">
-          <FilterSidebar filter={filter} onChange={setFilter} />
+          <FilterSidebar filter={filter} onChange={setFilter}/>
         </div>
 
         {/* 콘텐츠 */}
         <main className="flex-1 min-w-0 px-6 py-6">
           {/* 필터 행 */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <span className="text-[13px]" style={{ color: 'var(--color-text-sub)' }}>
-              상품 <strong style={{ color: 'var(--color-text-main)' }}>{data?.totalElements ?? 0}</strong>개
+            <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>
+              상품 <strong style={{color: 'var(--color-text-main)'}}>{data?.totalElements ?? 0}</strong>개
             </span>
 
             {/* 모바일 필터 버튼 */}
@@ -567,17 +548,17 @@ export default function HomePage() {
                 color: 'var(--color-text-sub)',
               }}
             >
-              <SlidersHorizontal size={14} strokeWidth={1.75} />
+              <SlidersHorizontal size={14} strokeWidth={1.75}/>
               필터
             </button>
 
             {/* 정렬 */}
             <div className="flex gap-4 ml-auto">
-              {SORT_OPTIONS.map(({ key, label }) => (
+              {SORT_OPTIONS.map(({key, label}) => (
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setFilter((f) => ({ ...f, sort: key }))}
+                  onClick={() => setFilter((f) => ({...f, sort: key}))}
                   className="text-[13px] transition-colors"
                   style={{
                     color: filter.sort === key ? 'var(--color-accent)' : 'var(--color-text-hint)',
@@ -594,14 +575,14 @@ export default function HomePage() {
           {isLoading ? (
             /* 스켈레톤 로딩 */
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({length: 10}).map((_, i) => (
                 <div key={i} className="rounded-[var(--r-card)] overflow-hidden animate-pulse"
-                  style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
-                  <div style={{ height:160, background:'var(--color-surface-raised)' }} />
+                     style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
+                  <div style={{height: 160, background: 'var(--color-surface-raised)'}}/>
                   <div className="p-3 flex flex-col gap-2">
-                    <div className="h-3 rounded" style={{ background:'var(--color-surface-raised)', width:'60%' }} />
-                    <div className="h-4 rounded" style={{ background:'var(--color-surface-raised)' }} />
-                    <div className="h-5 rounded" style={{ background:'var(--color-surface-raised)', width:'40%' }} />
+                    <div className="h-3 rounded" style={{background: 'var(--color-surface-raised)', width: '60%'}}/>
+                    <div className="h-4 rounded" style={{background: 'var(--color-surface-raised)'}}/>
+                    <div className="h-5 rounded" style={{background: 'var(--color-surface-raised)', width: '40%'}}/>
                   </div>
                 </div>
               ))}
@@ -609,26 +590,26 @@ export default function HomePage() {
           ) : isError ? (
             /* 에러 상태 */
             <div className="py-16 text-center flex flex-col items-center gap-3">
-              <AlertCircle size={32} color="var(--color-error)" />
-              <p className="text-[15px] font-medium" style={{ color:'var(--color-text-main)' }}>
+              <AlertCircle size={32} color="var(--color-error)"/>
+              <p className="text-[15px] font-medium" style={{color: 'var(--color-text-main)'}}>
                 상품을 불러오지 못했습니다
               </p>
-              <p className="text-[13px]" style={{ color:'var(--color-text-hint)' }}>
+              <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                 잠시 후 다시 시도해주세요.
               </p>
             </div>
           ) : listings.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
               {listings.map((item) => (
-                <ProductCard key={item.postId} item={item} onLike={handleLike} />
+                <ProductCard key={item.postId} item={item} onLike={handleLike}/>
               ))}
             </div>
           ) : (
             <div className="py-16 text-center">
-              <p className="text-[15px] font-medium mb-2" style={{ color: 'var(--color-text-main)' }}>
+              <p className="text-[15px] font-medium mb-2" style={{color: 'var(--color-text-main)'}}>
                 조건에 맞는 상품이 없어요.
               </p>
-              <p className="text-[13px]" style={{ color: 'var(--color-text-hint)' }}>
+              <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                 필터를 조정해 다시 검색해 보세요.
               </p>
             </div>

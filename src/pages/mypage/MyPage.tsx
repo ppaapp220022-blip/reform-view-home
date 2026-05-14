@@ -10,64 +10,66 @@
  *
  * 데이터: 목 데이터 (추후 useQuery + authStore 연동)
  */
-import { formatPrice } from '../../utils/format'
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { getPointWallet, getPointHistory, requestWithdraw, getMyWithdrawList, cancelWithdraw } from '../../features/payment/api/pointApi'
-import type { WithdrawItem } from '../../features/payment/api/pointApi'
+import {formatPrice} from '../../utils/format'
+import {useState} from 'react'
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
+import {Link} from 'react-router-dom'
+import {
+  getPointWallet,
+  getPointHistory,
+  requestWithdraw,
+  getMyWithdrawList,
+  cancelWithdraw
+} from '../../features/payment/api/pointApi'
+import type {WithdrawItem} from '../../features/payment/api/pointApi'
 import {
   Star, Package, Heart, Coins, Settings,
   ChevronRight, TrendingUp, ArrowDownToLine,
   Edit3, Shield, Bell, HelpCircle, LogOut,
   BarChart2, Award, Clock, Flag, AlertCircle,
 } from 'lucide-react'
-import type { ListingItem, Grade, TradeStatus } from '../../types/listing'
-import { getMyReports } from '../../features/report/api/reportApi'
-import { REPORT_REASON_LABEL, REPORT_STATUS_LABEL } from '../../features/report/api/reportApi'
-import type { ReportItem } from '../../features/report/api/reportApi'
-import { getMyProfile } from '../../features/mypage/api/memberApi'
-import { getMyTrades } from '../../features/trade/api/tradeApi'
-import type { TradeResponse } from '../../features/trade/api/tradeApi'
-import { getListings } from '../../features/listing/api/listingApi'
-import type { PostCard } from '../../features/listing/api/listingApi'
+import type {ListingItem, Grade, TradeStatus} from '../../types/listing'
+import {getMyReports} from '../../features/report/api/reportApi'
+import {REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
+import type {ReportItem} from '../../features/report/api/reportApi'
+import {getMyProfile} from '../../features/mypage/api/memberApi'
+import {getMyTrades} from '../../features/trade/api/tradeApi'
+import type {TradeResponse} from '../../features/trade/api/tradeApi'
+import {getListings} from '../../features/listing/api/listingApi'
+import type {PostCard} from '../../features/listing/api/listingApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-interface TradeRecord {
-  id: number
-  listingId: number
-  title: string
-  team: string
-  league: string
-  price: number
-  grade: Grade
-  jerseyColor: string
-  jerseyNumber: string
-  status: TradeStatus
-  type: 'buy' | 'sell'
-  counterpartNickname: string
-  date: string
-}
-
-const MOCK_TRADES: TradeRecord[] = [
-  { id:1,  listingId:1,  title:'맨체스터 유나이티드 23/24 홈 어센틱', team:'맨유',         league:'EPL',   price:78000,  grade:'S', jerseyColor:'#B5222B', jerseyNumber:'7',  status:'COMPLETED', type:'buy',  counterpartNickname:'jersey_master', date:'2026.04.15' },
-  { id:2,  listingId:6,  title:'바르셀로나 22/23 어웨이 레플리카',     team:'바르셀로나',   league:'라리가',price:48000,  grade:'A', jerseyColor:'#A50044', jerseyNumber:'10', status:'CONFIRMED',  type:'buy',  counterpartNickname:'barca_fan99',   date:'2026.04.28' },
-  { id:3,  listingId:9,  title:'서울 SK 나이츠 23/24 홈',             team:'SK 나이츠',    league:'KBL',   price:71000,  grade:'A', jerseyColor:'#E3001B', jerseyNumber:'14', status:'IN_PROGRESS',type:'buy',  counterpartNickname:'hoops_seoul',   date:'2026.05.01' },
-  { id:4,  listingId:5,  title:'전북 현대 2024 홈 어센틱',            team:'전북 현대',    league:'K리그', price:66000,  grade:'S', jerseyColor:'#1A7A40', jerseyNumber:'27', status:'COMPLETED',  type:'sell', counterpartNickname:'kleague_lover',  date:'2026.04.10' },
-  { id:5,  listingId:10, title:'인천 대한항공 점보스 유니폼',          team:'대한항공',     league:'V리그', price:38000,  grade:'C', jerseyColor:'#003087', jerseyNumber:'5',  status:'CANCELED',   type:'sell', counterpartNickname:'volley_pro',     date:'2026.03.20' },
-  { id:6,  listingId:12, title:'T1 2024 스프링 유니폼',               team:'T1',          league:'LCK',   price:85000,  grade:'A', jerseyColor:'#C8102E', jerseyNumber:'',   status:'REQUESTED',  type:'sell', counterpartNickname:'faker_fan',      date:'2026.05.07' },
-]
-
-const MOCK_MY_LISTINGS: ListingItem[] = [
-  { id:7,  title:'두산 베어스 2023 홈 유니폼',   team:'두산 베어스', league:'KBO', price:59000, grade:'S', size:'L', deliveryType:'DELIVERY', jerseyColor:'#002147', jerseyNumber:'36', likedCount:9,  isLiked:false, sport:'BASEBALL', timeAgo:'6시간 전' },
-  { id:8,  title:'KT 위즈 2024 어웨이 유니폼',  team:'KT 위즈',    league:'KBO', price:44000, grade:'B', size:'XL', deliveryType:'BOTH',    jerseyColor:'#D50032', jerseyNumber:'22', likedCount:5,  isLiked:false, sport:'BASEBALL', timeAgo:'2일 전' },
-  { id:12, title:'T1 2024 스프링 유니폼',        team:'T1',         league:'LCK', price:85000, grade:'A', size:'M',  deliveryType:'BOTH',    jerseyColor:'#C8102E', jerseyNumber:'',   likedCount:72, isLiked:false, sport:'ESPORTS',  timeAgo:'3시간 전' },
-]
-
 const MOCK_LIKED: ListingItem[] = [
-  { id:2,  title:'리버풀 FC 07/08 어웨이 레플리카',   team:'리버풀 FC',     league:'EPL',    price:55000, grade:'A', size:'L', deliveryType:'BOTH',     jerseyColor:'#C8102E', jerseyNumber:'10', likedCount:18, isLiked:true, sport:'SOCCER', timeAgo:'5시간 전' },
-  { id:6,  title:'바르셀로나 22/23 어웨이 레플리카',  team:'FC 바르셀로나', league:'라리가', price:48000, grade:'A', size:'M', deliveryType:'DELIVERY', jerseyColor:'#A50044', jerseyNumber:'10', likedCount:33, isLiked:true, sport:'SOCCER', timeAgo:'4시간 전' },
+  {
+    id: 2,
+    title: '리버풀 FC 07/08 어웨이 레플리카',
+    team: '리버풀 FC',
+    price: 55000,
+    grade: 'A',
+    size: 'L',
+    deliveryType: 'BOTH',
+    jerseyColor: '#C8102E',
+    jerseyNumber: '10',
+    likedCount: 18,
+    isLiked: true,
+    sport: 'SOCCER',
+    timeAgo: '5시간 전'
+  },
+  {
+    id: 6,
+    title: '바르셀로나 22/23 어웨이 레플리카',
+    team: 'FC 바르셀로나',
+    price: 48000,
+    grade: 'A',
+    size: 'M',
+    deliveryType: 'DELIVERY',
+    jerseyColor: '#A50044',
+    jerseyNumber: '10',
+    likedCount: 33,
+    isLiked: true,
+    sport: 'SOCCER',
+    timeAgo: '4시간 전'
+  },
 ]
 
 const MOCK_USER = {
@@ -81,35 +83,35 @@ const MOCK_USER = {
   reviewCount: 39,
   joinedAt: '2023년 3월',
   avatarColor: '#1A3051',
-  sports: ['축구', '야구'],
+  sports: ['야구', '축구'],
 }
 
 const POINT_HISTORY = [
-  { id:1, label:'구매 확정 적립',     points:+500,   date:'2026.05.01', type:'earn' as const },
-  { id:2, label:'거래 후기 작성',     points:+200,   date:'2026.04.28', type:'earn' as const },
-  { id:3, label:'이벤트 보너스',      points:+1000,  date:'2026.04.15', type:'earn' as const },
-  { id:4, label:'포인트 사용 (결제)', points:-300,   date:'2026.04.10', type:'use'  as const },
-  { id:5, label:'판매 정산',          points:+66000, date:'2026.04.10', type:'settle' as const },
+  {id: 1, label: '구매 확정 적립', points: +500, date: '2026.05.01', type: 'earn' as const},
+  {id: 2, label: '거래 후기 작성', points: +200, date: '2026.04.28', type: 'earn' as const},
+  {id: 3, label: '이벤트 보너스', points: +1000, date: '2026.04.15', type: 'earn' as const},
+  {id: 4, label: '포인트 사용 (결제)', points: -300, date: '2026.04.10', type: 'use' as const},
+  {id: 5, label: '판매 정산', points: +66000, date: '2026.04.10', type: 'settle' as const},
 ]
 
 // ── 상수/유틸 ─────────────────────────────────────────────────────────────────
 
 const GRADE_META: Record<Grade, { label: string; bg: string; text: string; border: string }> = {
-  S: { label:'S급', bg:'rgba(255,184,0,.12)',  text:'#B38000', border:'rgba(255,184,0,.35)' },
-  A: { label:'A급', bg:'rgba(0,33,71,.08)',    text:'#002147', border:'rgba(0,33,71,.25)' },
-  B: { label:'B급', bg:'rgba(90,106,122,.10)', text:'#5A6A7A', border:'rgba(90,106,122,.3)' },
-  C: { label:'C급', bg:'rgba(255,149,0,.10)',  text:'#CC7700', border:'rgba(255,149,0,.3)' },
+  S: {label: 'S급', bg: 'rgba(255,184,0,.12)', text: '#B38000', border: 'rgba(255,184,0,.35)'},
+  A: {label: 'A급', bg: 'rgba(0,33,71,.08)', text: '#002147', border: 'rgba(0,33,71,.25)'},
+  B: {label: 'B급', bg: 'rgba(90,106,122,.10)', text: '#5A6A7A', border: 'rgba(90,106,122,.3)'},
+  C: {label: 'C급', bg: 'rgba(255,149,0,.10)', text: '#CC7700', border: 'rgba(255,149,0,.3)'},
 }
 
-const TRADE_STATUS_META: Record<TradeStatus, { label: string; color: string }> = {
-  REQUESTED:   { label:'요청됨',   color:'var(--color-info)' },
-  ACCEPTED:    { label:'수락됨',   color:'var(--color-info)' },
-  PAID:        { label:'결제완료', color:'var(--color-gold)' },
-  IN_PROGRESS: { label:'진행중',   color:'var(--color-warning)' },
-  CONFIRMED:   { label:'구매확정', color:'var(--color-success)' },
-  COMPLETED:   { label:'거래완료', color:'var(--color-text-hint)' },
-  CANCELED:    { label:'취소됨',   color:'var(--color-accent)' },
-  DISPUTED:    { label:'분쟁중',   color:'var(--color-accent)' },
+const TRADE_STATUS_META: Partial<Record<TradeStatus, { label: string; color: string }>> = {
+  REQUESTED: {label: '요청됨', color: 'var(--color-info)'},
+  ACCEPTED: {label: '수락됨', color: 'var(--color-info)'},
+  PAID: {label: '결제완료', color: 'var(--color-gold)'},
+  IN_PROGRESS: {label: '진행중', color: 'var(--color-warning)'},
+  CONFIRMED: {label: '구매확정', color: 'var(--color-success)'},
+  COMPLETED: {label: '거래완료', color: 'var(--color-text-hint)'},
+  CANCELED: {label: '취소됨', color: 'var(--color-accent)'},
+  DISPUTED: {label: '분쟁중', color: 'var(--color-accent)'},
 }
 
 function mannerColor(score: number) {
@@ -123,7 +125,7 @@ function mannerColor(score: number) {
 
 /** 프로필 헤더 카드 — 실제 API 연동 */
 function ProfileHeader() {
-  const { data: profile, isLoading } = useQuery({
+  const {data: profile, isLoading} = useQuery({
     queryKey: ['myProfile'],
     queryFn: getMyProfile,
     staleTime: 60_000,
@@ -133,12 +135,12 @@ function ProfileHeader() {
   if (isLoading || !profile) {
     return (
       <div className="rounded-2xl p-6 mb-6 animate-pulse"
-        style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+           style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full flex-shrink-0" style={{ background:'var(--color-surface-raised)' }} />
+          <div className="w-16 h-16 rounded-full flex-shrink-0" style={{background: 'var(--color-surface-raised)'}}/>
           <div className="flex-1 flex flex-col gap-2">
-            <div className="h-5 rounded w-2/3" style={{ background:'var(--color-surface-raised)' }} />
-            <div className="h-3 rounded w-1/2" style={{ background:'var(--color-surface-raised)' }} />
+            <div className="h-5 rounded w-2/3" style={{background: 'var(--color-surface-raised)'}}/>
+            <div className="h-3 rounded w-1/2" style={{background: 'var(--color-surface-raised)'}}/>
           </div>
         </div>
       </div>
@@ -151,7 +153,11 @@ function ProfileHeader() {
   return (
     <div
       className="rounded-2xl p-6 mb-6"
-      style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)', boxShadow:'0 4px 12px -2px rgba(0,33,71,.08)' }}
+      style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        boxShadow: '0 4px 12px -2px rgba(0,33,71,.08)'
+      }}
     >
       <div className="flex items-center gap-4">
         {/* 아바타: 프로필 이미지 or 이니셜 */}
@@ -164,47 +170,53 @@ function ProfileHeader() {
         ) : (
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-            style={{ background:'var(--color-primary)', fontFamily:"'IAMAPLAYER',Giants,sans-serif", letterSpacing:'0.06em' }}
+            style={{
+              background: 'var(--color-primary)',
+              fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+              letterSpacing: '0.06em'
+            }}
           >
             {profile.nickname.slice(0, 2).toUpperCase()}
           </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h2 className="font-bold text-lg truncate" style={{ color:'var(--color-text-main)' }}>{profile.nickname}</h2>
+            <h2 className="font-bold text-lg truncate" style={{color: 'var(--color-text-main)'}}>{profile.nickname}</h2>
             <button aria-label="프로필 수정">
-              <Edit3 size={15} color="var(--color-text-hint)" />
+              <Edit3 size={15} color="var(--color-text-hint)"/>
             </button>
           </div>
-          <p className="text-xs truncate" style={{ color:'var(--color-text-hint)' }}>{profile.email}</p>
-          <p className="text-xs mt-0.5" style={{ color:'var(--color-text-hint)' }}>
+          <p className="text-xs truncate" style={{color: 'var(--color-text-hint)'}}>{profile.email}</p>
+          <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
             {new Date(profile.createdAt).getFullYear()}년 가입
             {interests.length > 0 && ` · ${interests.join('·')} 관심`}
           </p>
         </div>
         {/* 매너점수 (0~5 스케일) */}
-        <div className="flex flex-col items-center flex-shrink-0 pl-4" style={{ borderLeft:'1px solid var(--color-border)' }}>
-          <Star size={14} color={mc} fill={mc} />
-          <span className="text-2xl font-bold mt-1" style={{ color: mc, fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+        <div className="flex flex-col items-center flex-shrink-0 pl-4"
+             style={{borderLeft: '1px solid var(--color-border)'}}>
+          <Star size={14} color={mc} fill={mc}/>
+          <span className="text-2xl font-bold mt-1" style={{color: mc, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
             {Number(profile.mannerScore).toFixed(1)}
           </span>
-          <span className="text-[10px] mt-0.5" style={{ color:'var(--color-text-hint)' }}>매너점수</span>
+          <span className="text-[10px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>매너점수</span>
         </div>
       </div>
 
       {/* 통계 줄 */}
       <div
         className="grid grid-cols-3 gap-4 mt-5 pt-5"
-        style={{ borderTop:'1px solid var(--color-border)' }}
+        style={{borderTop: '1px solid var(--color-border)'}}
       >
         {[
-          { label:'총 구매', value: profile.totalPurchases, unit:'건' },
-          { label:'총 판매', value: profile.totalSales, unit:'건' },
-          { label:'정산 포인트', value: profile.pointWithdrawable.toLocaleString('ko-KR'), unit:'P' },
+          {label: '총 구매', value: profile.totalPurchases, unit: '건'},
+          {label: '총 판매', value: profile.totalSales, unit: '건'},
+          {label: '정산 포인트', value: profile.pointWithdrawable.toLocaleString('ko-KR'), unit: 'P'},
         ].map(s => (
           <div key={s.label} className="flex flex-col items-center">
-            <span className="text-xl font-bold" style={{ color:'var(--color-primary)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>{s.value}</span>
-            <span className="text-xs mt-0.5" style={{ color:'var(--color-text-hint)' }}>{s.label}</span>
+            <span className="text-xl font-bold"
+                  style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>{s.value}</span>
+            <span className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>{s.label}</span>
           </div>
         ))}
       </div>
@@ -216,9 +228,9 @@ function ProfileHeader() {
 function TradeHistoryTab() {
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
 
-  const { data, isLoading } = useQuery({
+  const {data, isLoading} = useQuery({
     queryKey: ['myTrades', role],
-    queryFn: () => getMyTrades({ role, page: 0, size: 20 }),
+    queryFn: () => getMyTrades({role, page: 0, size: 20}),
     staleTime: 30_000,
   })
   const trades = data?.content ?? []
@@ -227,15 +239,15 @@ function TradeHistoryTab() {
     <div>
       {/* 탭 필터: 구매/판매 */}
       <div className="flex gap-2 mb-4">
-        {([['buyer','구매 내역'],['seller','판매 내역']] as const).map(([k, l]) => (
+        {([['buyer', '구매 내역'], ['seller', '판매 내역']] as const).map(([k, l]) => (
           <button
             key={k}
             onClick={() => setRole(k)}
             className="px-4 py-2 rounded-xl text-sm font-medium transition-all"
             style={{
-              background: role===k ? 'var(--color-primary)' : 'var(--color-surface)',
-              color: role===k ? '#fff' : 'var(--color-text-sub)',
-              border: `1px solid ${role===k ? 'var(--color-primary)' : 'var(--color-border)'}`,
+              background: role === k ? 'var(--color-primary)' : 'var(--color-surface)',
+              color: role === k ? '#fff' : 'var(--color-text-sub)',
+              border: `1px solid ${role === k ? 'var(--color-primary)' : 'var(--color-border)'}`,
             }}
           >
             {l}
@@ -245,39 +257,39 @@ function TradeHistoryTab() {
 
       {isLoading ? (
         <div className="flex flex-col gap-3">
-          {[1,2,3].map(i => (
-            <div key={i} className="h-20 rounded-xl animate-pulse" style={{ background:'var(--color-surface)' }} />
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 rounded-xl animate-pulse" style={{background: 'var(--color-surface)'}}/>
           ))}
         </div>
       ) : trades.length === 0 ? (
         <div className="py-12 text-center">
-          <Package size={32} color="var(--color-border)" className="mx-auto mb-3" strokeWidth={1.5} />
-          <p className="text-sm font-display font-bold" style={{ color:'var(--color-text-main)' }}>
+          <Package size={32} color="var(--color-border)" className="mx-auto mb-3" strokeWidth={1.5}/>
+          <p className="text-sm font-display font-bold" style={{color: 'var(--color-text-main)'}}>
             {role === 'buyer' ? '구매 내역이 없습니다' : '판매 내역이 없습니다'}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           {trades.map((t: TradeResponse) => {
-            const sm = TRADE_STATUS_META[t.status] ?? { label: t.status, color: 'var(--color-text-hint)' }
+            const sm = TRADE_STATUS_META[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
             const counterpart = role === 'buyer' ? t.seller : t.buyer
             return (
               <Link
                 key={t.tradeId}
                 to={`/listing/${t.post.postId}`}
                 className="flex gap-3 p-4 rounded-xl transition-colors"
-                style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}
+                style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
               >
                 {/* 썸네일 */}
                 <div
                   className="w-14 h-14 rounded-xl flex-shrink-0 relative overflow-hidden bg-[var(--color-surface-raised)]"
-                  style={{ aspectRatio:'1' }}
+                  style={{aspectRatio: '1'}}
                 >
                   {t.post.thumbnailUrl ? (
-                    <img src={t.post.thumbnailUrl} alt={t.post.title} className="w-full h-full object-cover" />
+                    <img src={t.post.thumbnailUrl} alt={t.post.title} className="w-full h-full object-cover"/>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Package size={20} color="var(--color-border)" />
+                      <Package size={20} color="var(--color-border)"/>
                     </div>
                   )}
                 </div>
@@ -285,24 +297,31 @@ function TradeHistoryTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                      style={{ background: role==='buyer' ? 'rgba(14,165,233,.1)' : 'rgba(0,179,110,.1)', color: role==='buyer' ? 'var(--color-info)' : 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif" }}>
+                          style={{
+                            background: role === 'buyer' ? 'rgba(14,165,233,.1)' : 'rgba(0,179,110,.1)',
+                            color: role === 'buyer' ? 'var(--color-info)' : 'var(--color-success)',
+                            fontFamily: "'Giants','Pretendard',sans-serif"
+                          }}>
                       {role === 'buyer' ? '구매' : '판매'}
                     </span>
-                    <span className="text-[10px] font-semibold" style={{ color: sm.color, fontFamily: "'Giants','Pretendard',sans-serif" }}>
+                    <span className="text-[10px] font-semibold"
+                          style={{color: sm.color, fontFamily: "'Giants','Pretendard',sans-serif"}}>
                       {sm.label}
                     </span>
                   </div>
-                  <p className="text-sm font-semibold truncate" style={{ color:'var(--color-text-main)' }}>{t.post.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color:'var(--color-text-hint)' }}>
+                  <p className="text-sm font-semibold truncate"
+                     style={{color: 'var(--color-text-main)'}}>{t.post.title}</p>
+                  <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
                     {counterpart.nickname} · {new Date(t.createdAt).toLocaleDateString('ko-KR')}
                   </p>
                 </div>
                 {/* 가격 */}
                 <div className="flex flex-col items-end justify-center flex-shrink-0">
-                  <span className="font-bold text-sm" style={{ color:'var(--color-primary)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                  <span className="font-bold text-sm"
+                        style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                     {formatPrice(t.tradePrice)}
                   </span>
-                  <ChevronRight size={14} color="var(--color-text-hint)" />
+                  <ChevronRight size={14} color="var(--color-text-hint)"/>
                 </div>
               </Link>
             )
@@ -320,16 +339,16 @@ function TradeHistoryTab() {
  */
 function MyListingsTab() {
   // 프로필에서 memberId 취득
-  const { data: profile } = useQuery({
+  const {data: profile} = useQuery({
     queryKey: ['myProfile'],
     queryFn: getMyProfile,
     staleTime: 60_000,
   })
 
   // 내 판매글 목록: 전체 listings에서 seller.memberId === 내 memberId
-  const { data, isLoading } = useQuery({
+  const {data, isLoading} = useQuery({
     queryKey: ['myListings', profile?.memberId],
-    queryFn: () => getListings({ size: 20, page: 0 }),
+    queryFn: () => getListings({size: 20, page: 0}),
     enabled: !!profile?.memberId,
     staleTime: 30_000,
     select: (res) => ({
@@ -344,13 +363,13 @@ function MyListingsTab() {
     <div>
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[1,2,3].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="rounded-xl animate-pulse overflow-hidden"
-              style={{ border:'1px solid var(--color-border)' }}>
-              <div style={{ aspectRatio:'4/5', background:'var(--color-surface-raised)' }} />
+                 style={{border: '1px solid var(--color-border)'}}>
+              <div style={{aspectRatio: '4/5', background: 'var(--color-surface-raised)'}}/>
               <div className="p-3 flex flex-col gap-2">
-                <div className="h-3 rounded" style={{ background:'var(--color-surface-raised)' }} />
-                <div className="h-4 rounded w-2/3" style={{ background:'var(--color-surface-raised)' }} />
+                <div className="h-3 rounded" style={{background: 'var(--color-surface-raised)'}}/>
+                <div className="h-4 rounded w-2/3" style={{background: 'var(--color-surface-raised)'}}/>
               </div>
             </div>
           ))}
@@ -364,29 +383,37 @@ function MyListingsTab() {
                 key={item.postId}
                 to={`/listing/${item.postId}`}
                 className="rounded-xl overflow-hidden block"
-                style={{ border:'1px solid var(--color-border)', background:'var(--color-surface)' }}
+                style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
               >
-                <div className="relative" style={{ aspectRatio:'4/5', background:'var(--color-surface-raised)' }}>
+                <div className="relative" style={{aspectRatio: '4/5', background: 'var(--color-surface-raised)'}}>
                   {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt={item.title} className="absolute inset-0 w-full h-full object-cover" />
+                    <img src={item.thumbnailUrl} alt={item.title}
+                         className="absolute inset-0 w-full h-full object-cover"/>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Package size={28} color="var(--color-border)" strokeWidth={1.5} />
+                      <Package size={28} color="var(--color-border)" strokeWidth={1.5}/>
                     </div>
                   )}
                   <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded"
-                    style={{ background:m.bg, color:m.text, border:`1px solid ${m.border}`, fontFamily: "'Giants','Pretendard',sans-serif" }}>
+                        style={{
+                          background: m.bg,
+                          color: m.text,
+                          border: `1px solid ${m.border}`,
+                          fontFamily: "'Giants','Pretendard',sans-serif"
+                        }}>
                     {m.label}
                   </span>
                 </div>
                 <div className="p-3">
-                  <p className="text-xs font-semibold truncate" style={{ color:'var(--color-text-main)' }}>{item.title}</p>
+                  <p className="text-xs font-semibold truncate"
+                     style={{color: 'var(--color-text-main)'}}>{item.title}</p>
                   <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-sm font-bold" style={{ color:'var(--color-primary)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                    <span className="text-sm font-bold"
+                          style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                       {formatPrice(item.price)}
                     </span>
-                    <span className="text-[10px] flex items-center gap-0.5" style={{ color:'var(--color-text-hint)' }}>
-                      <Heart size={10} /> {item.wishCount}
+                    <span className="text-[10px] flex items-center gap-0.5" style={{color: 'var(--color-text-hint)'}}>
+                      <Heart size={10}/> {item.wishCount}
                     </span>
                   </div>
                 </div>
@@ -398,10 +425,15 @@ function MyListingsTab() {
           <Link
             to="/listing/new"
             className="rounded-xl flex flex-col items-center justify-center gap-2 transition-colors"
-            style={{ aspectRatio:'4/5', border:'2px dashed var(--color-border)', background:'var(--color-surface-raised)', minHeight:120 }}
+            style={{
+              aspectRatio: '4/5',
+              border: '2px dashed var(--color-border)',
+              background: 'var(--color-surface-raised)',
+              minHeight: 120
+            }}
           >
-            <span className="text-3xl" style={{ color:'var(--color-border-strong)' }}>+</span>
-            <span className="text-xs font-medium" style={{ color:'var(--color-text-hint)' }}>판매 등록</span>
+            <span className="text-3xl" style={{color: 'var(--color-border-strong)'}}>+</span>
+            <span className="text-xs font-medium" style={{color: 'var(--color-text-hint)'}}>판매 등록</span>
           </Link>
         </div>
       )}
@@ -420,12 +452,13 @@ function LikesTab() {
   if (likes.length === 0) {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
-        <Heart size={40} color="var(--color-border)" />
+        <Heart size={40} color="var(--color-border)"/>
         <div className="text-center">
-          <p className="font-display font-bold" style={{ color:'var(--color-text-main)' }}>찜한 상품이 없어요</p>
-          <p className="text-sm mt-1" style={{ color:'var(--color-text-sub)' }}>마음에 드는 유니폼을 찜해두세요.</p>
+          <p className="font-display font-bold" style={{color: 'var(--color-text-main)'}}>찜한 상품이 없어요</p>
+          <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>마음에 드는 유니폼을 찜해두세요.</p>
         </div>
-        <Link to="/" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'var(--color-primary)' }}>
+        <Link to="/" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+              style={{background: 'var(--color-primary)'}}>
           홈 피드 보기
         </Link>
       </div>
@@ -441,20 +474,31 @@ function LikesTab() {
             <Link
               to={`/listing/${item.id}`}
               className="rounded-xl overflow-hidden block"
-              style={{ border:'1px solid var(--color-border)', background:'var(--color-surface)' }}
+              style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
             >
-              <div className="relative" style={{ aspectRatio:'4/5', background: item.jerseyColor }}>
-                <div className="absolute inset-0" style={{ backgroundImage:'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)' }} />
-                <span className="absolute inset-0 flex items-center justify-center select-none" style={{ fontFamily:"'IAMAPLAYER',Giants,sans-serif", fontSize:72, color:'rgba(255,255,255,.14)' }}>
+              <div className="relative" style={{aspectRatio: '4/5', background: item.jerseyColor}}>
+                <div className="absolute inset-0"
+                     style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>
+                <span className="absolute inset-0 flex items-center justify-center select-none" style={{
+                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                  fontSize: 72,
+                  color: 'rgba(255,255,255,.14)'
+                }}>
                   {item.jerseyNumber}
                 </span>
-                <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{ background:m.bg, color:m.text, border:`1px solid ${m.border}`, fontFamily: "'Giants','Pretendard',sans-serif" }}>
+                <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{
+                  background: m.bg,
+                  color: m.text,
+                  border: `1px solid ${m.border}`,
+                  fontFamily: "'Giants','Pretendard',sans-serif"
+                }}>
                   {m.label}
                 </span>
               </div>
               <div className="p-3">
-                <p className="text-xs font-semibold truncate" style={{ color:'var(--color-text-main)' }}>{item.title}</p>
-                <p className="text-sm font-bold mt-1" style={{ color:'var(--color-primary)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>{item.title}</p>
+                <p className="text-sm font-bold mt-1"
+                   style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                   {formatPrice(item.price)}
                 </p>
               </div>
@@ -463,10 +507,10 @@ function LikesTab() {
             <button
               onClick={() => unlike(item.id)}
               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background:'rgba(255,255,255,.9)' }}
+              style={{background: 'rgba(255,255,255,.9)'}}
               aria-label="찜 해제"
             >
-              <Heart size={15} fill="var(--color-accent)" color="var(--color-accent)" />
+              <Heart size={15} fill="var(--color-accent)" color="var(--color-accent)"/>
             </button>
           </div>
         )
@@ -484,19 +528,20 @@ function PointsTab() {
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
 
   // 포인트 지갑 조회
-  const { data: wallet, isLoading: walletLoading } = useQuery({
+  const {data: wallet, isLoading: walletLoading} = useQuery({
     queryKey: ['pointWallet'],
     queryFn: getPointWallet,
   })
 
-  // 포인트 내역 조회
-  const { data: history } = useQuery({
+  // 포인트 내역 조회 (추후 UI 연동 예정)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const {data: _history} = useQuery({
     queryKey: ['pointHistory'],
     queryFn: getPointHistory,
   })
 
   // 내 출금 요청 목록 조회
-  const { data: withdrawList } = useQuery({
+  const {data: withdrawList} = useQuery({
     queryKey: ['withdrawList'],
     queryFn: getMyWithdrawList,
   })
@@ -510,8 +555,8 @@ function PointsTab() {
       setWithdrawAccount('')
       setWithdrawError(null)
       // 지갑 + 출금 목록 갱신
-      void qc.invalidateQueries({ queryKey: ['pointWallet'] })
-      void qc.invalidateQueries({ queryKey: ['withdrawList'] })
+      void qc.invalidateQueries({queryKey: ['pointWallet']})
+      void qc.invalidateQueries({queryKey: ['withdrawList']})
     },
     onError: () => setWithdrawError('출금 요청 중 오류가 발생했습니다. 다시 시도해주세요.'),
   })
@@ -520,19 +565,31 @@ function PointsTab() {
   const cancelMutation = useMutation({
     mutationFn: cancelWithdraw,
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['pointWallet'] })
-      void qc.invalidateQueries({ queryKey: ['withdrawList'] })
+      void qc.invalidateQueries({queryKey: ['pointWallet']})
+      void qc.invalidateQueries({queryKey: ['withdrawList']})
     },
   })
 
   function handleWithdraw() {
     const amount = Number(withdrawAmount)
-    if (amount < 1000) { setWithdrawError('최소 1,000원 이상 입력해주세요.'); return }
-    if (!wallet || amount > wallet.withdrawable) { setWithdrawError('출금 가능 금액을 초과했습니다.'); return }
-    if (!withdrawBank.trim()) { setWithdrawError('은행명을 입력해주세요.'); return }
-    if (!withdrawAccount.trim()) { setWithdrawError('계좌번호를 입력해주세요.'); return }
+    if (amount < 1000) {
+      setWithdrawError('최소 1,000원 이상 입력해주세요.');
+      return
+    }
+    if (!wallet || amount > wallet.withdrawable) {
+      setWithdrawError('출금 가능 금액을 초과했습니다.');
+      return
+    }
+    if (!withdrawBank.trim()) {
+      setWithdrawError('은행명을 입력해주세요.');
+      return
+    }
+    if (!withdrawAccount.trim()) {
+      setWithdrawError('계좌번호를 입력해주세요.');
+      return
+    }
     setWithdrawError(null)
-    withdrawMutation.mutate({ amount, bankName: withdrawBank, accountNumber: withdrawAccount })
+    withdrawMutation.mutate({amount, bankName: withdrawBank, accountNumber: withdrawAccount})
   }
 
   const withdrawable = wallet?.withdrawable ?? 0
@@ -543,52 +600,55 @@ function PointsTab() {
       {/* 포인트 카드 */}
       <div className="grid grid-cols-2 gap-3">
         {/* 활동 포인트 — 백엔드 미지원, MOCK 유지 */}
-        <div className="rounded-2xl p-4" style={{ background:'var(--color-primary)', color:'#fff' }}>
+        <div className="rounded-2xl p-4" style={{background: 'var(--color-primary)', color: '#fff'}}>
           <div className="flex items-center gap-2 mb-3">
-            <Award size={16} />
+            <Award size={16}/>
             <span className="text-xs font-semibold opacity-80">활동 포인트</span>
           </div>
-          <p className="text-2xl font-bold" style={{ fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+          <p className="text-2xl font-bold" style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
             {MOCK_USER.activityPoints.toLocaleString('ko-KR')}<span className="text-sm ml-1 opacity-70">P</span>
           </p>
           <p className="text-[10px] mt-2 opacity-60">쇼핑·후기·이벤트 적립</p>
         </div>
         {/* 정산 포인트 (출금 가능) */}
-        <div className="rounded-2xl p-4" style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
+        <div className="rounded-2xl p-4"
+             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={16} color="var(--color-success)" />
-            <span className="text-xs font-semibold" style={{ color:'var(--color-text-sub)' }}>정산 포인트</span>
+            <TrendingUp size={16} color="var(--color-success)"/>
+            <span className="text-xs font-semibold" style={{color: 'var(--color-text-sub)'}}>정산 포인트</span>
           </div>
           {walletLoading ? (
-            <div className="h-8 rounded animate-pulse" style={{ background:'var(--color-surface-raised)' }} />
+            <div className="h-8 rounded animate-pulse" style={{background: 'var(--color-surface-raised)'}}/>
           ) : (
-            <p className="text-2xl font-bold" style={{ color:'var(--color-success)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+            <p className="text-2xl font-bold"
+               style={{color: 'var(--color-success)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
               {'₩'}{withdrawable.toLocaleString('ko-KR')}
             </p>
           )}
-          <p className="text-[10px] mt-2" style={{ color:'var(--color-text-hint)' }}>판매 대금 (출금 가능)</p>
+          <p className="text-[10px] mt-2" style={{color: 'var(--color-text-hint)'}}>판매 대금 (출금 가능)</p>
         </div>
         {/* 정산 대기 포인트 */}
         <div
           className="col-span-2 rounded-2xl p-4 flex items-center justify-between"
-          style={{ background:'rgba(255,149,0,.07)', border:'1px solid rgba(255,149,0,.25)' }}
+          style={{background: 'rgba(255,149,0,.07)', border: '1px solid rgba(255,149,0,.25)'}}
         >
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background:'rgba(255,149,0,.15)' }}
+              style={{background: 'rgba(255,149,0,.15)'}}
             >
-              <Clock size={16} color="var(--color-warning)" />
+              <Clock size={16} color="var(--color-warning)"/>
             </div>
             <div>
-              <p className="text-xs font-semibold" style={{ color:'var(--color-text-sub)' }}>정산 대기</p>
-              <p className="text-[10px] mt-0.5" style={{ color:'var(--color-text-hint)' }}>구매 확정 후 출금 가능</p>
+              <p className="text-xs font-semibold" style={{color: 'var(--color-text-sub)'}}>정산 대기</p>
+              <p className="text-[10px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>구매 확정 후 출금 가능</p>
             </div>
           </div>
           {walletLoading ? (
-            <div className="h-6 w-24 rounded animate-pulse" style={{ background:'rgba(255,149,0,.15)' }} />
+            <div className="h-6 w-24 rounded animate-pulse" style={{background: 'rgba(255,149,0,.15)'}}/>
           ) : (
-            <p className="text-lg font-bold" style={{ color:'var(--color-warning)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+            <p className="text-lg font-bold"
+               style={{color: 'var(--color-warning)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
               {'₩'}{pending.toLocaleString('ko-KR')}
             </p>
           )}
@@ -596,23 +656,24 @@ function PointsTab() {
       </div>
 
       {/* 출금 요청 폼 */}
-      <div className="rounded-2xl p-5" style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}>
-        <h3 className="font-bold text-sm mb-3" style={{ color:'var(--color-text-main)' }}>정산 포인트 출금</h3>
+      <div className="rounded-2xl p-5"
+           style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
+        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>정산 포인트 출금</h3>
         <div className="flex flex-col gap-2 mb-3">
           {/* 금액 */}
           <div className="flex gap-2">
             <div
               className="flex-1 flex items-center gap-2 px-3 py-2.5 rounded-xl"
-              style={{ border:'1px solid var(--color-border)', background:'var(--color-surface-raised)' }}
+              style={{border: '1px solid var(--color-border)', background: 'var(--color-surface-raised)'}}
             >
-              <span className="text-sm" style={{ color:'var(--color-text-hint)' }}>{'₩'}</span>
+              <span className="text-sm" style={{color: 'var(--color-text-hint)'}}>{'₩'}</span>
               <input
                 type="number"
                 value={withdrawAmount}
                 onChange={e => setWithdrawAmount(e.target.value)}
                 placeholder="출금 금액 (최소 1,000원)"
                 className="flex-1 bg-transparent text-sm outline-none"
-                style={{ color:'var(--color-text-main)' }}
+                style={{color: 'var(--color-text-main)'}}
                 min={1000}
                 max={withdrawable}
               />
@@ -620,7 +681,11 @@ function PointsTab() {
             <button
               onClick={() => setWithdrawAmount(String(withdrawable))}
               className="px-3 py-2.5 rounded-xl text-xs font-bold flex-shrink-0"
-              style={{ background:'var(--color-surface-raised)', border:'1px solid var(--color-border)', color:'var(--color-text-sub)' }}
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-sub)'
+              }}
             >
               전액
             </button>
@@ -632,7 +697,11 @@ function PointsTab() {
             onChange={e => setWithdrawBank(e.target.value)}
             placeholder="은행명 (예: 카카오뱅크)"
             className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-            style={{ border:'1px solid var(--color-border)', background:'var(--color-surface-raised)', color:'var(--color-text-main)' }}
+            style={{
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-main)'
+            }}
           />
           {/* 계좌번호 */}
           <div className="flex gap-2">
@@ -642,13 +711,17 @@ function PointsTab() {
               onChange={e => setWithdrawAccount(e.target.value)}
               placeholder="계좌번호 (- 없이)"
               className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ border:'1px solid var(--color-border)', background:'var(--color-surface-raised)', color:'var(--color-text-main)' }}
+              style={{
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text-main)'
+              }}
             />
             <button
               onClick={handleWithdraw}
               disabled={withdrawMutation.isPending}
               className="px-4 py-2.5 rounded-xl text-sm font-bold text-white flex-shrink-0 disabled:opacity-50"
-              style={{ background:'var(--color-success)' }}
+              style={{background: 'var(--color-success)'}}
             >
               {withdrawMutation.isPending ? '처리 중...' : '출금 신청'}
             </button>
@@ -656,9 +729,9 @@ function PointsTab() {
         </div>
         {/* 에러 메시지 */}
         {withdrawError && (
-          <p className="text-xs mb-2" style={{ color:'var(--color-error)' }}>{withdrawError}</p>
+          <p className="text-xs mb-2" style={{color: 'var(--color-error)'}}>{withdrawError}</p>
         )}
-        <p className="text-xs" style={{ color:'var(--color-text-hint)' }}>
+        <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
           최소 1,000원 · 영업일 1~3일 내 처리 · 수수료 없음
         </p>
       </div>
@@ -666,24 +739,25 @@ function PointsTab() {
       {/* 출금 요청 내역 */}
       {withdrawList && withdrawList.length > 0 && (
         <div>
-          <h3 className="font-bold text-sm mb-3" style={{ color:'var(--color-text-main)' }}>출금 요청 내역</h3>
+          <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>출금 요청 내역</h3>
           <div className="flex flex-col gap-2">
             {withdrawList.map((item: WithdrawItem) => (
               <div
                 key={item.withdrawId}
                 className="flex items-center justify-between px-4 py-3 rounded-xl"
-                style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}
+                style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
               >
                 <div>
-                  <p className="text-sm font-semibold" style={{ color:'var(--color-text-main)' }}>
+                  <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
                     {item.bankName} {item.accountNumber}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color:'var(--color-text-hint)' }}>
+                  <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
                     {new Date(item.createdAt).toLocaleDateString('ko-KR')}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-sm font-bold" style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif" }}>
+                  <p className="text-sm font-bold"
+                     style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                     {'₩'}{item.amount.toLocaleString('ko-KR')}
                   </p>
                   {item.status === 'PENDING' ? (
@@ -691,7 +765,7 @@ function PointsTab() {
                       onClick={() => cancelMutation.mutate(item.withdrawId)}
                       disabled={cancelMutation.isPending}
                       className="text-xs px-2 py-1 rounded-lg"
-                      style={{ background:'rgba(255,46,77,.1)', color:'var(--color-accent)' }}
+                      style={{background: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}}
                     >
                       취소
                     </button>
@@ -715,36 +789,36 @@ function PointsTab() {
 
       {/* 포인트 내역 */}
       <div>
-        <h3 className="font-bold text-sm mb-3" style={{ color:'var(--color-text-main)' }}>포인트 내역</h3>
+        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>포인트 내역</h3>
         <div className="flex flex-col gap-2">
           {POINT_HISTORY.map(h => (
             <div
               key={h.id}
               className="flex items-center justify-between px-4 py-3 rounded-xl"
-              style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}
+              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
             >
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: h.type==='earn' ? 'rgba(0,179,110,.12)' : h.type==='settle' ? 'rgba(255,184,0,.12)' : 'rgba(255,149,0,.12)' }}
+                  style={{background: h.type === 'earn' ? 'rgba(0,179,110,.12)' : h.type === 'settle' ? 'rgba(255,184,0,.12)' : 'rgba(255,149,0,.12)'}}
                 >
                   {h.type === 'settle'
-                    ? <ArrowDownToLine size={14} color="var(--color-gold)" />
+                    ? <ArrowDownToLine size={14} color="var(--color-gold)"/>
                     : h.type === 'earn'
-                    ? <TrendingUp size={14} color="var(--color-success)" />
-                    : <Coins size={14} color="var(--color-warning)" />
+                      ? <TrendingUp size={14} color="var(--color-success)"/>
+                      : <Coins size={14} color="var(--color-warning)"/>
                   }
                 </div>
                 <div>
-                  <p className="text-sm" style={{ color:'var(--color-text-main)' }}>{h.label}</p>
-                  <p className="text-xs" style={{ color:'var(--color-text-hint)' }}>{h.date}</p>
+                  <p className="text-sm" style={{color: 'var(--color-text-main)'}}>{h.label}</p>
+                  <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>{h.date}</p>
                 </div>
               </div>
               <span
                 className="font-bold text-sm"
                 style={{
                   color: h.points > 0 ? (h.type === 'settle' ? 'var(--color-success)' : 'var(--color-info)') : 'var(--color-warning)',
-                  fontFamily:"'IAMAPLAYER',Giants,sans-serif",
+                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
                 }}
               >
                 {h.points > 0 ? '+' : ''}{h.points > 1000 ? `₩${h.points.toLocaleString('ko-KR')}` : `${h.points}P`}
@@ -759,18 +833,22 @@ function PointsTab() {
 
 /** 신고 내역 탭 — 실제 API 연동 */
 function MyReportsTab() {
-  const { data, isLoading, isError } = useQuery({
+  const {data, isLoading, isError} = useQuery({
     queryKey: ['myReports'],
-    queryFn: () => getMyReports({ page: 0, size: 20 }),
+    queryFn: () => getMyReports({page: 0, size: 20}),
   })
 
   /** 처리 상태별 색상 */
   function statusStyle(status: ReportItem['status']): { bg: string; color: string } {
     switch (status) {
-      case 'PENDING':  return { bg: 'rgba(14,165,233,.1)',  color: 'var(--color-info)' }
-      case 'NORMAL':   return { bg: 'rgba(0,179,110,.1)',   color: 'var(--color-success)' }
-      case 'WARNING':  return { bg: 'rgba(255,149,0,.1)',   color: 'var(--color-warning)' }
-      case 'DELETED':  return { bg: 'rgba(255,46,77,.1)',   color: 'var(--color-accent)' }
+      case 'PENDING':
+        return {bg: 'rgba(14,165,233,.1)', color: 'var(--color-info)'}
+      case 'NORMAL':
+        return {bg: 'rgba(0,179,110,.1)', color: 'var(--color-success)'}
+      case 'WARNING':
+        return {bg: 'rgba(255,149,0,.1)', color: 'var(--color-warning)'}
+      case 'DELETED':
+        return {bg: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}
     }
   }
 
@@ -778,7 +856,7 @@ function MyReportsTab() {
     return (
       <div className="flex flex-col gap-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="h-20 rounded-2xl animate-pulse" style={{ background:'var(--color-surface)' }} />
+          <div key={i} className="h-20 rounded-2xl animate-pulse" style={{background: 'var(--color-surface)'}}/>
         ))}
       </div>
     )
@@ -787,11 +865,11 @@ function MyReportsTab() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <AlertCircle size={32} color="var(--color-error)" />
-        <p className="text-sm font-display font-bold" style={{ color:'var(--color-text-main)' }}>
+        <AlertCircle size={32} color="var(--color-error)"/>
+        <p className="text-sm font-display font-bold" style={{color: 'var(--color-text-main)'}}>
           신고 내역을 불러오지 못했습니다
         </p>
-        <p className="text-xs" style={{ color:'var(--color-text-hint)' }}>잠시 후 다시 시도해주세요.</p>
+        <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>잠시 후 다시 시도해주세요.</p>
       </div>
     )
   }
@@ -801,18 +879,18 @@ function MyReportsTab() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Flag size={40} color="var(--color-border)" strokeWidth={1.5} />
-        <p className="text-base font-display font-bold" style={{ color:'var(--color-text-main)' }}>
+        <Flag size={40} color="var(--color-border)" strokeWidth={1.5}/>
+        <p className="text-base font-display font-bold" style={{color: 'var(--color-text-main)'}}>
           신고 내역이 없습니다
         </p>
-        <p className="text-sm" style={{ color:'var(--color-text-hint)' }}>접수한 신고가 여기에 표시됩니다.</p>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>접수한 신고가 여기에 표시됩니다.</p>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs mb-1" style={{ color:'var(--color-text-hint)' }}>
+      <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>
         총 {data?.totalElements ?? 0}건의 신고 내역
       </p>
       {items.map((item: ReportItem) => {
@@ -821,31 +899,31 @@ function MyReportsTab() {
           <div
             key={item.reportId}
             className="rounded-2xl p-4"
-            style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3 min-w-0">
                 {/* 아이콘 */}
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                  style={{ background:'rgba(255,46,77,.08)' }}
+                  style={{background: 'rgba(255,46,77,.08)'}}
                 >
-                  <Flag size={16} color="var(--color-accent)" />
+                  <Flag size={16} color="var(--color-accent)"/>
                 </div>
                 <div className="min-w-0">
                   {/* 신고 사유 */}
-                  <p className="text-sm font-semibold" style={{ color:'var(--color-text-main)' }}>
+                  <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
                     {REPORT_REASON_LABEL[item.reason]}
                   </p>
                   {/* 대상 타입 + 상세 내용 */}
-                  <p className="text-xs mt-0.5 truncate" style={{ color:'var(--color-text-hint)' }}>
+                  <p className="text-xs mt-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>
                     {item.targetType === 'POST' ? '판매 매물' : '커뮤니티 게시글'} #{item.targetId}
                     {item.detail ? ` · ${item.detail}` : ''}
                   </p>
                   {/* 날짜 */}
-                  <p className="text-[11px] mt-1" style={{ color:'var(--color-text-hint)' }}>
+                  <p className="text-[11px] mt-1" style={{color: 'var(--color-text-hint)'}}>
                     {new Date(item.createdAt).toLocaleDateString('ko-KR', {
-                      year:'numeric', month:'long', day:'numeric',
+                      year: 'numeric', month: 'long', day: 'numeric',
                     })}
                   </p>
                 </div>
@@ -853,7 +931,7 @@ function MyReportsTab() {
               {/* 처리 상태 배지 */}
               <span
                 className="text-xs font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
-                style={{ background: ss.bg, color: ss.color }}
+                style={{background: ss.bg, color: ss.color}}
               >
                 {REPORT_STATUS_LABEL[item.status]}
               </span>
@@ -868,11 +946,11 @@ function MyReportsTab() {
 /** 설정 탭 */
 function SettingsTab() {
   const settingItems = [
-    { icon: <Edit3 size={18} />,   label:'프로필 수정',       sub:'닉네임·관심종목 변경' },
-    { icon: <Shield size={18} />,  label:'보안 설정',         sub:'비밀번호·2FA' },
-    { icon: <Bell size={18} />,    label:'알림 설정',         sub:'거래·커뮤니티 알림' },
-    { icon: <BarChart2 size={18}/>, label:'내 활동 통계',     sub:'거래·후기·포인트 요약' },
-    { icon: <HelpCircle size={18}/>, label:'고객 지원',       sub:'FAQ·1:1 문의' },
+    {icon: <Edit3 size={18}/>, label: '프로필 수정', sub: '닉네임·관심종목 변경'},
+    {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
+    {icon: <Bell size={18}/>, label: '알림 설정', sub: '거래·커뮤니티 알림'},
+    {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·포인트 요약'},
+    {icon: <HelpCircle size={18}/>, label: '고객 지원', sub: 'FAQ·1:1 문의'},
   ]
 
   return (
@@ -881,28 +959,30 @@ function SettingsTab() {
         <button
           key={item.label}
           className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-left transition-colors"
-          style={{ background:'var(--color-surface)', border:'1px solid var(--color-border)' }}
+          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
         >
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:'var(--color-surface-raised)', color:'var(--color-primary)' }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{background: 'var(--color-surface-raised)', color: 'var(--color-primary)'}}>
             {item.icon}
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold" style={{ color:'var(--color-text-main)' }}>{item.label}</p>
-            <p className="text-xs" style={{ color:'var(--color-text-hint)' }}>{item.sub}</p>
+            <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>{item.label}</p>
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>{item.sub}</p>
           </div>
-          <ChevronRight size={16} color="var(--color-text-hint)" />
+          <ChevronRight size={16} color="var(--color-text-hint)"/>
         </button>
       ))}
 
       {/* 로그아웃 */}
       <button
         className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-left mt-2 transition-colors"
-        style={{ background:'rgba(255,46,77,.06)', border:'1px solid rgba(255,46,77,.2)' }}
+        style={{background: 'rgba(255,46,77,.06)', border: '1px solid rgba(255,46,77,.2)'}}
       >
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:'rgba(255,46,77,.10)', color:'var(--color-accent)' }}>
-          <LogOut size={18} />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+             style={{background: 'rgba(255,46,77,.10)', color: 'var(--color-accent)'}}>
+          <LogOut size={18}/>
         </div>
-        <span className="text-sm font-semibold" style={{ color:'var(--color-accent)' }}>로그아웃</span>
+        <span className="text-sm font-semibold" style={{color: 'var(--color-accent)'}}>로그아웃</span>
       </button>
     </div>
   )
@@ -911,24 +991,28 @@ function SettingsTab() {
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 
 const TABS = [
-  { key:'trades',   label:'거래 내역', icon: <Package size={16} /> },
-  { key:'listings', label:'판매 중',   icon: <BarChart2 size={16} /> },
-  { key:'likes',    label:'찜 목록',   icon: <Heart size={16} /> },
-  { key:'points',   label:'포인트',    icon: <Coins size={16} /> },
-  { key:'reports',  label:'신고 내역', icon: <Flag size={16} /> },
-  { key:'settings', label:'설정',      icon: <Settings size={16} /> },
+  {key: 'trades', label: '거래 내역', icon: <Package size={16}/>},
+  {key: 'listings', label: '판매 중', icon: <BarChart2 size={16}/>},
+  {key: 'likes', label: '찜 목록', icon: <Heart size={16}/>},
+  {key: 'points', label: '포인트', icon: <Coins size={16}/>},
+  {key: 'reports', label: '신고 내역', icon: <Flag size={16}/>},
+  {key: 'settings', label: '설정', icon: <Settings size={16}/>},
 ]
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('trades')
 
   return (
-    <div className="min-h-screen" style={{ background:'var(--color-bg)' }}>
+    <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
         {/* 페이지 헤더 */}
         <h1
           className="text-2xl font-bold mb-6"
-          style={{ color:'var(--color-text-main)', fontFamily:"'IAMAPLAYER',Giants,sans-serif", letterSpacing:'0.04em' }}
+          style={{
+            color: 'var(--color-text-main)',
+            fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+            letterSpacing: '0.04em'
+          }}
         >
           MY PAGE
         </h1>
@@ -936,12 +1020,12 @@ export default function MyPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* 좌: 프로필 + 탭 메뉴 */}
           <div className="lg:w-72 flex-shrink-0">
-            <ProfileHeader />
+            <ProfileHeader/>
 
             {/* 탭 네비 (데스크탑: 세로, 모바일: 가로 스크롤) */}
             <div
               className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0"
-              style={{ scrollbarWidth:'none' }}
+              style={{scrollbarWidth: 'none'}}
             >
               {TABS.map(t => (
                 <button
@@ -949,8 +1033,8 @@ export default function MyPage() {
                   onClick={() => setActiveTab(t.key)}
                   className="flex items-center gap-2.5 px-4 py-3 rounded-xl whitespace-nowrap flex-shrink-0 lg:flex-shrink transition-all text-sm font-medium w-full text-left"
                   style={{
-                    background: activeTab===t.key ? 'var(--color-accent-subtle)' : 'transparent',
-                    color: activeTab===t.key ? 'var(--color-accent)' : 'var(--color-text-sub)',
+                    background: activeTab === t.key ? 'var(--color-accent-subtle)' : 'transparent',
+                    color: activeTab === t.key ? 'var(--color-accent)' : 'var(--color-text-sub)',
                   }}
                 >
                   {t.icon}{t.label}
@@ -961,12 +1045,12 @@ export default function MyPage() {
 
           {/* 우: 탭 콘텐츠 */}
           <div className="flex-1 min-w-0">
-            {activeTab === 'trades'   && <TradeHistoryTab />}
-            {activeTab === 'listings' && <MyListingsTab />}
-            {activeTab === 'likes'    && <LikesTab />}
-            {activeTab === 'points'   && <PointsTab />}
-            {activeTab === 'reports'  && <MyReportsTab />}
-            {activeTab === 'settings' && <SettingsTab />}
+            {activeTab === 'trades' && <TradeHistoryTab/>}
+            {activeTab === 'listings' && <MyListingsTab/>}
+            {activeTab === 'likes' && <LikesTab/>}
+            {activeTab === 'points' && <PointsTab/>}
+            {activeTab === 'reports' && <MyReportsTab/>}
+            {activeTab === 'settings' && <SettingsTab/>}
           </div>
         </div>
       </div>
