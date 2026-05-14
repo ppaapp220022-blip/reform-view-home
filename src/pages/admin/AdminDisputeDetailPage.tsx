@@ -14,11 +14,8 @@
  */
 import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
-import {useParams, Link} from 'react-router-dom'
-import {
-  ChevronLeft, AlertOctagon, CheckCircle2,
-  Clock, FileText, Gavel, ShieldCheck,
-} from 'lucide-react'
+import {Link, useParams} from 'react-router-dom'
+import {AlertOctagon, CheckCircle2, ChevronLeft, Clock, FileText, Gavel, ShieldCheck,} from 'lucide-react'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -147,7 +144,7 @@ export default function AdminDisputeDetailPage() {
               분쟁 처리
             </h1>
           </div>
-          <p className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
+          <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
             분쟁 #{dispute.id} · 거래 #{dispute.tradeId} · {dispute.createdAt} 접수
           </p>
         </div>
@@ -164,7 +161,7 @@ export default function AdminDisputeDetailPage() {
             <p className="text-[14px] font-semibold" style={{color: 'var(--color-success)'}}>
               분쟁 판정 완료
             </p>
-            <p className="text-[12px]" style={{color: 'var(--color-text-sub)'}}>
+            <p className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>
               판정:&nbsp;
               {RESOLUTION_OPTIONS.find((r) => r.key === (dispute.resolution ?? selectedResolution))?.label}
             </p>
@@ -182,7 +179,7 @@ export default function AdminDisputeDetailPage() {
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
-            <p className="text-[12px] font-semibold uppercase tracking-wide mb-3"
+            <p className="text-[13px] font-semibold uppercase tracking-wide mb-3"
                style={{color: 'var(--color-text-hint)'}}>
               거래 정보
             </p>
@@ -193,12 +190,12 @@ export default function AdminDisputeDetailPage() {
                 </h2>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
-                    className="text-[11px] font-bold px-2 py-0.5 rounded-[4px] text-white"
+                    className="text-[13px] font-bold px-2 py-0.5 rounded-[4px] text-white"
                     style={{background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                   >
                     {dispute.grade}
                   </span>
-                  <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
+                  <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                     {dispute.sport} · {dispute.deliveryType}
                   </span>
                 </div>
@@ -230,13 +227,13 @@ export default function AdminDisputeDetailPage() {
                       )}
                     </div>
                     <span
-                      className="text-[9px] whitespace-nowrap"
+                      className="text-[12px] whitespace-nowrap"
                       style={{color: t.done ? 'var(--color-text-sub)' : 'var(--color-text-hint)'}}
                     >
                       {t.label}
                     </span>
                     <span
-                      className="text-[8px]"
+                      className="text-[12px]"
                       style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                     >
                       {t.date}
@@ -265,29 +262,29 @@ export default function AdminDisputeDetailPage() {
             >
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-bold text-white flex-shrink-0"
                   style={{background: data.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                 >
                   {data.nickname.slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold" style={{color: 'var(--color-text-main)'}}>
+                  <p className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
                     {data.nickname}
                   </p>
-                  <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+                  <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                     {party} 주장
                   </p>
                 </div>
                 <Link
                   to={`/admin/members/${data.id}`}
-                  className="ml-auto text-[11px] font-medium transition-colors
+                  className="ml-auto text-[13px] font-medium transition-colors
                     text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                 >
                   회원 상세 &rsaquo;
                 </Link>
               </div>
               <div
-                className="px-4 py-3 rounded-[8px] text-[13px] leading-relaxed"
+                className="px-4 py-3 rounded-[8px] text-[14px] leading-relaxed"
                 style={{
                   background: 'var(--color-surface-sunken)',
                   color: 'var(--color-text-sub)',
@@ -324,7 +321,7 @@ export default function AdminDisputeDetailPage() {
                 </div>
               ))}
             </div>
-            <p className="text-[11px] mt-2" style={{color: 'var(--color-text-hint)'}}>
+            <p className="text-[13px] mt-2" style={{color: 'var(--color-text-hint)'}}>
               이미지를 클릭하면 원본 파일을 확인할 수 있습니다.
             </p>
           </div>
@@ -367,11 +364,11 @@ export default function AdminDisputeDetailPage() {
                         <div className="w-1.5 h-1.5 rounded-full" style={{background: opt.color}}/>
                       )}
                     </div>
-                    <span className="text-[13px] font-semibold" style={{color: opt.color}}>
+                    <span className="text-[14px] font-semibold" style={{color: opt.color}}>
                       {opt.label}
                     </span>
                   </div>
-                  <p className="text-[11px] pl-5" style={{color: 'var(--color-text-hint)'}}>
+                  <p className="text-[13px] pl-5" style={{color: 'var(--color-text-hint)'}}>
                     {opt.desc}
                   </p>
                 </button>
@@ -380,7 +377,7 @@ export default function AdminDisputeDetailPage() {
 
             {/* 관리자 메모 */}
             <div className="mb-4">
-              <label className="block text-[12px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
+              <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
                 관리자 메모 (내부용)
               </label>
               <textarea
@@ -389,7 +386,7 @@ export default function AdminDisputeDetailPage() {
                 onChange={(e) => setAdminNote(e.target.value)}
                 disabled={!!dispute.resolution || done}
                 placeholder="판정 근거, 처리 내용 등을 기록하세요."
-                className="w-full rounded-[8px] px-3 py-2.5 text-[12px] resize-none outline-none transition-colors
+                className="w-full rounded-[8px] px-3 py-2.5 text-[13px] resize-none outline-none transition-colors
                   bg-[var(--color-surface-sunken)] border border-[var(--color-border)]
                   text-[var(--color-text-main)] placeholder:text-[var(--color-text-hint)]
                   focus:border-[var(--color-primary)] disabled:opacity-60"
@@ -420,14 +417,14 @@ export default function AdminDisputeDetailPage() {
             </button>
 
             {!selectedResolution && !dispute.resolution && !done && (
-              <p className="text-[11px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 판정 유형을 먼저 선택해 주세요
               </p>
             )}
 
             {/* 유의사항 */}
             <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
-              <p className="text-[11px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>
                 판정 확정 후 자동으로 에스크로 환불 또는 정산이 처리됩니다.
                 양측에 판정 결과가 이메일로 발송됩니다.
               </p>

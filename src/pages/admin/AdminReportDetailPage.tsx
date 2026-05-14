@@ -11,20 +11,26 @@
  *
  * 데이터: 목 데이터 (추후 GET /admin/reports/:id 연동)
  */
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import {useState} from 'react'
+import {Link, useParams} from 'react-router-dom'
 import {
-  ChevronLeft, Flag, User, FileText,
-  CheckCircle2, AlertTriangle, Trash2, ShieldCheck,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronLeft,
   ExternalLink,
+  FileText,
+  Flag,
+  ShieldCheck,
+  Trash2,
+  User,
 } from 'lucide-react'
-import { formatPrice } from '../../utils/format'
+import {formatPrice} from '../../utils/format'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
-type ReportStatus  = 'PENDING' | 'NORMAL' | 'WARNING' | 'DELETED'
-type ReportReason  = 'FAKE' | 'INAPPROPRIATE' | 'FRAUD' | 'ETC'
-type TargetType    = 'POST' | 'COMMUNITY_POST'
+type ReportStatus = 'PENDING' | 'NORMAL' | 'WARNING' | 'DELETED'
+type ReportReason = 'FAKE' | 'INAPPROPRIATE' | 'FRAUD' | 'ETC'
+type TargetType = 'POST' | 'COMMUNITY_POST'
 
 interface ReportDetail {
   id: number
@@ -100,51 +106,51 @@ const ACTION_OPTIONS: {
   icon: typeof CheckCircle2
 }[] = [
   {
-    key:   'NORMAL',
+    key: 'NORMAL',
     label: '정상 처리',
-    desc:  '신고 내용 검토 결과 규정 위반이 없음. 게시글 유지.',
+    desc: '신고 내용 검토 결과 규정 위반이 없음. 게시글 유지.',
     color: 'var(--color-success)',
-    icon:  CheckCircle2,
+    icon: CheckCircle2,
   },
   {
-    key:   'WARNING',
+    key: 'WARNING',
     label: '경고 처리',
-    desc:  '규정 위반 확인. 판매자에게 경고 1회 부여 및 게시글 숨김.',
+    desc: '규정 위반 확인. 판매자에게 경고 1회 부여 및 게시글 숨김.',
     color: 'var(--color-warning)',
-    icon:  AlertTriangle,
+    icon: AlertTriangle,
   },
   {
-    key:   'DELETED',
+    key: 'DELETED',
     label: '게시글 삭제',
-    desc:  '중대 위반. 게시글 즉시 삭제 및 판매자 계정 검토.',
+    desc: '중대 위반. 게시글 즉시 삭제 및 판매자 계정 검토.',
     color: 'var(--color-accent)',
-    icon:  Trash2,
+    icon: Trash2,
   },
 ]
 
 const REASON_LABEL: Record<ReportReason, string> = {
-  FAKE:          '허위 매물',
+  FAKE: '허위 매물',
   INAPPROPRIATE: '부적절한 게시글',
-  FRAUD:         '사기 의심',
-  ETC:           '기타',
+  FRAUD: '사기 의심',
+  ETC: '기타',
 }
 
 const STATUS_META: Record<ReportStatus, { label: string; color: string; bg: string }> = {
-  PENDING: { label: '미처리', color: 'var(--color-warning)',    bg: 'rgba(255,149,0,0.1)'   },
-  NORMAL:  { label: '정상',   color: 'var(--color-success)',    bg: 'rgba(0,179,110,0.1)'   },
-  WARNING: { label: '경고',   color: 'var(--color-accent)',     bg: 'rgba(255,46,77,0.1)'   },
-  DELETED: { label: '삭제됨', color: 'var(--color-text-hint)',  bg: 'var(--color-surface-sunken)' },
+  PENDING: {label: '미처리', color: 'var(--color-warning)', bg: 'rgba(255,149,0,0.1)'},
+  NORMAL: {label: '정상', color: 'var(--color-success)', bg: 'rgba(0,179,110,0.1)'},
+  WARNING: {label: '경고', color: 'var(--color-accent)', bg: 'rgba(255,46,77,0.1)'},
+  DELETED: {label: '삭제됨', color: 'var(--color-text-hint)', bg: 'var(--color-surface-sunken)'},
 }
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export default function AdminReportDetailPage() {
-  const { id } = useParams<{ id: string }>()
-  const [report, setReport]   = useState<ReportDetail>({ ...MOCK_REPORT, id: Number(id) || MOCK_REPORT.id })
-  const [selected, setSelected]   = useState<Exclude<ReportStatus, 'PENDING'> | null>(null)
+  const {id} = useParams<{ id: string }>()
+  const [report, setReport] = useState<ReportDetail>({...MOCK_REPORT, id: Number(id) || MOCK_REPORT.id})
+  const [selected, setSelected] = useState<Exclude<ReportStatus, 'PENDING'> | null>(null)
   const [adminNote, setAdminNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [done, setDone]               = useState(false)
+  const [done, setDone] = useState(false)
 
   const statusMeta = STATUS_META[report.status]
   const isProcessed = report.status !== 'PENDING' || done
@@ -153,7 +159,7 @@ export default function AdminReportDetailPage() {
     if (!selected) return
     setIsSubmitting(true)
     await new Promise((r) => setTimeout(r, 800))
-    setReport((prev) => ({ ...prev, status: selected }))
+    setReport((prev) => ({...prev, status: selected}))
     setIsSubmitting(false)
     setDone(true)
   }
@@ -169,22 +175,22 @@ export default function AdminReportDetailPage() {
             bg-[var(--color-surface-raised)] border border-[var(--color-border)]
             hover:bg-[var(--color-surface-sunken)]"
         >
-          <ChevronLeft size={18} style={{ color: 'var(--color-text-sub)' }} strokeWidth={2} />
+          <ChevronLeft size={18} style={{color: 'var(--color-text-sub)'}} strokeWidth={2}/>
         </Link>
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <Flag size={16} style={{ color: 'var(--color-accent)' }} strokeWidth={1.75} />
-            <h1 className="text-[20px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+            <Flag size={16} style={{color: 'var(--color-accent)'}} strokeWidth={1.75}/>
+            <h1 className="text-[20px] font-bold" style={{color: 'var(--color-text-main)'}}>
               신고 처리
             </h1>
             <span
-              className="px-2.5 py-0.5 rounded-full text-[11px] font-medium"
-              style={{ background: statusMeta.bg, color: statusMeta.color }}
+              className="px-2.5 py-0.5 rounded-full text-[13px] font-medium"
+              style={{background: statusMeta.bg, color: statusMeta.color}}
             >
               {statusMeta.label}
             </span>
           </div>
-          <p className="text-[12px]" style={{ color: 'var(--color-text-hint)' }}>
+          <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
             신고 #{report.id} · 접수 {report.createdAt}
           </p>
         </div>
@@ -194,10 +200,10 @@ export default function AdminReportDetailPage() {
       {done && (
         <div
           className="mb-5 px-4 py-3 rounded-[10px] flex items-center gap-2 animate-fadeInUp"
-          style={{ background: 'rgba(0,179,110,0.08)', border: '1px solid rgba(0,179,110,0.3)' }}
+          style={{background: 'rgba(0,179,110,0.08)', border: '1px solid rgba(0,179,110,0.3)'}}
         >
-          <ShieldCheck size={15} style={{ color: 'var(--color-success)' }} strokeWidth={1.75} />
-          <p className="text-[13px] font-medium" style={{ color: 'var(--color-success)' }}>
+          <ShieldCheck size={15} style={{color: 'var(--color-success)'}} strokeWidth={1.75}/>
+          <p className="text-[14px] font-medium" style={{color: 'var(--color-success)'}}>
             신고 처리가 완료되었습니다. ({ACTION_OPTIONS.find((a) => a.key === selected)?.label})
           </p>
         </div>
@@ -211,26 +217,26 @@ export default function AdminReportDetailPage() {
           {/* 신고 내용 */}
           <div
             className="rounded-[12px] p-5"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
-            <p className="text-[12px] font-semibold uppercase tracking-wide mb-4"
-              style={{ color: 'var(--color-text-hint)' }}>
+            <p className="text-[13px] font-semibold uppercase tracking-wide mb-4"
+               style={{color: 'var(--color-text-hint)'}}>
               신고 내용
             </p>
 
             {/* 사유 + 대상 유형 */}
             <div className="flex items-center gap-2 flex-wrap mb-3">
               <span
-                className="px-3 py-1 rounded-full text-[12px] font-semibold"
-                style={{ background: 'rgba(255,46,77,0.1)', color: 'var(--color-accent)' }}
+                className="px-3 py-1 rounded-full text-[13px] font-semibold"
+                style={{background: 'rgba(255,46,77,0.1)', color: 'var(--color-accent)'}}
               >
                 {REASON_LABEL[report.reason]}
               </span>
               <span
-                className="px-3 py-1 rounded-full text-[12px] font-medium"
+                className="px-3 py-1 rounded-full text-[13px] font-medium"
                 style={{
                   background: report.targetType === 'POST' ? 'rgba(14,165,233,0.1)' : 'rgba(255,184,0,0.1)',
-                  color:      report.targetType === 'POST' ? 'var(--color-info)' : 'var(--color-gold)',
+                  color: report.targetType === 'POST' ? 'var(--color-info)' : 'var(--color-gold)',
                 }}
               >
                 {report.targetType === 'POST' ? '판매글 신고' : '커뮤니티 게시글 신고'}
@@ -239,8 +245,8 @@ export default function AdminReportDetailPage() {
 
             {/* 상세 내용 */}
             <div
-              className="px-4 py-3 rounded-[8px] text-[13px] leading-relaxed"
-              style={{ background: 'var(--color-surface-sunken)', color: 'var(--color-text-sub)' }}
+              className="px-4 py-3 rounded-[8px] text-[14px] leading-relaxed"
+              style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-sub)'}}
             >
               {report.detail}
             </div>
@@ -250,22 +256,22 @@ export default function AdminReportDetailPage() {
           {report.targetPost && (
             <div
               className="rounded-[12px] p-5"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <FileText size={15} style={{ color: 'var(--color-primary)' }} strokeWidth={1.75} />
-                  <h3 className="text-[14px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+                  <FileText size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
+                  <h3 className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
                     신고 대상 판매글
                   </h3>
                 </div>
                 <Link
                   to={`/listing/${report.targetPost.id}`}
-                  className="flex items-center gap-1 text-[11px] font-medium transition-colors
+                  className="flex items-center gap-1 text-[13px] font-medium transition-colors
                     text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                 >
                   원문 보기
-                  <ExternalLink size={11} strokeWidth={1.75} />
+                  <ExternalLink size={11} strokeWidth={1.75}/>
                 </Link>
               </div>
 
@@ -273,34 +279,34 @@ export default function AdminReportDetailPage() {
                 {/* 이미지 플레이스홀더 */}
                 <div
                   className="w-24 h-24 rounded-[10px] flex-shrink-0"
-                  style={{ background: report.targetPost.imageColor, opacity: 0.85 }}
+                  style={{background: report.targetPost.imageColor, opacity: 0.85}}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className="text-[11px] font-bold px-1.5 py-0.5 rounded-[4px] text-white"
-                      style={{ background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                      className="text-[13px] font-bold px-1.5 py-0.5 rounded-[4px] text-white"
+                      style={{background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                     >
                       {report.targetPost.grade}
                     </span>
-                    <span className="text-[11px]" style={{ color: 'var(--color-text-hint)' }}>
+                    <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                       {report.targetPost.sport}
                     </span>
                   </div>
-                  <h4 className="text-[14px] font-semibold mb-1" style={{ color: 'var(--color-text-main)' }}>
+                  <h4 className="text-[14px] font-semibold mb-1" style={{color: 'var(--color-text-main)'}}>
                     {report.targetPost.title}
                   </h4>
                   <p
                     className="text-[15px] font-bold mb-2"
-                    style={{ color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                    style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                   >
                     {formatPrice(report.targetPost.price)}
                   </p>
                   <div className="flex items-center gap-2">
-                    <User size={11} style={{ color: 'var(--color-text-hint)' }} strokeWidth={1.5} />
+                    <User size={11} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.5}/>
                     <Link
                       to={`/admin/members/${report.targetPost.sellerId}`}
-                      className="text-[12px] font-medium transition-colors
+                      className="text-[13px] font-medium transition-colors
                         text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                     >
                       {report.targetPost.sellerNickname}
@@ -311,8 +317,8 @@ export default function AdminReportDetailPage() {
 
               {/* 판매글 본문 미리보기 */}
               <div
-                className="mt-4 px-4 py-3 rounded-[8px] text-[12px] leading-relaxed line-clamp-3"
-                style={{ background: 'var(--color-surface-sunken)', color: 'var(--color-text-sub)' }}
+                className="mt-4 px-4 py-3 rounded-[8px] text-[13px] leading-relaxed line-clamp-3"
+                style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-sub)'}}
               >
                 {report.targetPost.description}
               </div>
@@ -322,32 +328,32 @@ export default function AdminReportDetailPage() {
           {/* 신고자 정보 */}
           <div
             className="rounded-[12px] p-5"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <div className="flex items-center gap-2 mb-4">
-              <User size={15} style={{ color: 'var(--color-primary)' }} strokeWidth={1.75} />
-              <h3 className="text-[14px] font-bold" style={{ color: 'var(--color-text-main)' }}>
+              <User size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
+              <h3 className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
                 신고자 정보
               </h3>
             </div>
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
-                style={{ background: report.reporter.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
+                style={{background: report.reporter.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
                 {report.reporter.nickname.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1">
-                <p className="text-[14px] font-semibold" style={{ color: 'var(--color-text-main)' }}>
+                <p className="text-[14px] font-semibold" style={{color: 'var(--color-text-main)'}}>
                   {report.reporter.nickname}
                 </p>
-                <p className="text-[12px]" style={{ color: 'var(--color-text-hint)' }}>
+                <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                   {report.reporter.email} · 총 신고 {report.reporter.reportCount}건
                 </p>
               </div>
               <Link
                 to={`/admin/members/${report.reporter.id}`}
-                className="text-[12px] font-medium transition-colors flex-shrink-0
+                className="text-[13px] font-medium transition-colors flex-shrink-0
                   text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
               >
                 회원 상세 &rsaquo;
@@ -360,9 +366,9 @@ export default function AdminReportDetailPage() {
         <div>
           <div
             className="rounded-[12px] p-5 sticky top-24"
-            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
-            <p className="text-[14px] font-bold mb-4" style={{ color: 'var(--color-text-main)' }}>
+            <p className="text-[14px] font-bold mb-4" style={{color: 'var(--color-text-main)'}}>
               신고 처리 결정
             </p>
 
@@ -380,17 +386,19 @@ export default function AdminReportDetailPage() {
                     className="w-full text-left px-4 py-3 rounded-[10px] transition-colors border
                       disabled:cursor-default"
                     style={{
-                      background:  isSelected ? `${opt.color}10` : 'var(--color-surface-raised)',
+                      background: isSelected ? `${opt.color}10` : 'var(--color-surface-raised)',
                       borderColor: isSelected ? opt.color : 'var(--color-border)',
                     }}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <Icon size={14} style={{ color: isSelected ? opt.color : 'var(--color-text-hint)' }} strokeWidth={1.75} />
-                      <span className="text-[13px] font-semibold" style={{ color: isSelected ? opt.color : 'var(--color-text-main)' }}>
+                      <Icon size={14} style={{color: isSelected ? opt.color : 'var(--color-text-hint)'}}
+                            strokeWidth={1.75}/>
+                      <span className="text-[14px] font-semibold"
+                            style={{color: isSelected ? opt.color : 'var(--color-text-main)'}}>
                         {opt.label}
                       </span>
                     </div>
-                    <p className="text-[11px] pl-5" style={{ color: 'var(--color-text-hint)' }}>
+                    <p className="text-[13px] pl-5" style={{color: 'var(--color-text-hint)'}}>
                       {opt.desc}
                     </p>
                   </button>
@@ -400,7 +408,7 @@ export default function AdminReportDetailPage() {
 
             {/* 관리자 메모 */}
             <div className="mb-4">
-              <label className="block text-[12px] font-medium mb-1.5" style={{ color: 'var(--color-text-sub)' }}>
+              <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
                 처리 메모 (내부용)
               </label>
               <textarea
@@ -409,7 +417,7 @@ export default function AdminReportDetailPage() {
                 onChange={(e) => setAdminNote(e.target.value)}
                 disabled={isProcessed}
                 placeholder="처리 근거를 기록해 두세요."
-                className="w-full rounded-[8px] px-3 py-2.5 text-[12px] resize-none outline-none transition-colors
+                className="w-full rounded-[8px] px-3 py-2.5 text-[13px] resize-none outline-none transition-colors
                   bg-[var(--color-surface-sunken)] border border-[var(--color-border)]
                   text-[var(--color-text-main)] placeholder:text-[var(--color-text-hint)]
                   focus:border-[var(--color-primary)] disabled:opacity-60"
@@ -432,21 +440,21 @@ export default function AdminReportDetailPage() {
             >
               {done ? (
                 <>
-                  <ShieldCheck size={16} strokeWidth={2} />
+                  <ShieldCheck size={16} strokeWidth={2}/>
                   처리 완료
                 </>
               ) : isSubmitting ? '처리 중...' : '처리 확정'}
             </button>
 
             {!selected && !isProcessed && (
-              <p className="text-[11px] text-center mt-2" style={{ color: 'var(--color-text-hint)' }}>
+              <p className="text-[13px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 처리 방법을 선택해 주세요
               </p>
             )}
 
             {/* 안내 */}
-            <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
-              <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-hint)' }}>
+            <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
+              <p className="text-[13px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>
                 처리 결과는 신고자에게 자동으로 통보됩니다.
                 경고/삭제 처리 시 피신고자에게도 알림이 발송됩니다.
               </p>

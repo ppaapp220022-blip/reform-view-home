@@ -10,13 +10,11 @@
  *   - 백엔드 NotificationType: TRADE / CHAT / PRICE_DROP / REVIEW / SYSTEM
  *   - 읽지 않은 알림 수 배지 표시
  */
-import { useRef, useState, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  Search, Bell,
-  ShoppingBag, MessageSquare, Tag, Star, Info, X,
-} from 'lucide-react'
+import {useEffect, useRef, useState} from 'react'
+import {Link, useLocation, useNavigate} from 'react-router-dom'
+import {Bell, Info, LogOut, MessageSquare, Search, ShoppingBag, Star, Tag, User, X,} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import {logout as logoutApi} from '../../features/auth/api/authApi'
 import Logo from '../ui/Logo'
 import ThemeToggle from '../ui/ThemeToggle'
 
@@ -69,26 +67,141 @@ const MOCK_NOTIFICATIONS: NotificationItem[] = [
 
 // 알림 타입별 아이콘 + 색상
 const NOTI_META: Record<NotificationType, { icon: React.ReactNode; color: string; bg: string }> = {
-  TRADE:      { icon: <ShoppingBag size={14} />,    color: 'var(--color-primary)', bg: 'rgba(0,33,71,.1)' },
-  CHAT:       { icon: <MessageSquare size={14} />,  color: 'var(--color-info)',    bg: 'rgba(14,165,233,.1)' },
-  PRICE_DROP: { icon: <Tag size={14} />,            color: 'var(--color-success)', bg: 'rgba(0,179,110,.1)' },
-  REVIEW:     { icon: <Star size={14} />,           color: 'var(--color-gold)',    bg: 'rgba(255,184,0,.1)' },
-  SYSTEM:     { icon: <Info size={14} />,           color: 'var(--color-text-sub)', bg: 'var(--color-surface-raised)' },
+  TRADE: {icon: <ShoppingBag size={14}/>, color: 'var(--color-primary)', bg: 'rgba(0,33,71,.1)'},
+  CHAT: {icon: <MessageSquare size={14}/>, color: 'var(--color-info)', bg: 'rgba(14,165,233,.1)'},
+  PRICE_DROP: {icon: <Tag size={14}/>, color: 'var(--color-success)', bg: 'rgba(0,179,110,.1)'},
+  REVIEW: {icon: <Star size={14}/>, color: 'var(--color-gold)', bg: 'rgba(255,184,0,.1)'},
+  SYSTEM: {icon: <Info size={14}/>, color: 'var(--color-text-sub)', bg: 'var(--color-surface-raised)'},
+}
+
+
+// ── 유저 메뉴 드롭다운 (아바타 클릭 시) ──────────────────────────────────────
+
+/**
+ * UserMenuDropdown — 로그인 상태에서 아바타 클릭 시 표시
+ * - 닉네임 + 이메일 표시
+ * - 마이페이지 이동
+ * - 로그아웃 (백엔드 토큰 무효화 + authStore 초기화 + /login 이동)
+ */
+function UserMenuDropdown({onClose}: { onClose: () => void }) {
+  const navigate = useNavigate()
+  const {user, logout, refreshToken} = useAuthStore()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  async function handleLogout() {
+    setIsLoggingOut(true)
+    try {
+      // 백엔드 토큰 무효화 (실패해도 로컬 로그아웃 강행)
+      if (refreshToken) {
+        await logoutApi(refreshToken).catch(() => null)
+      }
+    } finally {
+      logout()            // localStorage 초기화 + Zustand 리셋
+      onClose()
+      navigate('/login')
+      setIsLoggingOut(false)
+    }
+  }
+
+  return (
+    <div
+      className="absolute right-0 top-full mt-2 w-56 rounded-2xl overflow-hidden shadow-card z-50"
+      style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+    >
+      {/* 유저 정보 */}
+      <div
+        className="px-4 py-3.5"
+        style={{borderBottom: '1px solid var(--color-border)'}}
+      >
+        <p className="text-sm font-bold truncate"
+           style={{color: 'var(--color-text-main)'}}>{user?.nickname ?? '사용자'}</p>
+        <p className="text-xs mt-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>{user?.email ?? ''}</p>
+      </div>
+
+      {/* 메뉴 항목 */}
+      <div className="py-1">
+        <button
+          onClick={() => {
+            navigate('/mypage');
+            onClose()
+          }}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)]"
+          style={{color: 'var(--color-text-main)'}}
+        >
+          <User size={15} style={{flexShrink: 0}}/>
+          마이페이지
+        </button>
+
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] disabled:opacity-60"
+          style={{color: 'var(--color-accent)'}}
+        >
+          <LogOut size={15} style={{flexShrink: 0}}/>
+          {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── 유저 아바타 버튼 (드롭다운 포함) ─────────────────────────────────────────
+
+function UserAvatarButton() {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const {user} = useAuthStore()
+
+  useEffect(() => {
+    if (!open) return
+
+    function handleOutsideClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(p => !p)}
+        className="w-8 h-8 rounded-full ml-1 shrink-0 border-2 flex items-center justify-center text-white text-xs font-bold overflow-hidden transition-all hover:opacity-80"
+        style={{
+          background: user?.profileImageUrl ? 'transparent' : 'linear-gradient(135deg, #FF2E4D, #002147)',
+          borderColor: open ? 'var(--color-accent)' : 'var(--color-border)',
+          fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+        }}
+        aria-label="내 메뉴"
+      >
+        {user?.profileImageUrl ? (
+          <img src={user.profileImageUrl} alt={user.nickname} className="w-full h-full object-cover"/>
+        ) : (
+          user?.nickname?.slice(0, 2).toUpperCase() ?? 'ME'
+        )}
+      </button>
+      {open && <UserMenuDropdown onClose={() => setOpen(false)}/>}
+    </div>
+  )
 }
 
 // ── 알림 드롭다운 컴포넌트 ────────────────────────────────────────────────────
-function NotificationDropdown({ onClose }: { onClose: () => void }) {
+function NotificationDropdown({onClose}: { onClose: () => void }) {
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
 
   const unreadCount = notifications.filter(n => !n.isRead).length
 
   function markAllRead() {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+    setNotifications(prev => prev.map(n => ({...n, isRead: true})))
   }
 
   function handleClick(noti: NotificationItem) {
-    setNotifications(prev => prev.map(n => n.id === noti.id ? { ...n, isRead: true } : n))
+    setNotifications(prev => prev.map(n => n.id === noti.id ? {...n, isRead: true} : n))
     if (noti.link) navigate(noti.link)
     onClose()
   }
@@ -96,24 +209,24 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
   return (
     <div
       className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+      style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
     >
       {/* 헤더 */}
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid var(--color-border)' }}
+        style={{borderBottom: '1px solid var(--color-border)'}}
       >
         <div className="flex items-center gap-2">
           <h3
             className="text-sm font-bold"
-            style={{ color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif" }}
+            style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
           >
             알림
           </h3>
           {unreadCount > 0 && (
             <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
-              style={{ background: 'var(--color-accent)' }}
+              className="text-[12px] font-bold px-1.5 py-0.5 rounded-full text-white"
+              style={{background: 'var(--color-accent)'}}
             >
               {unreadCount}
             </span>
@@ -124,13 +237,13 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
             <button
               onClick={markAllRead}
               className="text-xs transition-colors hover:text-[var(--color-accent)]"
-              style={{ color: 'var(--color-text-hint)' }}
+              style={{color: 'var(--color-text-hint)'}}
             >
               모두 읽음
             </button>
           )}
-          <button onClick={onClose} style={{ color: 'var(--color-text-hint)' }}>
-            <X size={15} />
+          <button onClick={onClose} style={{color: 'var(--color-text-hint)'}}>
+            <X size={15}/>
           </button>
         </div>
       </div>
@@ -139,8 +252,8 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       <div className="max-h-[400px] overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="py-12 text-center">
-            <Bell size={28} className="mx-auto mb-2" style={{ color: 'var(--color-border)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-text-hint)' }}>알림이 없습니다.</p>
+            <Bell size={28} className="mx-auto mb-2" style={{color: 'var(--color-border)'}}/>
+            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>알림이 없습니다.</p>
           </div>
         ) : (
           notifications.map(noti => {
@@ -158,7 +271,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                 {/* 타입 아이콘 */}
                 <div
                   className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center mt-0.5"
-                  style={{ background: meta.bg, color: meta.color }}
+                  style={{background: meta.bg, color: meta.color}}
                 >
                   {meta.icon}
                 </div>
@@ -174,11 +287,11 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                     {noti.message}
                   </p>
                   {noti.subMessage && (
-                    <p className="text-xs truncate" style={{ color: 'var(--color-text-sub)' }}>
+                    <p className="text-xs truncate" style={{color: 'var(--color-text-sub)'}}>
                       {noti.subMessage}
                     </p>
                   )}
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-hint)' }}>
+                  <p className="text-[12px] mt-1" style={{color: 'var(--color-text-hint)'}}>
                     {noti.createdAt}
                   </p>
                 </div>
@@ -187,7 +300,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                 {!noti.isRead && (
                   <span
                     className="w-2 h-2 rounded-full flex-shrink-0 mt-1.5"
-                    style={{ background: 'var(--color-accent)' }}
+                    style={{background: 'var(--color-accent)'}}
                   />
                 )}
               </button>
@@ -199,13 +312,13 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
       {/* 푸터 */}
       <div
         className="px-4 py-2.5 text-center"
-        style={{ borderTop: '1px solid var(--color-border)' }}
+        style={{borderTop: '1px solid var(--color-border)'}}
       >
         <Link
           to="/mypage"
           onClick={onClose}
           className="text-xs font-semibold hover:text-[var(--color-accent)] transition-colors"
-          style={{ color: 'var(--color-text-sub)' }}
+          style={{color: 'var(--color-text-sub)'}}
         >
           모든 알림 보기
         </Link>
@@ -215,18 +328,20 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
 }
 
 // ── 알림 버튼 (드롭다운 포함) ─────────────────────────────────────────────────
-function NotificationButton({ className }: { className?: string }) {
+function NotificationButton({className}: { className?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   // 외부 클릭 시 닫기
   useEffect(() => {
     if (!open) return
+
     function handleOutsideClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
+
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [open])
@@ -240,41 +355,42 @@ function NotificationButton({ className }: { className?: string }) {
         className="relative w-10 h-10 flex items-center justify-center rounded-lg text-[var(--color-text-main)] border border-transparent hover:border-[var(--color-border)] transition-colors"
         aria-label="알림"
       >
-        <Bell size={20} />
+        <Bell size={20}/>
         {/* 읽지 않은 알림 배지 */}
         {unreadCount > 0 && (
           <span
-            className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center"
-            style={{ background: 'var(--color-accent)' }}
+            className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full text-[12px] font-bold text-white flex items-center justify-center"
+            style={{background: 'var(--color-accent)'}}
           >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
-      {open && <NotificationDropdown onClose={() => setOpen(false)} />}
+      {open && <NotificationDropdown onClose={() => setOpen(false)}/>}
     </div>
   )
 }
 
 // ── 네비게이션 아이템 ─────────────────────────────────────────────────────────
-// 검색창 제거 후 확보된 공간에 채팅·마이페이지 링크 추가
+// '홈'과 '마켓'을 '/' 하나로 통합 — 홈 피드가 곧 마켓 리스팅 페이지 (2026-05-14)
+// /search 는 키워드 검색 전용 페이지로만 사용
 const NAV_ITEMS = [
-  { id: 'home',      label: '홈',       path: '/' },
-  { id: 'market',    label: '마켓',     path: '/search' },
-  { id: 'community', label: '커뮤니티', path: '/community' },
-  { id: 'chat',      label: '채팅',     path: '/chat' },
-  { id: 'mypage',    label: '마이페이지', path: '/mypage' },
+  {id: 'market', label: '마켓', path: '/'},
+  {id: 'community', label: '커뮤니티', path: '/community'},
+  {id: 'chat', label: '채팅', path: '/chat'},
+  {id: 'mypage', label: '마이페이지', path: '/mypage'},
 ] as const
 
 // ── 메인 GNB ─────────────────────────────────────────────────────────────────
 export default function GNB() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuthStore()
+  const {isAuthenticated} = useAuthStore()
 
   const getActiveId = () => {
-    if (location.pathname === '/') return 'home'
-    if (location.pathname.startsWith('/search')) return 'market'
+    // '/' (홈 = 마켓 리스팅) → 'market'
+    if (location.pathname === '/') return 'market'
+    // /search는 키워드 검색 전용 — nav active 없음
     if (location.pathname.startsWith('/community')) return 'community'
     if (location.pathname.startsWith('/chat')) return 'chat'
     if (location.pathname.startsWith('/mypage')) return 'mypage'
@@ -290,14 +406,14 @@ export default function GNB() {
       {/* ── 모바일 헤더 ─────────────────────────────────────────────────── */}
       <div className="flex md:hidden items-center h-14 px-4 gap-2">
         <Link to="/" className="inline-flex items-center" aria-label="RE:FORM 홈">
-          <Logo variant="main" height={24} />
+          <Logo variant="main" height={24}/>
         </Link>
         <div className="flex items-center gap-1 ml-auto">
           <button onClick={() => navigate('/search')} className={iconBtnCls} aria-label="검색">
-            <Search size={20} />
+            <Search size={20}/>
           </button>
-          <NotificationButton />
-          <ThemeToggle />
+          <NotificationButton/>
+          <ThemeToggle/>
         </div>
       </div>
 
@@ -306,12 +422,12 @@ export default function GNB() {
 
         {/* 로고 */}
         <Link to="/" className="inline-flex items-center shrink-0" aria-label="RE:FORM 홈">
-          <Logo variant="main" height={28} />
+          <Logo variant="main" height={28}/>
         </Link>
 
         {/* 메인 네비게이션 */}
         <nav className="flex gap-1">
-          {NAV_ITEMS.map(({ id, label, path }) => {
+          {NAV_ITEMS.map(({id, label, path}) => {
             const isActive = activeId === id
             return (
               <Link
@@ -326,7 +442,8 @@ export default function GNB() {
               >
                 {label}
                 {isActive && (
-                  <span className="absolute left-[14px] right-[14px] -bottom-[15px] h-0.5 bg-[var(--color-accent)] rounded-sm" />
+                  <span
+                    className="absolute left-[14px] right-[14px] -bottom-[15px] h-0.5 bg-[var(--color-accent)] rounded-sm"/>
                 )}
               </Link>
             )
@@ -336,16 +453,11 @@ export default function GNB() {
         {/* 우측 액션 영역 — 채팅·마이페이지는 nav로 이동, 알림만 아이콘 유지 */}
         <div className="flex items-center gap-2 ml-auto">
           {/* 알림 버튼 (드롭다운 포함) */}
-          <NotificationButton />
+          <NotificationButton/>
 
           {/* 프로필 or 로그인 */}
           {isAuthenticated ? (
-            <button
-              onClick={() => navigate('/mypage')}
-              className="w-8 h-8 rounded-full ml-1 shrink-0 border-2 border-[var(--color-border)]"
-              aria-label="마이페이지"
-              style={{ background: 'linear-gradient(135deg, #FF2E4D, #002147)' }}
-            />
+            <UserAvatarButton/>
           ) : (
             <Link
               to="/login"
@@ -362,7 +474,7 @@ export default function GNB() {
             판매하기
           </Link>
 
-          <ThemeToggle />
+          <ThemeToggle/>
         </div>
       </div>
     </header>

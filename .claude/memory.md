@@ -774,10 +774,70 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - 실제 백엔드: sport 필드 기반 필터 (all/SOCCER/BASEBALL/BASKETBALL/VOLLEYBALL/ESPORTS)
 - 인기글 사이드바: getPopularPosts(5) API 연동
 
+## 결제·홈 UI 개선 완료 <!-- 2026-05-14 -->
+
+### 결제 페이지 API 실연동 [done]
+- `paymentApi.ts` URL prefix 버그 수정 (`/api/payments/` -> `/payments/`, baseURL 중복 제거)
+- `PaymentPage.tsx` 재작성: MOCK_ORDER 제거, useQuery(getTrade) 실연동
+  - OrderSummaryCard: TradeResponse 기반, thumbnailUrl 우선/폴백 색상
+  - customerName: authStore.user.nickname (미로그인시 ANONYMOUS)
+  - 로딩/에러 상태 컴포넌트 추가, 뒤로가기 = /listing/{post.postId}
+
+### 홈 종목탭 사이드바 통합 [done]
+- SportFilterBar (GNB 아래 sticky 가로탭) 제거
+- FilterSidebar 상단에 종목 수직 탭 리스트 추가
+
+### 홈/마켓 통합 [done]
+- GNB NAV_ITEMS: home(/) 제거, market(/search) -> market(/) 변경
+- getActiveId: pathname==='/' -> 'market'
+- /search 는 키워드 검색 전용
+
+### 코드 주석 규칙 [done]
+- 코드 주석에 유스케이스 번호(UC-*, REQ-*) 기재 불필요
+
+
+## 결제 플로우 연동 완료 <!-- 2026-05-15 -->
+
+### 변경된 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `ListingDetailPage.tsx` | TradeStartModal 추가 (deliveryType 선택 + createTrade 연동), /trade/:tradeId/confirm 이동 |
+| `TradeConfirmPage.tsx` | 전면 재작성 — mock 제거, getTrade useQuery 연동, 구매자/판매자 분기 |
+| `ReviewPage.tsx` | mock 제거, getTrade + createReview useMutation 연동 |
+| `PaymentSuccessPage.tsx` | 결제 성공 후 /trade/:tradeId/confirm 링크 추가 |
+| `ChatPage.tsx` | ?roomId=xxx 쿼리파라미터로 초기 채팅방 자동 오픈 지원 |
+
+### 결제 플로우 전체 연결 현황
+
+```
+판매글 상세 (거래 시작하기) → createTrade → /trade/:id/confirm
+  └ TradeConfirmPage (REQUESTED)
+      ├ 판매자: acceptTrade → ACCEPTED
+      └ 구매자: 대기
+  └ TradeConfirmPage (ACCEPTED)
+      └ 구매자: /payment/:tradeId → PaymentPage
+          └ initPayment + Toss Widget → /payment/success
+              └ confirmPayment → PaymentSuccessPage → /trade/:id/confirm
+  └ TradeConfirmPage (PAID)
+      └ 판매자: startShipping (택배사 select + 송장번호) → IN_PROGRESS
+  └ TradeConfirmPage (IN_PROGRESS/RECEIVED)
+      └ 구매자: confirmTrade → CONFIRMED → /trade/:id/review
+          └ ReviewPage: createReview → done
+```
+
+### TradeConfirmPage 역할 분리 로직
+- `user?.id === trade.buyer.memberId` 로 구매자/판매자 판별
+- `isBuyer` 기반 ActionPanel 분기 렌더링
+- 판매자 배송 입력: `getCouriers()` API로 택배사 목록 로드 (실패 시 주요 5개사 하드코딩 폴백)
+
+### 채팅 라우팅
+- SellerCard navigate: `/chat/${chatId}` → `/chat?roomId=${chatId}` 변경
+- ChatPage: `useSearchParams()`로 roomId 읽어 초기 방 선택
+
 ## 다음 할 일 <!-- 2026-05-14 -->
 - [ ] .env 파일 생성 (VITE_TOSS_CLIENT_KEY, VITE_WS_BASE_URL, VITE_API_BASE_URL)
-- [ ] GNB 알림 드롭다운 구현 (NotificationType 기반)
-- [ ] 소셜 로그인 콜백 페이지 구현 (hash fragment 토큰 수신 → authStore.login())
+- [ ] 소셜 로그인 콜백 페이지 구현 (hash fragment 토큰 수신 -> authStore.login())
 - [ ] TradeConfirmPage 배송 추적 UI (getTradeTracking + DeliveryTimeline)
 - [ ] MyPage 프로필 이미지 업로드 연동 (uploadProfileImage)
 - [ ] 관리자 라우트 인증 가드 (Role.ADMIN 체크)
@@ -812,3 +872,27 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### CLAUDE.md 갱신
 - WebStorm 빨간줄 방지 규칙 6개 + ESLint 레벨 표 추가
+
+## 로그아웃 기능 추가 완료 <!-- 2026-05-15 -->
+
+### 변경 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/components/layout/GNB.tsx` | UserAvatarButton + UserMenuDropdown 추가 (로그인 시 드롭다운 메뉴) |
+| `src/pages/mypage/MyPage.tsx` | SettingsTab handleLogout 연결 (기존 버튼에 onClick 없었음) |
+
+### GNB 로그아웃 드롭다운
+- 로그인 상태: 기존 "로그인" 링크 대신 UserAvatarButton 렌더링
+- UserAvatarButton: 프로필이미지(있으면)/이니셜(없으면) 원형 버튼, 클릭 시 드롭다운 토글
+- UserMenuDropdown: 닉네임+이메일 표시, "마이페이지" 링크, "로그아웃" 버튼
+- 외부 클릭 닫기 (useEffect + mousedown 이벤트)
+- 로그아웃 흐름: `logoutApi(refreshToken)` → `authStore.logout()` → `navigate('/login')`
+
+### MyPage 로그아웃 수정
+- SettingsTab 기존 로그아웃 버튼에 onClick 핸들러 없었음 → handleLogout 연결
+- disabled 상태(isLoggingOut) 추가
+
+### 최종 검증
+- `npx tsc --noEmit` → **EXIT:0**
+- `npx eslint` → **EXIT:0** (warnings만, 0 errors)

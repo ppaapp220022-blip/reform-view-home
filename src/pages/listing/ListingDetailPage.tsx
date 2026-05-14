@@ -12,19 +12,34 @@
  * 데이터: 목 데이터 (추후 useQuery + /listing/:id 연동)
  */
 import {formatPrice} from '../../utils/format'
-import {useState, useCallback} from 'react'
-import {useParams, Link, useNavigate} from 'react-router-dom'
-import {useQuery} from '@tanstack/react-query'
+import React, {useCallback, useState} from 'react'
+import {Link, useNavigate, useParams} from 'react-router-dom'
+import {useMutation, useQuery} from '@tanstack/react-query'
 import {
-  Heart, MessageCircle, Share2, ChevronLeft, ChevronRight,
-  Shield, Truck, MapPin, Clock, X, ChevronDown, Package,
-  Flag, MoreHorizontal, Loader2, AlertCircle,
+  AlertCircle,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Flag,
+  Heart,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  MoreHorizontal,
+  Package,
+  Share2,
+  Shield,
+  Truck,
+  X,
 } from 'lucide-react'
 import type {Grade, PostStatus} from '../../types/listing'
 import ReportModal from '../../components/ui/ReportModal'
 import {createChatRoom} from '../../features/chat/api/chatApi'
+import type {PostCard, SellerBrief} from '../../features/listing/api/listingApi'
 import {getListingDetail, getListings, toggleWish} from '../../features/listing/api/listingApi'
-import type {SellerBrief, PostCard} from '../../features/listing/api/listingApi'
+import type {TradeDeliveryType} from '../../features/trade/api/tradeApi'
+import {createTrade} from '../../features/trade/api/tradeApi'
 
 // ── 상수/유틸 (목 데이터 없음 — 실제 API 사용) ────────────────────────────────
 
@@ -52,6 +67,182 @@ function mannerColor(score: number) {
   return 'var(--color-error)'
 }
 
+// ── 거래 시작 모달 ────────────────────────────────────────────────────────────
+
+/**
+ * TradeStartModal — 거래 방식 선택 후 거래 생성
+ * - deliveryType이 BOTH이면 직거래/택배 선택 UI 표시
+ * - DIRECT 또는 DELIVERY이면 선택 없이 바로 확인
+ * - createTrade API 호출 → 성공 시 onSuccess(tradeId) 콜백
+ */
+function TradeStartModal({
+                           postId,
+                           listingDeliveryType,
+                           title,
+                           price,
+                           onClose,
+                           onSuccess,
+                         }: {
+  postId: number
+  listingDeliveryType: string
+  title: string
+  price: number
+  onClose: () => void
+  onSuccess: (tradeId: number) => void
+}) {
+  // BOTH이면 구매자가 선택, DIRECT/DELIVERY는 고정
+  const defaultType: TradeDeliveryType =
+    listingDeliveryType === 'DELIVERY' ? 'DELIVERY' : 'DIRECT'
+  const [deliveryType, setDeliveryType] = React.useState<TradeDeliveryType>(defaultType)
+  const [error, setError] = React.useState<string | null>(null)
+  
+  const {mutate: startTrade, isPending} = useMutation({
+    mutationFn: () => createTrade({postId, deliveryType}),
+    onSuccess(data) {
+      onSuccess(data.tradeId)
+    },
+    onError() {
+      setError('거래 시작 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+    },
+  })
+  
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{background: 'rgba(13,27,42,.5)', backdropFilter: 'blur(4px)'}}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-sm rounded-2xl p-6 relative"
+        style={{background: 'var(--color-surface)', boxShadow: '0 24px 48px -8px rgba(0,33,71,.28)'}}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 닫기 */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
+          style={{background: 'var(--color-surface-raised)'}}
+          aria-label="닫기"
+        >
+          <X size={16} color="var(--color-text-sub)"/>
+        </button>
+        
+        <h3
+          className="text-base font-bold mb-1"
+          style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+        >
+          거래 시작하기
+        </h3>
+        <p className="text-xs mb-5" style={{color: 'var(--color-text-hint)'}}>
+          거래 방식을 선택하면 판매자에게 구매 요청이 전달됩니다.
+        </p>
+        
+        {/* 상품 요약 */}
+        <div
+          className="flex items-center gap-3 p-3 rounded-xl mb-5"
+          style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+        >
+          <Package size={18} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>{title}</p>
+            <p
+              className="text-sm font-bold mt-0.5"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
+              {formatPrice(price)}
+            </p>
+          </div>
+        </div>
+        
+        {/* 거래 방식 선택 (BOTH일 때만) */}
+        {listingDeliveryType === 'BOTH' && (
+          <div className="mb-5">
+            <p className="text-xs font-semibold mb-2" style={{color: 'var(--color-text-hint)'}}>거래 방식 선택</p>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                {type: 'DIRECT' as TradeDeliveryType, label: '직거래', icon: <MapPin size={16}/>},
+                {type: 'DELIVERY' as TradeDeliveryType, label: '택배', icon: <Truck size={16}/>},
+              ] as const).map(({type, label, icon}) => (
+                <button
+                  key={type}
+                  onClick={() => setDeliveryType(type)}
+                  className="flex flex-col items-center gap-1.5 py-4 rounded-xl font-semibold text-sm transition-all"
+                  style={{
+                    background: deliveryType === type ? 'rgba(0,33,71,.08)' : 'var(--color-surface-raised)',
+                    color: deliveryType === type ? 'var(--color-primary)' : 'var(--color-text-sub)',
+                    border: deliveryType === type ? '2px solid var(--color-primary)' : '2px solid var(--color-border)',
+                  }}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* 선택된 방식 표시 (DIRECT/DELIVERY 단일 방식) */}
+        {listingDeliveryType !== 'BOTH' && (
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5"
+            style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+          >
+            {listingDeliveryType === 'DELIVERY'
+              ? <Truck size={15} style={{color: 'var(--color-text-sub)'}}/>
+              : <MapPin size={15} style={{color: 'var(--color-text-sub)'}}/>}
+            <p className="text-sm font-semibold" style={{color: 'var(--color-text-sub)'}}>
+              {listingDeliveryType === 'DELIVERY' ? '택배 거래' : '직거래'}
+            </p>
+          </div>
+        )}
+        
+        {/* 에스크로 안내 */}
+        <div
+          className="flex items-start gap-2 px-3 py-2.5 rounded-xl mb-5"
+          style={{background: 'rgba(0,33,71,.05)', border: '1px solid rgba(0,33,71,.12)'}}
+        >
+          <Shield size={13} style={{color: 'var(--color-primary)', flexShrink: 0, marginTop: 2}}/>
+          <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+            RE:FORM 에스크로 — 판매자 수락 후 결제가 진행됩니다.
+          </p>
+        </div>
+        
+        {/* 에러 메시지 */}
+        {error && (
+          <div
+            className="flex items-start gap-2 px-3 py-2.5 rounded-xl mb-4"
+            style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+          >
+            <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 2}}/>
+            <p className="text-xs" style={{color: 'var(--color-accent)'}}>{error}</p>
+          </div>
+        )}
+        
+        {/* 거래 시작 버튼 */}
+        <button
+          onClick={() => startTrade()}
+          disabled={isPending}
+          className="w-full py-3.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+          style={{background: 'var(--color-accent)'}}
+        >
+          {isPending
+            ? <><Loader2 size={16} className="animate-spin"/>요청 중...</>
+            : <><Package size={16}/>구매 요청 보내기</>}
+        </button>
+        
+        <button
+          onClick={onClose}
+          className="mt-2 w-full py-2.5 rounded-xl text-sm font-medium transition-colors"
+          style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)'}}
+        >
+          취소
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
 
 /** 이미지 갤러리 */
@@ -61,15 +252,15 @@ const FALLBACK_COLORS = ['#B5222B', '#1A3051', '#034694', '#1A7A40', '#A50044', 
 function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallbackColor?: string }) {
   const [idx, setIdx] = useState(0)
   const total = urls.length || 1
-
+  
   function prev() {
     setIdx(i => (i - 1 + total) % total)
   }
-
+  
   function next() {
     setIdx(i => (i + 1) % total)
   }
-
+  
   return (
     <div className="flex flex-col gap-3">
       {/* 메인 이미지 */}
@@ -94,7 +285,7 @@ function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallb
               style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>?</span>
           </>
         )}
-
+        
         {/* 이전/다음 */}
         {total > 1 && (
           <>
@@ -116,7 +307,7 @@ function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallb
             </button>
           </>
         )}
-
+        
         {/* 인덱스 dot — urls 길이 기반으로 렌더링 */}
         {total > 1 && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
@@ -132,7 +323,7 @@ function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallb
           </div>
         )}
       </div>
-
+      
       {/* 썸네일 열 — 실제 이미지가 있을 때만 표시 */}
       {urls.length > 1 && (
         <div className="flex gap-2">
@@ -213,7 +404,7 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
   const mc = mannerColor(Number(seller.mannerScore) * 20)
   const navigate = useNavigate()
   const [isChatLoading, setIsChatLoading] = useState(false)
-
+  
   /**
    * 채팅하기 클릭 핸들러
    * 1. createChatRoom({ postId: listingId }) 호출 → 채팅방 생성 or 기존 채팅방 반환
@@ -225,7 +416,7 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
     setIsChatLoading(true)
     try {
       const room = await createChatRoom({postId: listingId})
-      navigate(`/chat/${room.chatId}`)
+      navigate(`/chat?roomId=${room.chatId}`)
     } catch (err) {
       console.error('[SellerCard] 채팅방 생성 실패:', err)
       // API 연동 전 fallback — /chat 목록으로 이동
@@ -234,7 +425,7 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
       setIsChatLoading(false)
     }
   }, [listingId, isChatLoading, navigate])
-
+  
   return (
     <div className="rounded-2xl p-5" style={{
       background: 'var(--color-surface)',
@@ -335,20 +526,19 @@ function RelatedCard({item}: { item: PostCard }) {
 
 export default function ListingDetailPage() {
   const {id} = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const postId = Number(id)
-
+  
   // null = 서버값 미도착 (listing 로드 후 파생값 사용)
   const [localLiked, setLiked] = useState<boolean | null>(null)
   const [localLikedCount, setLikedCount] = useState<number | null>(null)
-
-  // 파생값: 낙관적 업데이트 우선, 서버값 폴백 (useEffect + setState 불필요)
-  const liked = localLiked ?? listing?.isWished ?? false
-  const likedCount = localLikedCount ?? listing?.wishCount ?? 0
+  
   const [showGradeGuide, setShowGradeGuide] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [reportMenuOpen, setReportMenuOpen] = useState(false)
   const [reportModalOpen, setReportModalOpen] = useState(false)
-
+  
   /* 판매글 상세 조회 */
   const {data: listing, isLoading, isError} = useQuery({
     queryKey: ['listingDetail', postId],
@@ -356,7 +546,11 @@ export default function ListingDetailPage() {
     enabled: !isNaN(postId),
     staleTime: 30_000,
   })
-
+  
+  // 파생값: 낙관적 업데이트 우선, 서버값 폴백 (listing 로드 후 계산해야 TDZ 에러 없음)
+  const liked = localLiked ?? listing?.isWished ?? false
+  const likedCount = localLikedCount ?? listing?.wishCount ?? 0
+  
   /* 관련 상품 조회 (같은 종목, 최대 4개) */
   const {data: relatedData} = useQuery({
     queryKey: ['relatedListings', listing?.sport],
@@ -365,7 +559,7 @@ export default function ListingDetailPage() {
     staleTime: 60_000,
   })
   const related = (relatedData?.content ?? []).filter(i => i.postId !== postId).slice(0, 4)
-
+  
   /**
    * 찜 토글 핸들러
    * 1. 낙관적 UI 업데이트 (즉시 반영)
@@ -388,7 +582,7 @@ export default function ListingDetailPage() {
       setLikedCount(prevCount)
     }
   }
-
+  
   /* 로딩 */
   if (isLoading) {
     return (
@@ -400,7 +594,7 @@ export default function ListingDetailPage() {
       </div>
     )
   }
-
+  
   /* 에러 / 404 */
   if (isError || !listing) {
     return (
@@ -413,16 +607,26 @@ export default function ListingDetailPage() {
       </div>
     )
   }
-
+  
   const gradeMeta = GRADE_META[listing.grade]
   const statusMeta = STATUS_META[listing.status]
   const descLines = (listing.content ?? '').split('\n')
   const isLong = descLines.length > 5
   const visibleDesc = showMore ? listing.content : descLines.slice(0, 5).join('\n')
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       {showGradeGuide && <GradeGuide onClose={() => setShowGradeGuide(false)}/>}
+      {tradeModalOpen && listing && (
+        <TradeStartModal
+          postId={listing.postId}
+          listingDeliveryType={listing.deliveryType}
+          title={listing.title}
+          price={listing.price}
+          onClose={() => setTradeModalOpen(false)}
+          onSuccess={(tradeId) => navigate(`/trade/${tradeId}/confirm`)}
+        />
+      )}
       {reportMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setReportMenuOpen(false)}/>}
       {reportModalOpen && (
         <ReportModal
@@ -431,7 +635,7 @@ export default function ListingDetailPage() {
           onClose={() => setReportModalOpen(false)}
         />
       )}
-
+      
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
         {/* 뒤로가기 */}
         <Link
@@ -441,17 +645,17 @@ export default function ListingDetailPage() {
         >
           <ChevronLeft size={16}/>목록으로
         </Link>
-
+        
         <div className="flex flex-col lg:flex-row gap-8 xl:gap-14">
           {/* 좌: 이미지 갤러리 */}
           <div className="w-full lg:w-[420px] xl:w-[480px] flex-shrink-0">
             <ImageGallery urls={listing.imageUrls ?? []}
                           fallbackColor={FALLBACK_COLORS[listing.postId % FALLBACK_COLORS.length]}/>
           </div>
-
+          
           {/* 우: 상품 정보 */}
           <div className="flex-1 min-w-0 flex flex-col gap-5">
-
+            
             {/* 상태 + 신고/공유 */}
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
@@ -496,7 +700,7 @@ export default function ListingDetailPage() {
                 </div>
               </div>
             </div>
-
+            
             {/* 제목 */}
             <div>
               <p className="text-xs font-semibold mb-1" style={{color: 'var(--color-text-hint)'}}>
@@ -506,13 +710,13 @@ export default function ListingDetailPage() {
                 {listing.title}
               </h1>
             </div>
-
+            
             {/* 가격 */}
             <div className="text-3xl font-bold"
                  style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
               {formatPrice(listing.price)}
             </div>
-
+            
             {/* 메타 그리드 */}
             <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl" style={{background: 'var(--color-surface-raised)'}}>
               <div>
@@ -557,7 +761,7 @@ export default function ListingDetailPage() {
                 <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>-</p>
               </div>
             </div>
-
+            
             {/* 에스크로 배너 */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
                  style={{background: 'rgba(0,33,71,.06)', border: '1px solid rgba(0,33,71,.12)'}}>
@@ -566,7 +770,7 @@ export default function ListingDetailPage() {
                 RE:FORM 에스크로 안전결제로 보호됩니다. 결제금은 구매 확정 전까지 RE:FORM이 보관합니다.
               </p>
             </div>
-
+            
             {/* 거래 CTA */}
             <div className="flex gap-3">
               <button
@@ -584,15 +788,16 @@ export default function ListingDetailPage() {
                 <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>{likedCount}</span>
               </button>
               <button
+                onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors"
-                style={{background: listing.status === 'SOLD' ? 'var(--color-text-hint)' : 'var(--color-accent)'}}
+                style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
                 disabled={listing.status !== 'ON_SALE'}
               >
                 <Package size={16}/>
-                {listing.status === 'SOLD' ? '판매 완료' : '거래 시작하기'}
+                {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
               </button>
             </div>
-
+            
             {/* 상품 설명 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -612,19 +817,19 @@ export default function ListingDetailPage() {
                 </button>
               )}
             </div>
-
+            
             {/* 판매자 카드 (데스크탑: 인라인) */}
             <div className="hidden lg:block">
               <SellerCard seller={listing.seller} listingId={listing.postId}/>
             </div>
           </div>
         </div>
-
+        
         {/* 판매자 카드 (모바일: 하단) */}
         <div className="mt-6 lg:hidden">
           <SellerCard seller={listing.seller} listingId={listing.postId}/>
         </div>
-
+        
         {/* 관련 상품 */}
         <section className="mt-12">
           <div className="flex items-center justify-between mb-4">
@@ -651,7 +856,7 @@ export default function ListingDetailPage() {
           </div>
         </section>
       </div>
-
+      
       {/* 모바일 하단 고정 CTA */}
       <div
         className="fixed bottom-16 md:bottom-0 left-0 right-0 z-30 md:hidden px-4 py-3"
@@ -674,9 +879,13 @@ export default function ListingDetailPage() {
             <Heart size={20} fill={liked ? 'var(--color-accent)' : 'none'}
                    color={liked ? 'var(--color-accent)' : 'var(--color-text-sub)'}/>
           </button>
-          <button className="flex-1 py-3 rounded-xl font-bold text-sm text-white"
-                  style={{background: 'var(--color-accent)'}}>
-            거래 시작하기
+          <button
+            onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
+            disabled={listing.status !== 'ON_SALE'}
+            className="flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-60"
+            style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+          >
+            {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
           </button>
         </div>
       </div>

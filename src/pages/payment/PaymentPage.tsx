@@ -2,146 +2,196 @@
  * PaymentPage — 결제 (Screen 6)
  *
  * 플로우:
- *   1. 페이지 진입 → useEffect에서 Toss Payment Widget 로드 및 렌더링
- *   2. 결제하기 클릭 → POST /api/payments/init (tradeId + payMethod) → tossOrderId 발급
- *   3. widget.requestPayment({orderId: tossOrderId, successUrl, failUrl}) → Toss 결제창 오픈
- *   4. 성공 시 /payment/success?paymentKey=...&orderId=...&amount=... 리다이렉트
- *   5. PaymentSuccessPage에서 POST /api/payments/confirm → 최종 승인
+ *   1. 페이지 진입 → getTrade(tradeId)로 거래 정보 조회
+ *   2. Toss Payment Widget 로드 및 렌더링
+ *   3. 결제하기 클릭 → POST /payments/init (tradeId + payMethod) → tossOrderId 발급
+ *   4. widget.requestPayment({orderId: tossOrderId, ...}) → Toss 결제창 오픈
+ *   5. 성공 시 /payment/success?paymentKey=...&orderId=...&amount=... 리다이렉트
+ *   6. PaymentSuccessPage에서 POST /payments/confirm → 최종 승인
  *
- * 주의: Toss Widget은 renderPaymentMethods() 호출 후 requestPayment() 가능
+ * 백엔드 연동:
+ *   - GET  /api/trades/{id}       — 거래 정보 (TradeResponse)
+ *   - POST /api/payments/init     — 결제 초기화 → tossOrderId 발급
+ *   - POST /api/payments/confirm  — 결제 최종 승인 (PaymentSuccessPage에서 처리)
  */
-import { useEffect, useRef, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { loadPaymentWidget, type PaymentWidgetInstance } from '@tosspayments/payment-widget-sdk'
-import { Shield, ChevronLeft, Loader2, Lock, AlertCircle } from 'lucide-react'
-import { useInitPayment } from '../../features/payment/hooks/usePayment'
-import { formatPrice } from '../../utils/format'
+import {useEffect, useRef, useState} from 'react'
+import {Link, useParams} from 'react-router-dom'
+import {useQuery} from '@tanstack/react-query'
+import {loadPaymentWidget, type PaymentWidgetInstance} from '@tosspayments/payment-widget-sdk'
+import {AlertCircle, ChevronLeft, Loader2, Lock, Shield, User} from 'lucide-react'
+import {useInitPayment} from '../../features/payment/hooks/usePayment'
+import {getTrade, type TradeResponse} from '../../features/trade/api/tradeApi'
+import {formatPrice} from '../../utils/format'
+import useAuthStore from '../../store/authStore'
 
-// ── 상수 — Toss 테스트 키 ───────────────────────────────────────────────────────
-// 실서비스 전환 시 환경변수로 교체 (VITE_TOSS_CLIENT_KEY)
+// ── 상수 ─────────────────────────────────────────────────────────────────────
+// Toss 테스트 키 — 실서비스 전환 시 VITE_TOSS_CLIENT_KEY 환경변수로 교체
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY ?? 'test_ck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
-const TOSS_CUSTOMER_KEY = 'ANONYMOUS' // 비로그인 결제 허용 (로그인 구현 후 memberId로 교체)
 
-// ── 목 주문 데이터 (추후 useQuery로 교체) ────────────────────────────────────────
-interface OrderSummary {
-  tradeId: number
-  title: string
-  team: string
-  grade: 'S' | 'A' | 'B' | 'C'
-  size: string
-  price: number
-  jerseyColor: string
-  jerseyNumber: string
-  sellerNickname: string
-  sellerMannerScore: number
+// 플랫폼 수수료율 3%
+const FEE_RATE = 0.03
+
+// 폴백 유니폼 색상 (썸네일 없을 때 사용)
+const JERSEY_COLORS = [
+  '#B5222B', '#1A3051', '#034694', '#1A7A40', '#A50044',
+  '#6B0078', '#C8102E', '#003087', '#002147', '#E3001B',
+]
+
+function fallbackColor(id: number) {
+  return JERSEY_COLORS[id % JERSEY_COLORS.length]
 }
 
-const MOCK_ORDER: OrderSummary = {
-  tradeId: 1,
-  title: '맨체스터 유나이티드 23/24 홈 어센틱',
-  team: '맨체스터 유나이티드',
-  grade: 'S',
-  size: 'M',
-  price: 78000,
-  jerseyColor: '#B5222B',
-  jerseyNumber: '7',
-  sellerNickname: 'uniform_king',
-  sellerMannerScore: 92,
+// ── 로딩 상태 ─────────────────────────────────────────────────────────────────
+function LoadingState() {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--color-bg)'}}>
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 size={28} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>거래 정보를 불러오는 중...</p>
+      </div>
+    </div>
+  )
 }
 
-const FEE_RATE = 0.03 // 수수료 3%
+// ── 에러 상태 ─────────────────────────────────────────────────────────────────
+function ErrorState({id}: { id?: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--color-bg)'}}>
+      <div className="text-center space-y-3">
+        <AlertCircle size={32} style={{color: 'var(--color-accent)', margin: '0 auto'}}/>
+        <p className="font-medium" style={{color: 'var(--color-text-main)'}}>
+          거래 정보를 불러올 수 없습니다.
+        </p>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>
+          결제 링크가 올바른지 확인해주세요.
+        </p>
+        <Link
+          to={id ? `/trade/${id}/confirm` : '/'}
+          className="inline-block mt-2 text-sm font-semibold no-underline hover:text-[var(--color-accent)]"
+          style={{color: 'var(--color-text-sub)'}}
+        >
+          거래 페이지로 돌아가기
+        </Link>
+      </div>
+    </div>
+  )
+}
 
-const GRADE_META = {
-  S: { label: 'S급', bg: 'rgba(255,184,0,.12)', text: '#B38000', border: 'rgba(255,184,0,.35)' },
-  A: { label: 'A급', bg: 'rgba(0,33,71,.08)',   text: '#002147', border: 'rgba(0,33,71,.25)' },
-  B: { label: 'B급', bg: 'rgba(90,106,122,.1)', text: '#5A6A7A', border: 'rgba(90,106,122,.3)' },
-  C: { label: 'C급', bg: 'rgba(255,149,0,.10)', text: '#CC7700', border: 'rgba(255,149,0,.3)' },
-} as const
-
-// ── 서브 컴포넌트: 주문 요약 ────────────────────────────────────────────────────
-function OrderSummaryCard({ order }: { order: OrderSummary }) {
-  const gm = GRADE_META[order.grade]
-  const fee = Math.round(order.price * FEE_RATE)
-  const total = order.price + fee
-
+// ── 주문 요약 카드 ────────────────────────────────────────────────────────────
+/**
+ * 거래 응답(TradeResponse) 기반 주문 요약 카드
+ * 수수료 breakdown: 상품가 + 수수료 3% = 최종 결제액
+ */
+function OrderSummaryCard({trade}: { trade: TradeResponse }) {
+  const fee = Math.round(trade.tradePrice * FEE_RATE)
+  const total = trade.tradePrice + fee
+  
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+      style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
     >
       {/* 상품 정보 */}
       <div className="p-5 flex gap-4">
-        {/* 유니폼 썸네일 */}
+        {/* 썸네일 — 실제 이미지 우선, 없으면 색상 폴백 */}
         <div
           className="relative rounded-xl overflow-hidden flex-shrink-0"
-          style={{ width: 72, height: 72, background: order.jerseyColor }}
+          style={{width: 72, height: 72, background: fallbackColor(trade.post.postId)}}
         >
-          <div
-            className="absolute inset-0"
-            style={{ backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px)' }}
-          />
-          <span
-            className="absolute inset-0 flex items-center justify-center select-none"
-            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 26, color: 'rgba(255,255,255,.25)' }}
-          >
-            {order.jerseyNumber}
-          </span>
+          {trade.post.thumbnailUrl ? (
+            <img
+              src={trade.post.thumbnailUrl}
+              alt={trade.post.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <>
+              {/* 스트라이프 장식 */}
+              <div
+                className="absolute inset-0"
+                style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0 2px, transparent 2px 12px)'}}
+              />
+              {/* 번호 폴백 */}
+              <span
+                className="absolute inset-0 flex items-center justify-center select-none"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 26, color: 'rgba(255,255,255,.25)'}}
+              >
+                {trade.post.postId % 99}
+              </span>
+            </>
+          )}
         </div>
-
+        
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span
-              className="text-[11px] font-bold px-1.5 py-0.5 rounded"
-              style={{ background: gm.bg, color: gm.text, border: `1px solid ${gm.border}`, fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
-            >
-              {gm.label}
-            </span>
-            <span className="text-xs" style={{ color: 'var(--color-text-hint)' }}>{order.size}</span>
+          {/* 상품명 */}
+          <p
+            className="text-sm font-semibold line-clamp-2 mb-2"
+            style={{color: 'var(--color-text-main)'}}
+          >
+            {trade.post.title}
+          </p>
+          
+          {/* 판매자 정보 */}
+          <div className="flex items-center gap-1.5">
+            {trade.seller.profileImageUrl ? (
+              <img
+                src={trade.seller.profileImageUrl}
+                alt={trade.seller.nickname}
+                className="w-5 h-5 rounded-full object-cover"
+              />
+            ) : (
+              <div
+                className="w-5 h-5 rounded-full flex items-center justify-center"
+                style={{background: 'var(--color-surface-raised)'}}
+              >
+                <User size={10} style={{color: 'var(--color-text-hint)'}}/>
+              </div>
+            )}
+            <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
+              판매자 {trade.seller.nickname}
+            </p>
           </div>
-          <p className="text-sm font-semibold line-clamp-2 mb-1" style={{ color: 'var(--color-text-main)' }}>
-            {order.title}
-          </p>
-          <p className="text-xs" style={{ color: 'var(--color-text-sub)' }}>
-            판매자 {order.sellerNickname} · 매너점수 {order.sellerMannerScore}
-          </p>
         </div>
       </div>
-
-      {/* 금액 breakdown */}
-      <div style={{ borderTop: '1px solid var(--color-border)' }} className="px-5 py-4 space-y-2">
+      
+      {/* 금액 Breakdown */}
+      <div style={{borderTop: '1px solid var(--color-border)'}} className="px-5 py-4 space-y-2">
         <div className="flex justify-between text-sm">
-          <span style={{ color: 'var(--color-text-sub)' }}>상품 가격</span>
-          <span style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-main)' }}>
-            {formatPrice(order.price)}
+          <span style={{color: 'var(--color-text-sub)'}}>상품 가격</span>
+          <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-main)'}}>
+            {formatPrice(trade.tradePrice)}
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span style={{ color: 'var(--color-text-sub)' }}>수수료 (3%)</span>
-          <span style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-sub)' }}>
+          <span style={{color: 'var(--color-text-sub)'}}>수수료 (3%)</span>
+          <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-sub)'}}>
             {formatPrice(fee)}
           </span>
         </div>
         <div
           className="flex justify-between pt-2"
-          style={{ borderTop: '1px solid var(--color-border)' }}
+          style={{borderTop: '1px solid var(--color-border)'}}
         >
-          <span className="font-bold" style={{ color: 'var(--color-text-main)' }}>최종 결제액</span>
+          <span className="font-bold"
+                style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}>
+            최종 결제액
+          </span>
           <span
             className="text-lg font-bold"
-            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-primary)' }}
+            style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-primary)'}}
           >
             {formatPrice(total)}
           </span>
         </div>
       </div>
-
+      
       {/* 에스크로 안내 */}
       <div
         className="px-5 py-3 flex items-start gap-2"
-        style={{ background: 'var(--color-surface-raised)', borderTop: '1px solid var(--color-border)' }}
+        style={{background: 'var(--color-surface-raised)', borderTop: '1px solid var(--color-border)'}}
       >
-        <Shield size={14} style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: 2 }} />
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-sub)' }}>
+        <Shield size={14} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
+        <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
           RE:FORM 에스크로 안전결제 — 구매 확정 전까지 결제금은 RE:FORM이 보관합니다.
         </p>
       </div>
@@ -151,46 +201,62 @@ function OrderSummaryCard({ order }: { order: OrderSummary }) {
 
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function PaymentPage() {
-  const { id } = useParams<{ id: string }>()
-
-  // 목 주문 데이터 (추후 useQuery로 교체)
-  const order = MOCK_ORDER
-
-  // Toss Widget 인스턴스 ref
+  const {id} = useParams<{ id: string }>()
+  const {user} = useAuthStore()
+  
+  // ── 거래 정보 조회 ──────────────────────────────────────────────────────────
+  const {
+    data: trade,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ['trade', id],
+    queryFn: () => getTrade(Number(id)),
+    enabled: !!id && !isNaN(Number(id)),
+    staleTime: 60_000, // 결제 페이지에서 1분간 재조회 없음
+  })
+  
+  // ── Toss Widget 인스턴스 ref ─────────────────────────────────────────────────
   const widgetRef = useRef<PaymentWidgetInstance | null>(null)
   const paymentMethodsRef = useRef<ReturnType<PaymentWidgetInstance['renderPaymentMethods']> | null>(null)
-
-  // UI 상태
+  
+  // ── UI 상태 ──────────────────────────────────────────────────────────────────
   const [widgetReady, setWidgetReady] = useState(false)
   const [widgetError, setWidgetError] = useState<string | null>(null)
-
-  // 결제 초기화 mutation
-  const { mutate: initPayment, isPending: isInitPending } = useInitPayment()
-
-  const fee = Math.round(order.price * FEE_RATE)
-  const total = order.price + fee
-
+  
+  // ── 결제 초기화 mutation ─────────────────────────────────────────────────────
+  const {mutate: initPayment, isPending: isInitPending} = useInitPayment()
+  
+  // 결제 총액 계산 (수수료 3% 포함)
+  const fee = trade ? Math.round(trade.tradePrice * FEE_RATE) : 0
+  const total = trade ? trade.tradePrice + fee : 0
+  
+  // Toss customerKey: 로그인한 회원이면 memberId 사용, 아니면 ANONYMOUS
+  const customerKey = user?.id ? `member_${user.id}` : 'ANONYMOUS'
+  
   // ── Toss Widget 초기화 ──────────────────────────────────────────────────────
+  // trade 데이터 로드 완료 후 위젯 초기화 (total이 확정돼야 위젯 렌더링 가능)
   useEffect(() => {
+    if (!trade) return
     let cancelled = false
-
+    
     async function loadWidget() {
       try {
-        // 1) SDK 로드
-        const widget = await loadPaymentWidget(TOSS_CLIENT_KEY, TOSS_CUSTOMER_KEY)
+        // 1) SDK 로드 (클라이언트 키 + 고객 키)
+        const widget = await loadPaymentWidget(TOSS_CLIENT_KEY, customerKey)
         if (cancelled) return
-
+        
         widgetRef.current = widget
-
+        
         // 2) 결제 수단 위젯 렌더링 (#toss-payment-method div에 주입)
         paymentMethodsRef.current = widget.renderPaymentMethods(
           '#toss-payment-method',
-          { value: total, currency: 'KRW' },
+          {value: total, currency: 'KRW'},
         )
-
+        
         // 3) 약관 위젯 렌더링
         widget.renderAgreement('#toss-agreement')
-
+        
         setWidgetReady(true)
       } catch (err) {
         if (cancelled) return
@@ -198,31 +264,34 @@ export default function PaymentPage() {
         setWidgetError('결제 위젯을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
       }
     }
-
+    
     loadWidget()
-    return () => { cancelled = true }
-  }, [total])
-
-  // ── 결제 금액 업데이트 (쿠폰/할인 적용 시 사용) ─────────────────────────────
+    return () => {
+      cancelled = true
+    }
+  }, [trade, total, customerKey])
+  
+  // ── 금액 변경 시 위젯 업데이트 (쿠폰/할인 적용 등) ──────────────────────────
   useEffect(() => {
     paymentMethodsRef.current?.updateAmount(total)
   }, [total])
-
+  
   // ── 결제하기 버튼 핸들러 ────────────────────────────────────────────────────
   function handlePay() {
-    if (!widgetRef.current || !widgetReady) return
-
+    if (!widgetRef.current || !widgetReady || !trade) return
+    
     // 1) 백엔드에 결제 초기화 요청 → tossOrderId 발급
     initPayment(
-      { tradeId: order.tradeId, payMethod: 'Card' }, // Toss Widget은 내부적으로 수단 선택
+      {tradeId: trade.tradeId, payMethod: 'Card'},
       {
         onSuccess(data) {
           // 2) Toss Widget으로 결제 요청
-          //    성공 시 successUrl, 실패 시 failUrl로 리다이렉트
+          //    성공 → successUrl, 실패 → failUrl로 리다이렉트
           widgetRef.current?.requestPayment({
             orderId: data.tossOrderId,
             orderName: data.orderName,
-            customerName: 'RE:FORM 구매자', // 추후 authStore에서 nickname 가져오기
+            // authStore에서 닉네임 가져오기 (없으면 기본값)
+            customerName: user?.nickname ?? 'RE:FORM 구매자',
             successUrl: `${window.location.origin}/payment/success`,
             failUrl: `${window.location.origin}/payment/fail`,
           })
@@ -234,98 +303,115 @@ export default function PaymentPage() {
       },
     )
   }
-
+  
+  // ── 로딩 / 에러 상태 처리 ───────────────────────────────────────────────────
+  if (isLoading) return <LoadingState/>
+  if (isError || !trade) return <ErrorState id={id}/>
+  
   return (
-    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
+    <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       <div className="max-w-[1000px] mx-auto px-4 md:px-7 py-6 md:py-10">
-
-        {/* 헤더 */}
+        
+        {/* 페이지 헤더 */}
         <div className="flex items-center gap-3 mb-6">
           <Link
-            to={`/listing/${id}`}
+            to={`/listing/${trade.post.postId}`}
             className="p-2 rounded-xl transition-colors hover:text-[var(--color-accent)]"
-            style={{ color: 'var(--color-text-sub)', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+            style={{
+              color: 'var(--color-text-sub)',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)'
+            }}
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={18}/>
           </Link>
           <div>
             <h1
               className="text-xl font-bold"
-              style={{ color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif", letterSpacing: '0.04em' }}
+              style={{
+                color: 'var(--color-text-main)',
+                fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                letterSpacing: '0.04em'
+              }}
             >
               PAYMENT
             </h1>
-            <p className="text-xs" style={{ color: 'var(--color-text-hint)' }}>에스크로 안전결제</p>
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>에스크로 안전결제</p>
           </div>
         </div>
-
+        
+        {/* 2열 레이아웃: 좌(Toss Widget) + 우(주문 요약) */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-
+          
           {/* 왼쪽: Toss Payment Widget */}
           <div className="space-y-4">
             <div
               className="rounded-2xl overflow-hidden"
-              style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
             >
               <div className="px-5 pt-5 pb-2">
-                <h2 className="font-bold text-sm mb-4" style={{ color: 'var(--color-text-main)' }}>
+                <h2
+                  className="font-bold text-sm mb-4"
+                  style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                >
                   결제 수단
                 </h2>
-
+                
                 {/* 위젯 로딩 스피너 */}
                 {!widgetReady && !widgetError && (
                   <div className="flex items-center justify-center py-16 gap-3">
-                    <Loader2 size={20} className="animate-spin" style={{ color: 'var(--color-text-hint)' }} />
-                    <span className="text-sm" style={{ color: 'var(--color-text-hint)' }}>결제 수단을 불러오는 중...</span>
+                    <Loader2 size={20} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+                    <span className="text-sm" style={{color: 'var(--color-text-hint)'}}>결제 수단을 불러오는 중...</span>
                   </div>
                 )}
-
-                {/* 위젯 에러 */}
+                
+                {/* 위젯 에러 메시지 */}
                 {widgetError && (
                   <div
                     className="flex items-start gap-2 p-3 rounded-xl mb-4"
-                    style={{ background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)' }}
+                    style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
                   >
-                    <AlertCircle size={15} style={{ color: 'var(--color-accent)', flexShrink: 0, marginTop: 1 }} />
-                    <p className="text-sm" style={{ color: 'var(--color-accent)' }}>{widgetError}</p>
+                    <AlertCircle size={15} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+                    <p className="text-sm" style={{color: 'var(--color-accent)'}}>{widgetError}</p>
                   </div>
                 )}
-
+                
                 {/* Toss Widget 결제 수단 마운트 포인트 */}
-                <div id="toss-payment-method" />
+                <div id="toss-payment-method"/>
               </div>
-
+              
               {/* Toss Widget 약관 마운트 포인트 */}
-              <div id="toss-agreement" className="px-5 pb-4" />
+              <div id="toss-agreement" className="px-5 pb-4"/>
             </div>
           </div>
-
+          
           {/* 오른쪽: 주문 요약 + 결제 버튼 */}
           <div className="space-y-4">
-            <OrderSummaryCard order={order} />
-
-            {/* 결제 버튼 */}
+            {/* 거래 기반 주문 요약 카드 */}
+            <OrderSummaryCard trade={trade}/>
+            
+            {/* 결제하기 버튼 */}
             <button
               onClick={handlePay}
               disabled={!widgetReady || isInitPending}
               className="w-full py-4 rounded-2xl font-bold text-white text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: 'var(--color-accent)', boxShadow: '0 4px 16px rgba(255,46,77,.35)' }}
+              style={{background: 'var(--color-accent)', boxShadow: '0 4px 16px rgba(255,46,77,.35)'}}
             >
               {isInitPending ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={18} className="animate-spin"/>
                   결제 준비 중...
                 </>
               ) : (
                 <>
-                  <Lock size={16} />
+                  <Lock size={16}/>
                   {formatPrice(total)} 결제하기
                 </>
               )}
             </button>
-
-            {/* 안내 문구 */}
-            <p className="text-xs text-center" style={{ color: 'var(--color-text-hint)' }}>
+            
+            {/* 결제 동의 안내 */}
+            <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
               결제 시 RE:FORM 이용약관 및 개인정보처리방침에 동의하는 것으로 간주됩니다.
             </p>
           </div>

@@ -12,13 +12,10 @@
  * 상태: 로컬 필터 (추후 URL searchParams + useQuery 전환)
  */
 import {formatPrice} from '../../utils/format'
-import {useState, useMemo} from 'react'
-import {useSearchParams, Link} from 'react-router-dom'
-import {
-  Search, SlidersHorizontal, X, Heart, ChevronRight,
-  RotateCcw, ChevronDown, ChevronUp,
-} from 'lucide-react'
-import type {ListingItem, Grade, Sport, DeliveryType} from '../../types/listing'
+import {useMemo, useState} from 'react'
+import {Link, useSearchParams} from 'react-router-dom'
+import {ChevronDown, ChevronRight, ChevronUp, Heart, RotateCcw, Search, SlidersHorizontal, X,} from 'lucide-react'
+import type {DeliveryType, Grade, ListingItem, Sport} from '../../types/listing'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
@@ -321,7 +318,7 @@ function ProductCard({item, onLike}: { item: ListingItem; onLike: (id: number) =
         </div>
         {/* 정보 */}
         <div className="p-3">
-          <p className="text-[11px] mb-0.5" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
+          <p className="text-[13px] mb-0.5" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
           <p className="text-sm font-semibold leading-snug line-clamp-2"
              style={{color: 'var(--color-text-main)'}}>{item.title}</p>
           <div className="flex items-center justify-between mt-2">
@@ -395,7 +392,7 @@ function FilterContent({
   setMaxPrice: (v: number) => void
   onReset: () => void
 }) {
-
+  
   return (
     <div className="flex flex-col h-full">
       {/* 헤더 */}
@@ -407,7 +404,7 @@ function FilterContent({
           <RotateCcw size={12}/>초기화
         </button>
       </div>
-
+      
       {/* 종목 */}
       <FilterSection title="SPORT">
         <div className="flex flex-col gap-0.5">
@@ -423,7 +420,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 컨디션 */}
       <FilterSection title="CONDITION">
         <div className="grid grid-cols-4 gap-1.5">
@@ -439,7 +436,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 사이즈 */}
       <FilterSection title="SIZE">
         <div className="flex flex-wrap gap-1.5">
@@ -455,7 +452,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 거래방식 */}
       <FilterSection title="TRADE">
         <div className="flex flex-col gap-0.5">
@@ -471,7 +468,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 가격 */}
       <FilterSection title="PRICE">
         <p className="text-sm font-bold mb-2"
@@ -494,11 +491,11 @@ function FilterContent({
 export default function SearchPage() {
   const [searchParams] = useSearchParams()
   const initialQuery = searchParams.get('q') ?? ''
-
+  
   /* 검색 상태 */
   const [query, setQuery] = useState(initialQuery)
   const [inputVal, setInputVal] = useState(initialQuery)
-
+  
   /* 필터 상태 */
   const [sport, setSport] = useState<Sport | 'all'>((searchParams.get('sport') as Sport) ?? 'all')
   const [grade, setGrade] = useState<Grade | 'all'>('all')
@@ -506,15 +503,15 @@ export default function SearchPage() {
   const [delivery, setDelivery] = useState<DeliveryType | 'all'>('all')
   const [maxPrice, setMaxPrice] = useState(300)
   const [sort, setSort] = useState('latest')
-
+  
   /* 모바일 필터 드로어 */
   const [filterOpen, setFilterOpen] = useState(false)
-
+  
   /* 찜 상태 (로컬) */
   const [liked, setLiked] = useState<Set<number>>(
     () => new Set(ALL_LISTINGS.filter(l => l.isLiked).map(l => l.id))
   )
-
+  
   function toggleLike(id: number) {
     setLiked(prev => {
       const n = new Set(prev)
@@ -526,7 +523,7 @@ export default function SearchPage() {
       return n
     })
   }
-
+  
   /* 필터 초기화 */
   function resetFilter() {
     setSport('all');
@@ -535,16 +532,16 @@ export default function SearchPage() {
     setDelivery('all');
     setMaxPrice(300)
   }
-
+  
   /* 검색 실행 */
   function handleSearch() {
     setQuery(inputVal)
   }
-
+  
   /* 필터링 + 정렬 */
   const results = useMemo(() => {
     let list = ALL_LISTINGS.map(l => ({...l, isLiked: liked.has(l.id)}))
-
+    
     if (query) {
       const q = query.toLowerCase()
       list = list.filter(l => l.title.toLowerCase().includes(q) || l.team.toLowerCase().includes(q))
@@ -554,7 +551,7 @@ export default function SearchPage() {
     if (size !== '전체') list = list.filter(l => l.size === size)
     if (delivery !== 'all') list = list.filter(l => l.deliveryType === delivery || l.deliveryType === 'BOTH')
     list = list.filter(l => l.price <= maxPrice * 1000)
-
+    
     switch (sort) {
       case 'popular':
         return list.sort((a, b) => b.likedCount - a.likedCount)
@@ -566,19 +563,19 @@ export default function SearchPage() {
         return list
     }
   }, [query, sport, grade, size, delivery, maxPrice, sort, liked])
-
+  
   /* 활성 필터 수 */
   const activeFilterCount = [
     sport !== 'all' !== '전체', grade !== 'all',
     size !== '전체', delivery !== 'all', maxPrice < 300,
   ].filter(Boolean).length
-
+  
   const filterProps = {
     sport, setSport, grade, setGrade,
     size, setSize, delivery, setDelivery, maxPrice, setMaxPrice,
     onReset: resetFilter,
   }
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       {/* 모바일 필터 드로어 오버레이 */}
@@ -617,7 +614,7 @@ export default function SearchPage() {
           </button>
         </div>
       </div>
-
+      
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6">
         {/* 검색바 */}
         <div className="flex gap-3 mb-6">
@@ -652,7 +649,7 @@ export default function SearchPage() {
             검색
           </button>
         </div>
-
+        
         <div className="flex gap-6">
           {/* 데스크탑 필터 사이드바 */}
           <aside
@@ -667,7 +664,7 @@ export default function SearchPage() {
           >
             <FilterContent {...filterProps} />
           </aside>
-
+          
           {/* 결과 영역 */}
           <div className="flex-1 min-w-0">
             {/* 정렬 + 필터 버튼 */}
@@ -687,7 +684,7 @@ export default function SearchPage() {
                   필터
                   {activeFilterCount > 0 && (
                     <span
-                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[12px] font-bold text-white flex items-center justify-center"
                       style={{background: 'var(--color-accent)'}}>
                       {activeFilterCount}
                     </span>
@@ -701,7 +698,7 @@ export default function SearchPage() {
                   {query && <span>  &quot;{query}&quot; 검색 결과</span>}
                 </span>
               </div>
-
+              
               {/* 정렬 */}
               <div className="flex gap-1.5 flex-wrap">
                 {SORT_OPTIONS.map(o => (
@@ -720,7 +717,7 @@ export default function SearchPage() {
                 ))}
               </div>
             </div>
-
+            
             {/* 활성 필터 칩 */}
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-2 mb-4">
@@ -754,7 +751,7 @@ export default function SearchPage() {
                 </button>
               </div>
             )}
-
+            
             {/* 그리드 or EmptyState */}
             {results.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
@@ -784,7 +781,7 @@ export default function SearchPage() {
                 ))}
               </div>
             )}
-
+            
             {/* 더보기 버튼 (목 — 추후 무한스크롤 전환) */}
             {results.length > 0 && (
               <div className="flex justify-center mt-8">

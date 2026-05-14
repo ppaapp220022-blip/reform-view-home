@@ -9,16 +9,14 @@
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
  * 데이터: 목 데이터 (백엔드 미연동)
  */
-import {useState, useCallback} from 'react'
+import {useCallback, useState} from 'react'
 import {Link} from 'react-router-dom'
-import {Heart, SlidersHorizontal, AlertCircle} from 'lucide-react'
+import {AlertCircle, Heart, SlidersHorizontal} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {formatPrice} from '../utils/format'
-import {getListings, toggleWish} from '../features/listing/api/listingApi'
 import type {PostCard} from '../features/listing/api/listingApi'
-import type {
-  HomeFilter, Grade, SportFilter,
-} from '../types/listing'
+import {getListings, toggleWish} from '../features/listing/api/listingApi'
+import type {Grade, HomeFilter, SportFilter,} from '../types/listing'
 
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
@@ -151,7 +149,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
       >
         {/* 등급 배지 */}
         <span
-          className="absolute top-2.5 left-2.5 text-[10px] font-bold px-1.5 py-0.5 rounded-[5px]"
+          className="absolute top-2.5 left-2.5 text-[12px] font-bold px-1.5 py-0.5 rounded-[5px]"
           style={gradeStyle(item.grade)}
         >
           {item.grade}
@@ -197,7 +195,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
       {/* 정보 영역 */}
       <div className="p-3">
         <p
-          className="text-[10px] font-medium uppercase tracking-[0.5px] mb-1"
+          className="text-[12px] font-medium uppercase tracking-[0.5px] mb-1"
           style={{color: 'var(--color-text-hint)'}}
         >
           {item.team} · {item.sport}
@@ -220,7 +218,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
         </p>
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
           <span
-            className="text-[10px] px-1.5 py-0.5 rounded-full"
+            className="text-[12px] px-1.5 py-0.5 rounded-full"
             style={{
               border: '1px solid var(--color-border-strong)',
               color: 'var(--color-text-sub)',
@@ -228,7 +226,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
           >
             {item.size}
           </span>
-          <span className="text-[10px]" style={{color: 'var(--color-text-hint)'}}>
+          <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
             {item.timeAgo}
           </span>
         </div>
@@ -238,43 +236,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
 }
 
 
-// ── 종목 카테고리 바 ──────────────────────────────────────────────────────────
-
-interface SportFilterBarProps {
-  active: SportFilter
-  onSelect: (s: SportFilter) => void
-}
-
-function SportFilterBar({active, onSelect}: SportFilterBarProps) {
-  return (
-    <div
-      className="sticky top-[56px] z-30 flex items-center overflow-x-auto"
-      style={{
-        background: 'var(--color-surface)',
-        borderBottom: '1px solid var(--color-border)',
-      }}
-    >
-      {/* 종목 탭 */}
-      <div className="flex flex-shrink-0 px-8">
-        {SPORT_TABS.map(({key, label}) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onSelect(key)}
-            className="px-5 h-11 flex items-center text-[13px] whitespace-nowrap transition-colors border-b-2"
-            style={{
-              borderColor: active === key ? 'var(--color-accent)' : 'transparent',
-              color: active === key ? 'var(--color-accent)' : 'var(--color-text-sub)',
-              fontWeight: active === key ? 500 : 400,
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
+// SportFilterBar 컴포넌트 제거됨 — 종목 탭은 FilterSidebar 내부로 이동 (2026-05-14)
 
 // ── Hero 섹션 ─────────────────────────────────────────────────────────────────
 
@@ -293,7 +255,7 @@ function HeroSection() {
       <div className="max-w-[1126px] mx-auto flex items-center gap-12">
         {/* 텍스트 */}
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] tracking-[2px] uppercase mb-2 font-medium" style={{color: 'var(--color-accent)'}}>
+          <p className="text-[13px] tracking-[2px] uppercase mb-2 font-medium" style={{color: 'var(--color-accent)'}}>
             FEATURED LISTING
           </p>
           <h2
@@ -303,7 +265,7 @@ function HeroSection() {
             MAN UTD 23/24<br/>
             <span style={{color: 'var(--color-accent)'}}>HOME</span> AUTHENTIC
           </h2>
-          <p className="text-[13px] mb-6 leading-relaxed" style={{color: 'rgba(255,255,255,0.5)'}}>
+          <p className="text-[14px] mb-6 leading-relaxed" style={{color: 'rgba(255,255,255,0.5)'}}>
             Size M · Grade S · 에스크로 안전결제 지원
           </p>
           <div className="flex gap-2.5">
@@ -341,7 +303,7 @@ function HeroSection() {
                 >
                   {num}
                 </p>
-                <p className="text-[11px] mt-1 tracking-[0.5px]" style={{color: 'rgba(255,255,255,0.4)'}}>
+                <p className="text-[13px] mt-1 tracking-[0.5px]" style={{color: 'rgba(255,255,255,0.4)'}}>
                   {lbl}
                 </p>
               </div>
@@ -384,8 +346,33 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
       }}
     >
 
+      {/* 종목 — 수직 탭 리스트 */}
+      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2"
+         style={{color: 'var(--color-text-hint)'}}>종목</p>
+      <div className="flex flex-col">
+        {SPORT_TABS.map(({key, label}) => {
+          const isActive = filter.sport === key
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => set('sport', key)}
+              className="flex items-center gap-2 px-5 h-9 text-[14px] text-left transition-colors"
+              style={{
+                color: isActive ? 'var(--color-accent)' : 'var(--color-text-sub)',
+                fontWeight: isActive ? 600 : 400,
+                background: isActive ? 'rgba(255,46,77,.06)' : 'transparent',
+                borderLeft: isActive ? '2px solid var(--color-accent)' : '2px solid transparent',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* 컨디션 */}
-      <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
+      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
          style={{color: 'var(--color-text-hint)'}}>컨디션</p>
       <div className="flex gap-2 px-5 flex-wrap">
         {GRADES.map(({key, label}) => {
@@ -395,7 +382,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
               key={key}
               type="button"
               onClick={() => set('grade', key)}
-              className="text-[11px] px-2.5 py-1 rounded transition-colors"
+              className="text-[13px] px-2.5 py-1 rounded transition-colors"
               style={{
                 background: isActive ? 'var(--color-primary)' : 'transparent',
                 color: isActive ? '#fff' : 'var(--color-text-sub)',
@@ -409,7 +396,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
       </div>
 
       {/* 거래 방식 */}
-      <p className="text-[10px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
+      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
          style={{color: 'var(--color-text-hint)'}}>거래 방식</p>
       <div className="flex gap-2 px-5">
         {([['all', '전체'], ['DELIVERY', '택배'], ['DIRECT', '직거래']] as const).map(([key, label]) => {
@@ -419,7 +406,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
               key={key}
               type="button"
               onClick={() => set('deliveryType', key)}
-              className="text-[11px] px-2.5 py-1 rounded transition-colors"
+              className="text-[13px] px-2.5 py-1 rounded transition-colors"
               style={{
                 background: isActive ? 'var(--color-primary)' : 'transparent',
                 color: isActive ? '#fff' : 'var(--color-text-sub)',
@@ -436,7 +423,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
       <div className="px-4 mt-6">
         <button
           type="button"
-          className="w-full h-8 text-[12px] font-medium text-white rounded-[7px] transition-opacity hover:opacity-90"
+          className="w-full h-8 text-[13px] font-medium text-white rounded-[7px] transition-opacity hover:opacity-90"
           style={{background: 'var(--color-accent)'}}
         >
           필터 적용
@@ -514,12 +501,6 @@ export default function HomePage() {
 
   return (
     <div style={{background: 'var(--color-bg)'}}>
-      {/* 종목 카테고리 바 */}
-      <SportFilterBar
-        active={filter.sport}
-        onSelect={(s) => setFilter((f) => ({...f, sport: s}))}
-      />
-
       {/* 히어로 */}
       <HeroSection/>
 
@@ -534,7 +515,7 @@ export default function HomePage() {
         <main className="flex-1 min-w-0 px-6 py-6">
           {/* 필터 행 */}
           <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>
+            <span className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
               상품 <strong style={{color: 'var(--color-text-main)'}}>{data?.totalElements ?? 0}</strong>개
             </span>
 
@@ -542,7 +523,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="md:hidden flex items-center gap-1.5 text-[13px] px-3 h-8 rounded-[7px] transition-colors"
+              className="md:hidden flex items-center gap-1.5 text-[14px] px-3 h-8 rounded-[7px] transition-colors"
               style={{
                 border: '1px solid var(--color-border-strong)',
                 color: 'var(--color-text-sub)',
@@ -559,7 +540,7 @@ export default function HomePage() {
                   key={key}
                   type="button"
                   onClick={() => setFilter((f) => ({...f, sort: key}))}
-                  className="text-[13px] transition-colors"
+                  className="text-[14px] transition-colors"
                   style={{
                     color: filter.sort === key ? 'var(--color-accent)' : 'var(--color-text-hint)',
                     fontWeight: filter.sort === key ? 500 : 400,
@@ -594,7 +575,7 @@ export default function HomePage() {
               <p className="text-[15px] font-medium" style={{color: 'var(--color-text-main)'}}>
                 상품을 불러오지 못했습니다
               </p>
-              <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
                 잠시 후 다시 시도해주세요.
               </p>
             </div>
@@ -609,7 +590,7 @@ export default function HomePage() {
               <p className="text-[15px] font-medium mb-2" style={{color: 'var(--color-text-main)'}}>
                 조건에 맞는 상품이 없어요.
               </p>
-              <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
                 필터를 조정해 다시 검색해 보세요.
               </p>
             </div>

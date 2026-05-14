@@ -14,6 +14,7 @@ import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import WelcomePage from './pages/auth/WelcomePage'
+import OAuthCallbackPage from './pages/auth/OAuthCallbackPage'
 
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 import HomePage from './pages/HomePage'
@@ -60,9 +61,10 @@ const router = createBrowserRouter([
       {path: '/register', element: <RegisterPage/>},
       {path: '/onboarding', element: <OnboardingPage/>},
       {path: '/welcome', element: <WelcomePage/>},
+      {path: '/oauth/callback', element: <OAuthCallbackPage/>},
     ],
   },
-
+  
   // ── 메인 레이아웃 (GNB + Footer) ──────────────────────────────────────────
   {
     element: <MainLayout/>,
@@ -71,29 +73,29 @@ const router = createBrowserRouter([
       {path: '/', element: <HomePage/>},
       {path: '/search', element: <SearchPage/>},
       {path: '/likes', element: <MyPage/>},   // 찜 목록 → MyPage 찜 탭으로 통합
-
+      
       // 판매글
       {path: '/listing/new', element: <ListingCreatePage/>},
       {path: '/listing/:id', element: <ListingDetailPage/>},
       {path: '/listing/:id/edit', element: <ListingEditPage/>},
-
+      
       // 거래 / 결제
       {path: '/trade/:id/confirm', element: <TradeConfirmPage/>},
       {path: '/trade/:id/review', element: <ReviewPage/>},
       {path: '/payment/:id', element: <PaymentPage/>},
       {path: '/payment/success', element: <PaymentSuccessPage/>},
       {path: '/payment/fail', element: <PaymentFailPage/>},
-
+      
       // 채팅
       {path: '/chat', element: <ChatPage/>},
-
+      
       // 마이페이지
       {path: '/mypage', element: <MyPage/>},
-
+      
       // 커뮤니티
       {path: '/community', element: <CommunityPage/>},
       {path: '/community/:id', element: <CommunityDetailPage/>},
-
+      
       // 관리자
       {path: '/admin', element: <AdminDashboardPage/>},
       {path: '/admin/members/:id', element: <AdminMemberDetailPage/>},

@@ -87,7 +87,7 @@ export interface PaymentCancelRequest {
  * 이후 Toss SDK에 tossOrderId를 넘겨 결제창 오픈
  */
 export async function initPayment(request: PaymentInitRequest): Promise<PaymentInitResponse> {
-  const { data } = await axiosInstance.post<PaymentInitResponse>('/api/payments/init', request)
+  const {data} = await axiosInstance.post<PaymentInitResponse>('/payments/init', request)
   return data
 }
 
@@ -96,7 +96,7 @@ export async function initPayment(request: PaymentInitRequest): Promise<PaymentI
  * Toss 서버 → 우리 백엔드 → DB 상태 업데이트
  */
 export async function confirmPayment(request: PaymentConfirmRequest): Promise<PaymentResponse> {
-  const { data } = await axiosInstance.post<PaymentResponse>('/api/payments/confirm', request)
+  const {data} = await axiosInstance.post<PaymentResponse>('/payments/confirm', request)
   return data
 }
 
@@ -104,7 +104,7 @@ export async function confirmPayment(request: PaymentConfirmRequest): Promise<Pa
  * 결제 정보 조회 — tradeId로 결제 내역 조회
  */
 export async function getPayment(tradeId: number): Promise<PaymentResponse> {
-  const { data } = await axiosInstance.get<PaymentResponse>(`/api/payments/${tradeId}`)
+  const {data} = await axiosInstance.get<PaymentResponse>(`/payments/${tradeId}`)
   return data
 }
 
@@ -117,8 +117,8 @@ export async function cancelPayment(
   paymentKey: string,
   request: PaymentCancelRequest,
 ): Promise<PaymentResponse> {
-  const { data } = await axiosInstance.post<PaymentResponse>(
-    `/api/payments/${paymentKey}/cancel`,
+  const {data} = await axiosInstance.post<PaymentResponse>(
+    `/payments/${paymentKey}/cancel`,
     request,
   )
   return data

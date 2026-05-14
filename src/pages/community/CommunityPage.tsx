@@ -16,18 +16,27 @@
  */
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {
-  ThumbsUp, MessageSquare, Eye, Search, PenSquare, X,
-  ChevronRight, TrendingUp, Clock, Loader2, AlertCircle,
+  AlertCircle,
+  ChevronRight,
+  Clock,
+  Eye,
+  Loader2,
+  MessageSquare,
+  PenSquare,
+  Search,
+  ThumbsUp,
+  TrendingUp,
+  X,
 } from 'lucide-react'
 import type {Sport} from '../../types/listing'
 import type {CommunityPostListItem, CommunityPostRequest} from '../../types/community'
 import {
-  getCommunityPosts,
   createCommunityPost,
-  togglePostLike,
+  getCommunityPosts,
   getPopularPosts,
+  togglePostLike,
 } from '../../features/community/api/communityApi'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -35,8 +44,8 @@ import {
 /** 종목 탭 — 백엔드 sport 필터에 대응 */
 const SPORT_TABS: { key: Sport | 'all'; label: string }[] = [
   {key: 'all', label: '전체'},
-  {key: 'SOCCER', label: '축구'},
   {key: 'BASEBALL', label: '야구'},
+  {key: 'SOCCER', label: '축구'},
   {key: 'BASKETBALL', label: '농구'},
   {key: 'VOLLEYBALL', label: '배구'},
   {key: 'ESPORTS', label: 'e스포츠'},
@@ -104,7 +113,7 @@ function PostCard({
               · {timeAgo(post.createdAt)}
             </span>
             {post.sport && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
+              <span className="text-[12px] px-1.5 py-0.5 rounded-full" style={{
                 background: 'var(--color-surface-raised)',
                 color: 'var(--color-text-hint)',
                 border: '1px solid var(--color-border)'
@@ -156,7 +165,7 @@ function PostCard({
 
 /** 게시글 작성 모달 */
 function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () => void }) {
-  const [sport, setSport] = useState<Sport>('SOCCER')
+  const [sport, setSport] = useState<Sport>('BASEBALL')
   const [teamCategory, setTeamCategory] = useState('')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')

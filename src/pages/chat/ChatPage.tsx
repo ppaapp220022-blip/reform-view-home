@@ -15,28 +15,26 @@
  * 채팅방 목록: getChatRooms() REST API
  * 메시지 이력: getMessages(chatId) REST API (desc → 역정렬해 초기값 주입)
  */
-import {useState, useRef, useEffect, useMemo} from 'react'
-import {Link} from 'react-router-dom'
+import {useEffect, useMemo, useRef, useState} from 'react'
+import {Link, useSearchParams} from 'react-router-dom'
 import {useQuery} from '@tanstack/react-query'
 import {
-  Send, ChevronLeft, Shield, Wifi, WifiOff,
-  MoreHorizontal, Image as ImageIcon, Search,
-  ShoppingBag, Loader2,
+  ChevronLeft,
+  Image as ImageIcon,
+  Loader2,
+  MoreHorizontal,
+  Search,
+  Send,
+  Shield,
+  ShoppingBag,
+  Wifi,
+  WifiOff,
 } from 'lucide-react'
 import {formatPrice} from '../../utils/format'
 import {useStompChat} from '../../features/chat/hooks/useStompChat'
 import useAuthStore from '../../store/authStore'
-import {
-  getChatRooms,
-  getChatRoomDetail,
-  getMessages,
-} from '../../features/chat/api/chatApi'
-import type {
-  TradeStatus,
-  ChatRoomSummary,
-  ChatRoomDetail,
-  ChatMessage,
-} from '../../features/chat/api/chatApi'
+import type {ChatMessage, ChatRoomDetail, ChatRoomSummary, TradeStatus,} from '../../features/chat/api/chatApi'
+import {getChatRoomDetail, getChatRooms, getMessages,} from '../../features/chat/api/chatApi'
 
 // ── 아바타 색상 팔레트 — memberId 기반 결정론적 배정 ──────────────────────────
 const AVATAR_COLORS = [
@@ -161,7 +159,7 @@ function RoomItem({
           </p>
           {room.unreadCount > 0 && (
             <span
-              className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] font-bold text-white flex items-center justify-center"
+              className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full text-[13px] font-bold text-white flex items-center justify-center"
               style={{background: 'var(--color-accent)'}}
             >
               {room.unreadCount}
@@ -172,7 +170,7 @@ function RoomItem({
         {/* 연결된 상품명 */}
         <div className="flex items-center gap-1.5 mt-0.5">
           <ShoppingBag size={10} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
-          <p className="text-[11px] truncate" style={{color: 'var(--color-text-hint)'}}>
+          <p className="text-[13px] truncate" style={{color: 'var(--color-text-hint)'}}>
             {room.post.title}
           </p>
         </div>
@@ -340,7 +338,7 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
           {msg.content}
         </div>
         <span
-          className="text-[11px] flex-shrink-0 pb-0.5"
+          className="text-[13px] flex-shrink-0 pb-0.5"
           style={{color: 'var(--color-text-hint)'}}
         >
           {isPending ? '전송 중' : time}
@@ -799,11 +797,15 @@ export default function ChatPage() {
     staleTime: 30_000,
   })
 
-  // 사용자가 명시적으로 선택한 방 ID (null = 미선택)
-  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(null)
+  // URL ?roomId=xxx 쿼리파라미터로 초기 방 지정 지원
+  // SellerCard에서 채팅방 생성 후 /chat?roomId={chatId} 로 navigate 할 때 사용
+  const [searchParams] = useSearchParams()
+  const urlRoomId = searchParams.get('roomId') ? Number(searchParams.get('roomId')) : null
 
-  // 파생 상태: 선택된 방이 없으면 첫 번째 방을 기본값으로 사용 (데스크톱 UX)
-  // useEffect + setState 대신 렌더 타임에 직접 계산
+  // 사용자가 명시적으로 선택한 방 ID (null = 미선택)
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(urlRoomId)
+
+  // 파생 상태: URL 지정 방 > 선택된 방 > 첫 번째 방 순으로 우선 적용
   const activeRoomId = selectedRoomId ?? rooms[0]?.chatId ?? null
 
   return (

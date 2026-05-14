@@ -13,15 +13,25 @@
  */
 import {formatPrice} from '../../utils/format'
 import {Link} from 'react-router-dom'
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {useState} from 'react'
 import {
-  Users, ShoppingBag, Flag, AlertOctagon,
-  TrendingUp, ChevronRight, CheckCircle2,
-  XCircle, Shield, BarChart2, Bell, Banknote, AlertCircle,
+  AlertCircle,
+  AlertOctagon,
+  Banknote,
+  BarChart2,
+  Bell,
+  CheckCircle2,
+  ChevronRight,
+  Flag,
+  Shield,
+  ShoppingBag,
+  TrendingUp,
+  Users,
+  XCircle,
 } from 'lucide-react'
-import {getAdminWithdrawList, processWithdraw} from '../../features/admin/api/adminApi'
 import type {AdminWithdrawItem} from '../../features/admin/api/adminApi'
+import {getAdminWithdrawList, processWithdraw} from '../../features/admin/api/adminApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
@@ -255,7 +265,7 @@ function SectionHeader({title, linkTo, linkLabel}: { title: string; linkTo?: str
       {linkTo && (
         <Link
           to={linkTo}
-          className="flex items-center gap-1 text-[12px] font-medium transition-colors
+          className="flex items-center gap-1 text-[13px] font-medium transition-colors
             text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
         >
           {linkLabel ?? '전체 보기'}
@@ -281,13 +291,13 @@ export default function AdminDashboardPage() {
               관리자 대시보드
             </h1>
           </div>
-          <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+          <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
             2026년 5월 9일 기준 · 실시간 데이터
           </p>
         </div>
         <button
           type="button"
-          className="flex items-center gap-2 px-4 h-9 rounded-[8px] text-[13px] font-medium transition-colors
+          className="flex items-center gap-2 px-4 h-9 rounded-[8px] text-[14px] font-medium transition-colors
             bg-[var(--color-surface-raised)] text-[var(--color-text-sub)]
             border border-[var(--color-border)] hover:border-[var(--color-primary)]"
         >
@@ -307,7 +317,7 @@ export default function AdminDashboardPage() {
               style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
             >
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[12px] font-medium" style={{color: 'var(--color-text-hint)'}}>
+                <p className="text-[13px] font-medium" style={{color: 'var(--color-text-hint)'}}>
                   {s.label}
                 </p>
                 <div
@@ -326,7 +336,7 @@ export default function AdminDashboardPage() {
               >
                 {s.value}
               </p>
-              <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                 {s.sub}
               </p>
             </div>
@@ -347,7 +357,7 @@ export default function AdminDashboardPage() {
           >
             <SectionHeader title="최근 신고 내역"/>
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]" style={{borderCollapse: 'collapse'}}>
+              <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
                 <thead>
                 <tr style={{borderBottom: '1px solid var(--color-border)'}}>
                   {['신고자', '대상', '사유', '접수일', '상태', ''].map((h) => (
@@ -374,7 +384,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
                           <span
-                            className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-medium"
+                            className="px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium"
                             style={{
                               background: r.targetType === 'POST' ? 'rgba(14,165,233,0.1)' : 'rgba(255,184,0,0.1)',
                               color: r.targetType === 'POST' ? 'var(--color-info)' : 'var(--color-gold)',
@@ -395,7 +405,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3 pr-3">
                           <span
-                            className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+                            className="px-2 py-0.5 rounded-full text-[13px] font-medium"
                             style={{background: meta.bg, color: meta.color}}
                           >
                             {meta.label}
@@ -404,7 +414,7 @@ export default function AdminDashboardPage() {
                       <td className="py-3">
                         <Link
                           to={`/admin/reports/${r.id}`}
-                          className="text-[11px] font-medium transition-colors
+                          className="text-[13px] font-medium transition-colors
                               text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                         >
                           처리 &rsaquo;
@@ -425,7 +435,7 @@ export default function AdminDashboardPage() {
           >
             <SectionHeader title="최근 거래 현황"/>
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px]" style={{borderCollapse: 'collapse'}}>
+              <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
                 <thead>
                 <tr style={{borderBottom: '1px solid var(--color-border)'}}>
                   {['상품명', '구매자', '판매자', '금액', '상태'].map((h) => (
@@ -463,7 +473,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="py-3">
                           <span
-                            className="text-[11px] font-medium"
+                            className="text-[13px] font-medium"
                             style={{color: statusMeta.color}}
                           >
                             {statusMeta.label}
@@ -502,7 +512,7 @@ export default function AdminDashboardPage() {
                   <div key={m.id} className="flex items-center gap-3">
                     {/* 아바타 */}
                     <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-bold text-white"
+                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-white"
                       style={{
                         background: m.status === 'SUSPENDED' ? 'var(--color-accent)' : 'var(--color-primary)',
                         fontFamily: "'IAMAPLAYER',Giants,sans-serif",
@@ -512,11 +522,11 @@ export default function AdminDashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-medium truncate" style={{color: 'var(--color-text-main)'}}>
+                        <p className="text-[14px] font-medium truncate" style={{color: 'var(--color-text-main)'}}>
                           {m.nickname}
                         </p>
                         <span
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          className="text-[12px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
                           style={{
                             background: `${statusMeta.color}18`,
                             color: statusMeta.color,
@@ -525,19 +535,19 @@ export default function AdminDashboardPage() {
                           {statusMeta.label}
                         </span>
                         {m.warningCount > 0 && (
-                          <span className="text-[10px] font-medium flex-shrink-0"
+                          <span className="text-[12px] font-medium flex-shrink-0"
                                 style={{color: 'var(--color-warning)'}}>
                             ⚠ {m.warningCount}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] truncate" style={{color: 'var(--color-text-hint)'}}>
+                      <p className="text-[13px] truncate" style={{color: 'var(--color-text-hint)'}}>
                         {m.email}
                       </p>
                     </div>
                     <Link
                       to={`/admin/members/${m.id}`}
-                      className="flex-shrink-0 text-[11px] font-medium transition-colors
+                      className="flex-shrink-0 text-[13px] font-medium transition-colors
                         text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                     >
                       상세
@@ -579,12 +589,12 @@ export default function AdminDashboardPage() {
                       bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface)]"
                   >
                     <Icon size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
-                    <span className="flex-1 text-[13px] font-medium" style={{color: 'var(--color-text-main)'}}>
+                    <span className="flex-1 text-[14px] font-medium" style={{color: 'var(--color-text-main)'}}>
                       {item.label}
                     </span>
                     {item.badge && (
                       <span
-                        className="w-5 h-5 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                        className="w-5 h-5 rounded-full text-[12px] font-bold text-white flex items-center justify-center"
                         style={{background: item.badgeColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                       >
                         {item.badge}
@@ -617,10 +627,10 @@ export default function AdminDashboardPage() {
                   <div key={item.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon size={13} style={{color: item.color}} strokeWidth={1.75}/>
-                      <span className="text-[12px]" style={{color: 'var(--color-text-sub)'}}>{item.label}</span>
+                      <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>{item.label}</span>
                     </div>
                     <span
-                      className="text-[13px] font-bold"
+                      className="text-[14px] font-bold"
                       style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                     >
                       {item.value}
@@ -638,7 +648,7 @@ export default function AdminDashboardPage() {
           >
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full animate-pulse" style={{background: 'var(--color-success)'}}/>
-              <p className="text-[12px] font-semibold" style={{color: 'var(--color-text-main)'}}>
+              <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
                 시스템 정상 운영 중
               </p>
             </div>
@@ -650,11 +660,11 @@ export default function AdminDashboardPage() {
                 {label: '결제 게이트웨이', ok: true},
               ].map((s) => (
                 <div key={s.label} className="flex items-center justify-between">
-                  <span className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>{s.label}</span>
+                  <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>{s.label}</span>
                   <div className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full"
                          style={{background: s.ok ? 'var(--color-success)' : 'var(--color-accent)'}}/>
-                    <span className="text-[10px] font-medium"
+                    <span className="text-[12px] font-medium"
                           style={{color: s.ok ? 'var(--color-success)' : 'var(--color-accent)'}}>
                       {s.ok ? 'OK' : 'ERR'}
                     </span>
@@ -758,7 +768,7 @@ export function WithdrawManagementSection() {
                     <p className="text-xs mt-0.5" style={{color: 'var(--color-text-sub)'}}>
                       {item.bankName} {item.accountNumber}
                     </p>
-                    <p className="text-[11px] mt-1" style={{color: 'var(--color-text-hint)'}}>
+                    <p className="text-[13px] mt-1" style={{color: 'var(--color-text-hint)'}}>
                       {new Date(item.createdAt).toLocaleString('ko-KR')}
                     </p>
                   </div>

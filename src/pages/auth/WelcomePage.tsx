@@ -15,7 +15,7 @@
  */
 import {useMemo} from 'react'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
-import {Check, ShoppingBag, Plus, Star} from 'lucide-react'
+import {Check, Plus, ShoppingBag, Star} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
 import type {SportType} from '../../features/auth/api/authApi'
 
@@ -74,7 +74,7 @@ function StepIndicator({current}: { current: 1 | 2 | 3 }) {
           <div key={step.n} className="contents">
             <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-medium transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-medium transition-colors"
                 style={{
                   background: isDone
                     ? 'var(--color-success)'
@@ -90,7 +90,7 @@ function StepIndicator({current}: { current: 1 | 2 | 3 }) {
                 {isDone ? <Check size={14} strokeWidth={2.5} color="#fff"/> : step.n}
               </div>
               <span
-                className="text-[11px] whitespace-nowrap"
+                className="text-[13px] whitespace-nowrap"
                 style={{
                   fontWeight: isActive ? 600 : 400,
                   color: isDone
@@ -139,7 +139,7 @@ function PlayerCard({
 }) {
   /** 닉네임에서 표시 이니셜 추출 (최대 2자) */
   const initial = nickname.trim().slice(0, 2).toUpperCase()
-
+  
   return (
     <div
       className="relative mx-auto overflow-hidden select-none"
@@ -157,7 +157,7 @@ function PlayerCard({
         className="absolute top-0 left-0 right-0"
         style={{height: 6, background: teamColor}}
       />
-
+      
       {/* 스피드라인 패턴 — 브랜드 요소 (대각선 줄) */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -177,7 +177,7 @@ function PlayerCard({
           />
         ))}
       </div>
-
+      
       {/* RE:FORM 브랜드 태그 — 상단 좌측 */}
       <div
         className="absolute top-[14px] left-[14px] px-2 py-0.5 rounded-sm"
@@ -191,7 +191,7 @@ function PlayerCard({
       >
         RE:FORM
       </div>
-
+      
       {/* 오른쪽 상단 팀컬러 다이아몬드 */}
       <div
         className="absolute top-[10px] right-[14px]"
@@ -204,7 +204,7 @@ function PlayerCard({
           opacity: 0.9,
         }}
       />
-
+      
       {/* 중앙 아바타 원 */}
       <div
         className="absolute flex items-center justify-center rounded-full font-bold"
@@ -224,7 +224,7 @@ function PlayerCard({
       >
         {initial}
       </div>
-
+      
       {/* 닉네임 — IAMAPLAYER */}
       <div
         className="absolute left-0 right-0 text-center px-4"
@@ -240,7 +240,7 @@ function PlayerCard({
         {/* IAMAPLAYER는 영문/숫자만 — 한글 닉네임은 Pretendard로 폴백 */}
         {nickname}
       </div>
-
+      
       {/* 구분선 */}
       <div
         className="absolute left-[28px] right-[28px]"
@@ -250,7 +250,7 @@ function PlayerCard({
           background: 'rgba(255,255,255,0.12)',
         }}
       />
-
+      
       {/* 포지션 + 매너 점수 */}
       <div
         className="absolute left-0 right-0 flex items-center justify-between px-7"
@@ -278,7 +278,7 @@ function PlayerCard({
           ))}
         </div>
       </div>
-
+      
       {/* 통계 행 */}
       <div
         className="absolute left-[28px] right-[28px] flex justify-between"
@@ -315,7 +315,7 @@ function PlayerCard({
           </div>
         ))}
       </div>
-
+      
       {/* 하단 멤버 태그 */}
       <div
         className="absolute left-0 right-0 text-center"
@@ -360,10 +360,10 @@ function BadgeUnlock() {
       </div>
       <div>
         {/* 배지 획득 타이틀: 잘 보여야 하므로 font-display(Giants) */}
-        <p className="text-[13px] font-display font-semibold" style={{color: 'var(--color-text-main)'}}>
+        <p className="text-[14px] font-display font-semibold" style={{color: 'var(--color-text-main)'}}>
           NEW PLAYER 배지 획득
         </p>
-        <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+        <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
           첫 거래 완료 시 ROOKIE 배지로 업그레이드됩니다
         </p>
       </div>
@@ -380,7 +380,7 @@ function FeedPreview({count, sportLabels}: { count: number; sportLabels: string[
   const label = sportLabels.length > 0
     ? sportLabels.join(' · ')
     : '전체 종목'
-
+  
   return (
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-[10px]"
@@ -396,13 +396,13 @@ function FeedPreview({count, sportLabels}: { count: number; sportLabels: string[
         <ShoppingBag size={16} style={{color: 'var(--color-accent)'}} strokeWidth={1.75}/>
       </div>
       <div>
-        <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
+        <p className="text-[14px] font-semibold" style={{color: 'var(--color-text-main)'}}>
           <span style={{color: 'var(--color-accent)', fontVariantNumeric: 'tabular-nums'}}>
             {formatted}개
           </span>
           의 유니폼이 기다리고 있어요
         </p>
-        <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+        <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
           {label} 관심 매물 기준
         </p>
       </div>
@@ -422,10 +422,10 @@ export default function WelcomePage() {
   const location = useLocation()
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-
+  
   /** router state로 전달된 관심 설정 (온보딩을 건너뛴 경우 빈 배열) */
   const state = (location.state ?? {}) as Partial<WelcomeState>
-
+  
   /**
    * sports / teams를 useMemo로 안정화 — 매 렌더마다 새 배열 참조가 생기면
    * 하위 useMemo의 deps 비교가 항상 달라져 불필요한 재계산이 발생함
@@ -441,23 +441,23 @@ export default function WelcomePage() {
     if (state.team) return [state.team as string]
     return []
   }, [state.teams, state.team])
-
+  
   /** 닉네임 — authStore에서 읽거나 '선수' 폴백 */
   const nickname = user?.nickname ?? '선수'
-
+  
   /** 관심 팀 기준 대표 컬러 (없으면 navy) */
   const teamColor = useMemo(() => getPrimaryTeamColor(teams), [teams])
-
+  
   /** 초기 매너 점수 */
   /** mannerScore: 0~5.0 스케일 (당근마켓 별점 방식). 신규 가입자 기본값 3.65 ≈ ★★★★ */
   const mannerScore = user?.mannerScore ?? 3.65
-
+  
   /** 매물 카운트 (mock) */
   const feedCount = useMemo(() => getMockCount(sports), [sports])
-
+  
   /** 종목 한글 라벨 */
   const sportLabels = sports.map((s) => SPORT_LABEL[s])
-
+  
   return (
     <div
       className="w-full max-w-[480px] rounded-2xl overflow-hidden shadow-card animate-fadeInUp"
@@ -469,15 +469,15 @@ export default function WelcomePage() {
     >
       {/* 상단 navy 액센트 바 */}
       <div className="h-[3px]" style={{background: 'var(--color-primary)'}}/>
-
+      
       <div className="px-8 py-8">
         {/* 스텝 인디케이터 — Step 3 활성, 1·2 완료 */}
         <StepIndicator current={3}/>
-
+        
         {/* 헤드라인 */}
         <div className="mb-7 text-center">
           <p
-            className="text-[11px] font-semibold uppercase tracking-widest mb-2"
+            className="text-[13px] font-semibold uppercase tracking-widest mb-2"
             style={{color: 'var(--color-success)'}}
           >
             가입 완료
@@ -497,7 +497,7 @@ export default function WelcomePage() {
             {nickname}님, RE:FORM에 오신 걸 환영합니다.
           </p>
         </div>
-
+        
         {/* 플레이어 카드 */}
         <div className="flex justify-center mb-6">
           <PlayerCard
@@ -506,19 +506,19 @@ export default function WelcomePage() {
             mannerScore={mannerScore}
           />
         </div>
-
+        
         {/* 배지 획득 알림 */}
         <div className="mb-4">
           <BadgeUnlock/>
         </div>
-
+        
         {/* 관심 종목 매물 카운트 */}
         {feedCount > 0 && (
           <div className="mb-4">
             <FeedPreview count={feedCount} sportLabels={sportLabels}/>
           </div>
         )}
-
+        
         {/* 선택된 관심 요약 칩 */}
         {(sports.length > 0 || teams.length > 0) && (
           <div
@@ -529,7 +529,7 @@ export default function WelcomePage() {
             }}
           >
             <p
-              className="text-[10px] font-semibold uppercase tracking-wide mb-2"
+              className="text-[12px] font-semibold uppercase tracking-wide mb-2"
               style={{color: 'var(--color-text-hint)'}}
             >
               내 관심 설정
@@ -538,7 +538,7 @@ export default function WelcomePage() {
               {sports.map((s) => (
                 <span
                   key={s}
-                  className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                  className="px-2.5 py-1 rounded-full text-[13px] font-medium"
                   style={{
                     background: 'var(--color-primary)',
                     color: '#fff',
@@ -550,7 +550,7 @@ export default function WelcomePage() {
               {teams.map((t) => (
                 <span
                   key={t}
-                  className="px-2.5 py-1 rounded-full text-[11px] font-medium"
+                  className="px-2.5 py-1 rounded-full text-[13px] font-medium"
                   style={{
                     background: 'var(--color-surface-raised, var(--color-surface))',
                     border: '1.5px solid var(--color-border-strong)',
@@ -563,7 +563,7 @@ export default function WelcomePage() {
             </div>
           </div>
         )}
-
+        
         {/* CTA 버튼 */}
         <div className="flex flex-col gap-3">
           {/* 홈 피드 */}
@@ -575,7 +575,7 @@ export default function WelcomePage() {
           >
             홈 피드 보러 가기
           </Link>
-
+          
           {/* 판매하기 */}
           <button
             type="button"

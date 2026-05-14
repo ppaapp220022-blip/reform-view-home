@@ -12,14 +12,11 @@
  *   - 위험 탐지: 설명 입력 중 키워드 실시간 감지 (택배비 선불, 계좌이체 등)
  */
 import {formatPrice} from '../../utils/format'
-import {useState, useRef, useCallback, useMemo, useEffect} from 'react'
-import {savePostDraft, getPostDraft, deletePostDraft} from '../../features/listing/api/draftApi'
-import {
-  Upload, X, Sparkles, AlertTriangle, CheckCircle2,
-  ChevronDown, Info, Eye, Loader2,
-} from 'lucide-react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {deletePostDraft, getPostDraft, savePostDraft} from '../../features/listing/api/draftApi'
+import {AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Loader2, Sparkles, Upload, X,} from 'lucide-react'
 import {useNavigate} from 'react-router-dom'
-import type {Grade, Sport, DeliveryType, RiskLevel} from '../../types/listing'
+import type {DeliveryType, Grade, RiskLevel, Sport} from '../../types/listing'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
@@ -95,10 +92,10 @@ function ImageUploader({
   onRemove: (idx: number) => void         // 파일 제거 콜백
 }) {
   const MAX = 8
-
+  
   /* 숨겨진 file input ref */
   const fileRef = useRef<HTMLInputElement>(null)
-
+  
   /**
    * 파일 인풋 change 핸들러
    * — 선택된 파일을 최대 MAX개까지 추가하고 input value를 초기화해
@@ -112,7 +109,7 @@ function ImageUploader({
     if (toAdd.length) onAdd(toAdd)
     e.target.value = ''   // 동일 파일 재선택 허용
   }
-
+  
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -136,7 +133,7 @@ function ImageUploader({
                 onLoad={() => URL.revokeObjectURL(previewUrl)}
               />
               {i === 0 && (
-                <span className="absolute bottom-1 left-1 text-[9px] font-bold px-1 py-0.5 rounded"
+                <span className="absolute bottom-1 left-1 text-[12px] font-bold px-1 py-0.5 rounded"
                       style={{background: 'rgba(0,0,0,.45)', color: '#fff'}}>대표</span>
               )}
               <button
@@ -163,7 +160,7 @@ function ImageUploader({
             aria-label="이미지 추가"
           >
             <Upload size={18}/>
-            <span className="text-[10px]">추가</span>
+            <span className="text-[12px]">추가</span>
           </button>
         )}
       </div>
@@ -285,7 +282,7 @@ function AiPanel({
       .filter(r => form.description.includes(r.word))
       .map(r => ({level: r.level, msg: r.msg}))
   }, [form.description])
-
+  
   async function requestAiDescription() {
     if (!form.title || !form.grade) return
     setAiLoading(true)
@@ -295,9 +292,9 @@ function AiPanel({
     setAiResult(generateAiDescription(form.title, form.team, form.grade))
     setAiLoading(false)
   }
-
+  
   const canGenerate = !!form.title && !!form.grade
-
+  
   return (
     <div className="flex flex-col gap-4">
       {/* AI 설명 추천 */}
@@ -320,7 +317,7 @@ function AiPanel({
             {aiLoading ? <Loader2 size={16} className="animate-spin"/> : <Sparkles size={16}/>}
             {aiLoading ? 'AI 생성 중...' : '설명 자동 생성'}
           </button>
-
+          
           {aiResult && (
             <div className="mt-3">
               <div
@@ -342,15 +339,15 @@ function AiPanel({
               </button>
             </div>
           )}
-
+          
           {!canGenerate && (
-            <p className="text-[11px] mt-2 flex items-center gap-1" style={{color: 'var(--color-text-hint)'}}>
+            <p className="text-[13px] mt-2 flex items-center gap-1" style={{color: 'var(--color-text-hint)'}}>
               <Info size={11}/>제목과 등급을 먼저 입력해주세요.
             </p>
           )}
         </div>
       </div>
-
+      
       {/* 위험 탐지 */}
       <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-2 px-4 py-3" style={{
@@ -378,7 +375,7 @@ function AiPanel({
           )}
         </div>
       </div>
-
+      
       {/* 라이브 프리뷰 */}
       <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-2 px-4 py-3"
@@ -434,7 +431,7 @@ function AiPanel({
 
 export default function ListingCreatePage() {
   const navigate = useNavigate()
-
+  
   const [form, setForm] = useState<ListingForm>({
     title: '', sport: 'SOCCER', team: '', jerseyNumber: '',
     size: 'M', grade: 'A', deliveryType: 'BOTH', price: '', description: '', tradeArea: '',
@@ -445,11 +442,11 @@ export default function ListingCreatePage() {
   const [draftLoaded, setDraftLoaded] = useState(false)   // 초안 복원 알림 표시 여부
   const [draftSaving, setDraftSaving] = useState(false)   // 저장 중 표시
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
+  
   const update = useCallback(<K extends keyof ListingForm>(key: K, val: ListingForm[K]) => {
     setForm(prev => ({...prev, [key]: val}))
   }, [])
-
+  
   /* 마운트 시 초안 불러오기 */
   useEffect(() => {
     getPostDraft()
@@ -466,12 +463,12 @@ export default function ListingCreatePage() {
       .catch(() => { /* 초안 없으면 무시 */
       })
   }, [])
-
+  
   /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) */
   useEffect(() => {
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
     if (!form.title && !form.description) return
-
+    
     draftTimerRef.current = setTimeout(() => {
       setDraftSaving(true)
       savePostDraft({title: form.title, content: form.description})
@@ -479,22 +476,22 @@ export default function ListingCreatePage() {
         })
         .finally(() => setDraftSaving(false))
     }, 1500)
-
+    
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
     }
   }, [form.title, form.description])
-
+  
   /* 종목 변경 시 초기화 */
   function handleSportChange(sport: Sport) {
     update('sport', sport)
   }
-
+  
   /* AI 추천 적용 */
   function applyAiDescription(text: string) {
     update('description', text)
   }
-
+  
   /* 제출 — createListing API 연동 */
   async function handleSubmit() {
     if (!form.title || !form.price || images.length === 0) return
@@ -505,7 +502,7 @@ export default function ListingCreatePage() {
       const imageUrls = images.length > 0
         ? await uploadListingImages(images)
         : []
-
+      
       /* Step 2: imageUrls 포함하여 판매글 등록 요청 */
       const postId = await createListing({
         title: form.title,
@@ -528,9 +525,9 @@ export default function ListingCreatePage() {
       setSubmitting(false)
     }
   }
-
+  
   const canSubmit = !!form.title && !!form.price && images.length > 0
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
@@ -573,11 +570,11 @@ export default function ListingCreatePage() {
             </div>
           )}
         </div>
-
+        
         <div className="flex flex-col xl:flex-row gap-6">
           {/* ── 좌: 메인 폼 ─────────────────────────────────────────────── */}
           <div className="flex-1 min-w-0 flex flex-col gap-6">
-
+            
             {/* 이미지 업로드 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -587,7 +584,7 @@ export default function ListingCreatePage() {
                 onRemove={i => setImages(p => p.filter((_, idx) => idx !== i))}
               />
             </div>
-
+            
             {/* 기본 정보 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -617,7 +614,7 @@ export default function ListingCreatePage() {
                 </div>
               </div>
             </div>
-
+            
             {/* 상품 상태 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -641,7 +638,7 @@ export default function ListingCreatePage() {
                         }}
                       >
                         <span className="font-bold text-base">{g.label}</span>
-                        <span className="text-[10px] mt-1 opacity-70">{g.desc}</span>
+                        <span className="text-[12px] mt-1 opacity-70">{g.desc}</span>
                       </button>
                     ))}
                   </div>
@@ -671,7 +668,7 @@ export default function ListingCreatePage() {
                 </div>
               </div>
             </div>
-
+            
             {/* 거래 정보 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -695,7 +692,7 @@ export default function ListingCreatePage() {
                         }}
                       >
                         <span className="font-bold text-sm">{d.label}</span>
-                        <span className="text-[10px] mt-1 opacity-70">{d.desc}</span>
+                        <span className="text-[12px] mt-1 opacity-70">{d.desc}</span>
                       </button>
                     ))}
                   </div>
@@ -714,7 +711,7 @@ export default function ListingCreatePage() {
                 )}
               </div>
             </div>
-
+            
             {/* 상품 설명 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -739,12 +736,12 @@ export default function ListingCreatePage() {
                 }}
               />
             </div>
-
+            
             {/* AI 패널 (모바일: 인라인) */}
             <div className="xl:hidden">
               <AiPanel form={form} onApply={applyAiDescription}/>
             </div>
-
+            
             {/* 제출 버튼 */}
             <div className="flex gap-3">
               <button
@@ -757,14 +754,14 @@ export default function ListingCreatePage() {
                 {submitting ? '등록 중...' : '판매 등록하기'}
               </button>
             </div>
-
+            
             {!canSubmit && (
               <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
                 상품명, 가격, 사진을 입력해야 등록할 수 있습니다.
               </p>
             )}
           </div>
-
+          
           {/* ── 우: AI 패널 (데스크탑) ───────────────────────────────── */}
           <div className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-20 flex flex-col gap-4">

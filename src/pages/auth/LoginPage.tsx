@@ -11,11 +11,11 @@
  *       Step 1) 이메일+비밀번호 제출 → 이메일로 6자리 코드 발송
  *       Step 2) 인증코드 입력 → JWT 발급 → 홈 이동
  */
-import {useState, useRef, type FormEvent, type KeyboardEvent} from 'react'
+import {type FormEvent, type KeyboardEvent, useRef, useState} from 'react'
 import {Link} from 'react-router-dom'
-import {Eye, EyeOff, ShieldCheck, Sparkles, CreditCard, Mail} from 'lucide-react'
+import {AlertCircle, CreditCard, Eye, EyeOff, Mail, ShieldCheck, Sparkles} from 'lucide-react'
 import {useLogin} from '../../features/auth/hooks/useLogin'
-import {redirectToKakao, redirectToGoogle} from '../../features/auth/api/authApi'
+import {redirectToGoogle, redirectToKakao} from '../../features/auth/api/authApi'
 import type {AxiosError} from 'axios'
 
 // ── 소셜 로그인 아이콘 SVG ─────────────────────────────────────────────────────
@@ -77,8 +77,8 @@ function FeatureItem({icon, title, desc}: FeatureItemProps) {
         {icon}
       </div>
       <div>
-        <p className="text-[13px] font-medium text-white leading-tight">{title}</p>
-        <p className="text-[11px] leading-tight" style={{color: 'rgba(255,255,255,0.45)'}}>
+        <p className="text-[14px] font-medium text-white leading-tight">{title}</p>
+        <p className="text-[13px] leading-tight" style={{color: 'rgba(255,255,255,0.45)'}}>
           {desc}
         </p>
       </div>
@@ -92,7 +92,7 @@ interface CodeFormProps {
   email: string
   onSubmit: (code: string) => void
   isPending: boolean
-  error: Error | null
+  errorMessage: string | null   // 파싱된 에러 문자열 직접 수신 (mutation 상태 의존 제거)
   onBack: () => void
 }
 
@@ -100,19 +100,10 @@ interface CodeFormProps {
  * 6자리 인증코드 입력 UI
  * 각 digit을 개별 input으로 렌더링, 자동 포커스 이동
  */
-function CodeForm({email, onSubmit, isPending, error, onBack}: CodeFormProps) {
+function CodeForm({email, onSubmit, isPending, errorMessage, onBack}: CodeFormProps) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const refs = useRef<(HTMLInputElement | null)[]>([])
-
-  const serverError = (() => {
-    if (!error) return null
-    const axiosErr = error as AxiosError<{ message?: string }>
-    const status = axiosErr.response?.status
-    if (status === 400) return '인증코드가 올바르지 않거나 만료되었습니다.'
-    if (status === 429) return '시도 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'
-    return axiosErr.response?.data?.message ?? '코드 인증 중 오류가 발생했습니다.'
-  })()
-
+  
   function handleInput(idx: number, val: string) {
     // 숫자만 허용
     const digit = val.replace(/\D/g, '').slice(-1)
@@ -122,32 +113,32 @@ function CodeForm({email, onSubmit, isPending, error, onBack}: CodeFormProps) {
     // 다음 칸으로 자동 포커스
     if (digit && idx < 5) refs.current[idx + 1]?.focus()
   }
-
+  
   function handleKeyDown(idx: number, e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Backspace' && !digits[idx] && idx > 0) {
       refs.current[idx - 1]?.focus()
     }
   }
-
+  
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const code = digits.join('')
     if (code.length === 6) onSubmit(code)
   }
-
+  
   const isFilled = digits.every((d) => d !== '')
-
+  
   return (
     <form onSubmit={handleSubmit} noValidate>
       {/* 안내 */}
       <div className="flex items-start gap-3 mb-6 p-4 rounded-[10px] bg-[var(--color-surface-raised)]">
         <Mail size={18} strokeWidth={1.75} className="flex-shrink-0 mt-0.5 text-[var(--color-accent)]"/>
-        <p className="text-[13px] text-[var(--color-text-sub)] leading-relaxed">
+        <p className="text-[14px] text-[var(--color-text-sub)] leading-relaxed">
           <span className="font-medium text-[var(--color-text-main)]">{email}</span>
           로 인증코드 6자리를 발송했습니다. 이메일을 확인해 주세요.
         </p>
       </div>
-
+      
       {/* 6자리 digit 입력 */}
       <div className="flex gap-2 mb-5 justify-center">
         {digits.map((d, i) => (
@@ -170,22 +161,23 @@ function CodeForm({email, onSubmit, isPending, error, onBack}: CodeFormProps) {
           />
         ))}
       </div>
-
-      {/* 서버 에러 메시지 */}
-      {serverError && (
-        <p
-          className="text-[13px] mb-4 px-4 py-3 rounded-[8px]"
+      
+      {/* 에러 메시지 — 로컬 상태 기반 (mutation 재시도 시에도 유지) */}
+      {errorMessage && (
+        <div
+          className="flex items-start gap-2.5 mb-4 px-4 py-3 rounded-[10px]"
           style={{
-            color: 'var(--color-error)',
+            color: 'var(--color-accent)',
             background: 'rgba(255,46,77,0.08)',
-            border: '1px solid rgba(255,46,77,0.2)',
+            border: '1px solid rgba(255,46,77,0.25)',
           }}
           role="alert"
         >
-          {serverError}
-        </p>
+          <AlertCircle size={16} strokeWidth={1.75} style={{flexShrink: 0, marginTop: 1}}/>
+          <span className="text-[14px] leading-snug">{errorMessage}</span>
+        </div>
       )}
-
+      
       {/* 확인 버튼 */}
       <button
         type="submit"
@@ -195,7 +187,7 @@ function CodeForm({email, onSubmit, isPending, error, onBack}: CodeFormProps) {
       >
         {isPending ? '확인 중...' : '인증 완료'}
       </button>
-
+      
       {/* 뒤로가기 */}
       <button
         type="button"
@@ -215,32 +207,53 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
-
+  
   const {step1, step2, challenge} = useLogin()
-
-  /** Step 1 서버 에러 메시지 파싱 */
-  const step1Error = (() => {
-    if (!step1.error) return null
-    const axiosErr = step1.error as AxiosError<{ message?: string }>
+  
+  // 로컬 에러 상태 — mutation.error 대신 별도 관리
+  // 이유: mutation 재시도 시 error가 null로 초기화되어 메시지가 사라지는 버그 방지
+  const [step1Error, setStep1Error] = useState<string | null>(null)
+  const [step2Error, setStep2Error] = useState<string | null>(null)
+  
+  /** Step 1 에러 메시지 파싱 */
+  function parseStep1Error(err: unknown): string {
+    const axiosErr = err as AxiosError<{ message?: string }>
     const status = axiosErr.response?.status
     if (status === 401 || status === 403) return '이메일 또는 비밀번호가 올바르지 않습니다.'
     if (status === 429) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.'
     return axiosErr.response?.data?.message ?? '로그인 중 오류가 발생했습니다.'
-  })()
-
+  }
+  
+  /** Step 2 에러 메시지 파싱 */
+  function parseStep2Error(err: unknown): string {
+    const axiosErr = err as AxiosError<{ message?: string }>
+    const status = axiosErr.response?.status
+    if (status === 400) return '인증코드가 올바르지 않거나 만료되었습니다.'
+    if (status === 429) return '시도 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요.'
+    return axiosErr.response?.data?.message ?? '코드 인증 중 오류가 발생했습니다.'
+  }
+  
   /** 폼 제출 핸들러 (Step 1) */
   function handleStep1Submit(e: FormEvent) {
     e.preventDefault()
     if (!email || !password) return
-    step1.mutate({email, password})
+    setStep1Error(null)  // 재시도 시 기존 에러 초기화
+    step1.mutate(
+      {email, password},
+      {onError: (err) => setStep1Error(parseStep1Error(err))},
+    )
   }
-
+  
   /** 인증코드 제출 핸들러 (Step 2) */
   function handleStep2Submit(code: string) {
     if (!challenge) return
-    step2.mutate({challengeId: challenge.challengeId, code})
+    setStep2Error(null)  // 재시도 시 기존 에러 초기화
+    step2.mutate(
+      {challengeId: challenge.challengeId, code},
+      {onError: (err) => setStep2Error(parseStep2Error(err))},
+    )
   }
-
+  
   return (
     <div
       className="w-full max-w-[880px] rounded-2xl overflow-hidden flex shadow-card"
@@ -262,7 +275,7 @@ export default function LoginPage() {
           className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full"
           style={{border: '28px solid rgba(255,255,255,0.04)', pointerEvents: 'none'}}
         />
-
+        
         {/* 로고 워드마크 */}
         <div
           className="text-[48px] text-white mb-2 leading-none"
@@ -273,7 +286,7 @@ export default function LoginPage() {
         >
           RE:<span style={{color: 'var(--color-accent)'}}>FORM</span>
         </div>
-
+        
         {/* 태그라인 */}
         <p
           className="text-[14px] mb-10 leading-relaxed"
@@ -283,7 +296,7 @@ export default function LoginPage() {
           <br/>
           신뢰와 투명함이 함께합니다.
         </p>
-
+        
         {/* 피처 리스트 */}
         <div className="flex flex-col gap-4">
           <FeatureItem
@@ -303,25 +316,28 @@ export default function LoginPage() {
           />
         </div>
       </aside>
-
+      
       {/* ── 우측: 폼 패널 ── */}
       <section className="flex-1 flex flex-col justify-center px-10 py-12 bg-[var(--color-surface)]">
-
+        
         {/* Step 2: 인증코드 입력 */}
         {challenge ? (
           <>
             <h1 className="text-[22px] font-medium text-[var(--color-text-main)] mb-1">
               이메일 인증
             </h1>
-            <p className="text-[13px] text-[var(--color-text-sub)] mb-8">
+            <p className="text-[14px] text-[var(--color-text-sub)] mb-8">
               이메일로 발송된 6자리 코드를 입력해 주세요.
             </p>
             <CodeForm
               email={challenge.email}
               onSubmit={handleStep2Submit}
               isPending={step2.isPending}
-              error={step2.error}
-              onBack={() => step1.reset()}
+              errorMessage={step2Error}
+              onBack={() => {
+                step1.reset();
+                setStep2Error(null)
+              }}
             />
           </>
         ) : (
@@ -330,7 +346,7 @@ export default function LoginPage() {
             <h1 className="text-[22px] font-medium text-[var(--color-text-main)] mb-1">
               로그인
             </h1>
-            <p className="text-[13px] text-[var(--color-text-sub)] mb-8">
+            <p className="text-[14px] text-[var(--color-text-sub)] mb-8">
               계정이 없으신가요?{' '}
               <Link
                 to="/register"
@@ -339,7 +355,7 @@ export default function LoginPage() {
                 회원가입
               </Link>
             </p>
-
+            
             {/* 소셜 로그인 버튼 */}
             <div className="flex flex-col gap-[10px] mb-6">
               {/* 카카오 */}
@@ -356,7 +372,7 @@ export default function LoginPage() {
                 <KakaoIcon/>
                 카카오로 계속하기
               </button>
-
+              
               {/* 구글 */}
               <button
                 type="button"
@@ -369,14 +385,14 @@ export default function LoginPage() {
                 Google로 계속하기
               </button>
             </div>
-
+            
             {/* 구분선 */}
             <div className="flex items-center gap-3 mb-6">
               <div className="flex-1 h-px bg-[var(--color-border)]"/>
-              <span className="text-[12px] text-[var(--color-text-hint)]">또는</span>
+              <span className="text-[13px] text-[var(--color-text-hint)]">또는</span>
               <div className="flex-1 h-px bg-[var(--color-border)]"/>
             </div>
-
+            
             {/* 이메일 + 비밀번호 폼 */}
             <form onSubmit={handleStep1Submit} noValidate>
               <div className="flex flex-col gap-3 mb-5">
@@ -384,7 +400,7 @@ export default function LoginPage() {
                 <div>
                   <label
                     htmlFor="login-email"
-                    className="block text-[11px] font-medium tracking-wide uppercase text-[var(--color-text-hint)] mb-2"
+                    className="block text-[13px] font-medium tracking-wide uppercase text-[var(--color-text-hint)] mb-2"
                   >
                     이메일
                   </label>
@@ -394,17 +410,20 @@ export default function LoginPage() {
                     autoComplete="email"
                     placeholder="example@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setStep1Error(null)
+                    }}
                     className="input-base w-full"
                     required
                   />
                 </div>
-
+                
                 {/* 비밀번호 */}
                 <div>
                   <label
                     htmlFor="login-password"
-                    className="block text-[11px] font-medium tracking-wide uppercase text-[var(--color-text-hint)] mb-2"
+                    className="block text-[13px] font-medium tracking-wide uppercase text-[var(--color-text-hint)] mb-2"
                   >
                     비밀번호
                   </label>
@@ -415,7 +434,10 @@ export default function LoginPage() {
                       autoComplete="current-password"
                       placeholder="비밀번호를 입력하세요"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setStep1Error(null)
+                      }}
                       className="input-base w-full pr-11"
                       required
                     />
@@ -434,11 +456,11 @@ export default function LoginPage() {
                   </div>
                 </div>
               </div>
-
+              
               {/* 로그인 유지 + 비밀번호 찾기 */}
               <div className="flex items-center justify-between mb-5">
                 <label
-                  className="flex items-center gap-2 text-[13px] text-[var(--color-text-sub)] cursor-pointer select-none">
+                  className="flex items-center gap-2 text-[14px] text-[var(--color-text-sub)] cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -449,27 +471,29 @@ export default function LoginPage() {
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-[12px] text-[var(--color-accent)] hover:text-[var(--color-accent)] no-underline"
+                  className="text-[13px] text-[var(--color-accent)] hover:text-[var(--color-accent)] no-underline"
                 >
                   비밀번호 찾기
                 </Link>
               </div>
-
-              {/* Step 1 서버 에러 메시지 */}
+              
+              {/* 로그인 실패 에러 배너 — 로컬 상태 기반, 버튼 직전에 항상 노출 */}
               {step1Error && (
-                <p
-                  className="text-[13px] mb-4 px-4 py-3 rounded-[8px]"
+                <div
+                  className="flex items-start gap-2.5 mb-4 px-4 py-3 rounded-[10px]"
                   style={{
-                    color: 'var(--color-error)',
+                    color: 'var(--color-accent)',
                     background: 'rgba(255,46,77,0.08)',
-                    border: '1px solid rgba(255,46,77,0.2)',
+                    border: '1px solid rgba(255,46,77,0.25)',
                   }}
                   role="alert"
+                  aria-live="assertive"
                 >
-                  {step1Error}
-                </p>
+                  <AlertCircle size={16} strokeWidth={1.75} style={{flexShrink: 0, marginTop: 1}}/>
+                  <span className="text-[14px] leading-snug font-medium">{step1Error}</span>
+                </div>
               )}
-
+              
               {/* 로그인 버튼 */}
               <button
                 type="submit"

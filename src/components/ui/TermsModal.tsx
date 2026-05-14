@@ -6,8 +6,8 @@
  *   <TermsModal type="privacy"   onClose={() => setOpen(false)} />
  *   <TermsModal type="marketing" onClose={() => setOpen(false)} />
  */
-import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import {useEffect} from 'react'
+import {X} from 'lucide-react'
 
 export type TermsType = 'service' | 'privacy' | 'marketing'
 
@@ -142,14 +142,15 @@ RE:FORM은 아래와 같이 마케팅 정보를 발송합니다. 동의하지 �
 
 // ── 컴포넌트 ─────────────────────────────────────────────────────────────────
 
-export default function TermsModal({ type, onClose }: TermsModalProps) {
-  const { title, content } = TERMS_CONTENT[type]
-
+export default function TermsModal({type, onClose}: TermsModalProps) {
+  const {title, content} = TERMS_CONTENT[type]
+  
   // ESC 키로 닫기
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
+    
     window.addEventListener('keydown', handleKeyDown)
     // 모달 열린 동안 body 스크롤 잠금
     document.body.style.overflow = 'hidden'
@@ -158,12 +159,12 @@ export default function TermsModal({ type, onClose }: TermsModalProps) {
       document.body.style.overflow = ''
     }
   }, [onClose])
-
+  
   return (
     /* 오버레이 */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.5)' }}
+      style={{background: 'rgba(0,0,0,0.5)'}}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -172,13 +173,13 @@ export default function TermsModal({ type, onClose }: TermsModalProps) {
       {/* 모달 패널 — 클릭 버블 차단 */}
       <div
         className="w-full max-w-[560px] max-h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-modal"
-        style={{ background: 'var(--color-surface)' }}
+        style={{background: 'var(--color-surface)'}}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div
           className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--color-border)' }}
+          style={{borderBottom: '1px solid var(--color-border)'}}
         >
           <h2 className="text-[15px] font-semibold text-[var(--color-text-main)]">
             {title}
@@ -189,30 +190,30 @@ export default function TermsModal({ type, onClose }: TermsModalProps) {
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--color-text-hint)] hover:text-[var(--color-text-sub)] hover:bg-[var(--color-surface-raised)] transition-colors"
             aria-label="닫기"
           >
-            <X size={18} strokeWidth={1.75} />
+            <X size={18} strokeWidth={1.75}/>
           </button>
         </div>
-
+        
         {/* 본문 — 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <pre
-            className="text-[13px] leading-relaxed whitespace-pre-wrap font-sans"
-            style={{ color: 'var(--color-text-sub)' }}
+            className="text-[14px] leading-relaxed whitespace-pre-wrap font-sans"
+            style={{color: 'var(--color-text-sub)'}}
           >
             {content}
           </pre>
         </div>
-
+        
         {/* 푸터 */}
         <div
           className="px-6 py-4 flex-shrink-0"
-          style={{ borderTop: '1px solid var(--color-border)' }}
+          style={{borderTop: '1px solid var(--color-border)'}}
         >
           <button
             type="button"
             onClick={onClose}
             className="w-full h-11 rounded-[8px] text-[14px] font-medium text-white transition-colors hover:opacity-90"
-            style={{ background: 'var(--color-primary)' }}
+            style={{background: 'var(--color-primary)'}}
           >
             확인
           </button>

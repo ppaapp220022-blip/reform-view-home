@@ -32,43 +32,43 @@ export default function Footer() {
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="max-w-[1280px] mx-auto px-7 pt-10 pb-8">
 
-        <div className="grid gap-8" style={{ gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr' }}>
+        <div className="grid gap-8" style={{gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr'}}>
 
           {/* 브랜드 소개 — simple variant: 푸터 좁은 공간 */}
           <div>
-            <Logo variant="simple" height={24} />
+            <Logo variant="simple" height={24}/>
 
-            <p className="mt-3.5 text-[13px] text-[var(--color-text-sub)] leading-relaxed max-w-[280px]">
-              스포츠 유니폼을 가장 빠르게 거래하는 곳.<br />
+            <p className="mt-3.5 text-[14px] text-[var(--color-text-sub)] leading-relaxed max-w-[280px]">
+              스포츠 유니폼을 가장 빠르게 거래하는 곳.<br/>
               팬을 위한 신뢰 기반 리셀 마켓.
             </p>
 
             <div className="mt-3.5 flex gap-1.5 flex-wrap">
               <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--color-primary)] text-white tracking-[0.08em]"
-                style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[13px] font-semibold bg-[var(--color-primary)] text-white tracking-[0.08em]"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
                 SAFE TRADE
               </span>
               <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[var(--color-gold)] text-[var(--color-primary)] tracking-[0.08em]"
-                style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[13px] font-semibold bg-[var(--color-gold)] text-[var(--color-primary)] tracking-[0.08em]"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
                 MVP VERIFIED
               </span>
             </div>
           </div>
 
-          {FOOTER_COLS.map(({ heading, links }) => (
+          {FOOTER_COLS.map(({heading, links}) => (
             <div key={heading}>
               {/* 섹션 헤더: 굵고 잘 보여야 하므로 font-display(Giants) */}
-              <div className="text-[13px] font-display font-bold text-[var(--color-text-main)] mb-3">
+              <div className="text-[14px] font-display font-bold text-[var(--color-text-main)] mb-3">
                 {heading}
               </div>
               {links.map((label) => (
                 <div
                   key={label}
-                  className="text-[13px] text-[var(--color-text-sub)] py-1.5 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
+                  className="text-[14px] text-[var(--color-text-sub)] py-1.5 cursor-pointer hover:text-[var(--color-primary)] transition-colors"
                 >
                   {label}
                 </div>
@@ -79,14 +79,14 @@ export default function Footer() {
 
         <div className="mt-8 pt-[18px] border-t border-[var(--color-border)] flex justify-between items-center">
           <span
-            className="text-[12px] tracking-[0.08em] text-[var(--color-text-sub)]"
-            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+            className="text-[13px] tracking-[0.08em] text-[var(--color-text-sub)]"
+            style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
           >
             © 2025 RE:FORM. ALL RIGHTS RESERVED.
           </span>
           <span
-            className="text-[12px] tracking-[0.08em] text-[var(--color-text-sub)]"
-            style={{ fontFamily: "'IAMAPLAYER',Giants,sans-serif" }}
+            className="text-[13px] tracking-[0.08em] text-[var(--color-text-sub)]"
+            style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
           >
             RESELL · COMMUNITY · UNIFORMS
           </span>

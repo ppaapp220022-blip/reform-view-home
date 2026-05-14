@@ -246,7 +246,7 @@ function StepIndicator({current}: { current: 1 | 2 | 3 }) {
           <div key={step.n} className="contents">
             <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-medium transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[14px] font-medium transition-colors"
                 style={{
                   background: isDone
                     ? 'var(--color-success)'
@@ -262,7 +262,7 @@ function StepIndicator({current}: { current: 1 | 2 | 3 }) {
                 {isDone ? <Check size={14} strokeWidth={2.5} color="#fff"/> : step.n}
               </div>
               <span
-                className="text-[11px] whitespace-nowrap"
+                className="text-[13px] whitespace-nowrap"
                 style={{
                   fontWeight: isActive ? 600 : 400,
                   color: isDone
@@ -336,7 +336,7 @@ function SportCard({
         color={selected ? 'var(--color-accent)' : 'var(--color-text-hint)'}
       />
       <span
-        className="text-[10px] tracking-widest leading-none"
+        className="text-[12px] tracking-widest leading-none"
         style={{
           fontFamily: "'IAMAPLAYER',Giants,sans-serif",
           color: selected ? 'var(--color-accent)' : 'var(--color-text-hint)'
@@ -345,7 +345,7 @@ function SportCard({
         {option.labelEn}
       </span>
       <span
-        className="text-[12px] font-semibold"
+        className="text-[13px] font-semibold"
         style={{color: selected ? 'var(--color-accent)' : 'var(--color-text-main)'}}
       >
         {option.label}
@@ -384,7 +384,7 @@ function TeamCard({
       />
       <div className="min-w-0">
         <p
-          className="text-[12px] font-semibold truncate"
+          className="text-[13px] font-semibold truncate"
           style={{color: selected ? 'var(--color-accent)' : 'var(--color-text-main)'}}
         >
           {team.name}
@@ -401,7 +401,7 @@ function TeamCard({
 function SelectionBadge({label, onRemove}: { label: string; onRemove: () => void }) {
   return (
     <span
-      className="inline-flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-full text-[12px] font-medium"
+      className="inline-flex items-center gap-1 pl-3 pr-1.5 py-1 rounded-full text-[13px] font-medium"
       style={{
         background: 'var(--color-primary)',
         color: '#fff',
@@ -426,13 +426,13 @@ function SectionLabel({children, hint}: { children: React.ReactNode; hint?: stri
   return (
     <div className="flex items-baseline gap-2 mb-3">
       <span
-        className="text-[13px] font-semibold"
+        className="text-[14px] font-semibold"
         style={{color: 'var(--color-text-main)'}}
       >
         {children}
       </span>
       {hint && (
-        <span className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+        <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
           {hint}
         </span>
       )}
@@ -527,7 +527,7 @@ export default function OnboardingPage() {
     // 백엔드 OnboardingRequestDTO: sport(단일), team(단일 선택), keywords[]
     // UI에서 복수 선택 가능하지만 백엔드는 단일 값만 수신
     saveInterest({
-      sport: selectedSports[0] ?? 'SOCCER',     // 첫 번째 선택 종목
+      sport: selectedSports[0] ?? 'BASEBALL',   // 첫 번째 선택 종목
       team: selectedTeams[0] ?? undefined,     // 첫 번째 선택 구단 (없으면 undefined)
       keywords: finalKeywords,
     })
@@ -574,7 +574,7 @@ export default function OnboardingPage() {
           <h1 className="text-[20px] font-semibold text-[var(--color-text-main)] mb-1">
             관심 종목과 구단을 선택하세요
           </h1>
-          <p className="text-[13px] text-[var(--color-text-sub)]">
+          <p className="text-[14px] text-[var(--color-text-sub)]">
             선택한 정보를 기반으로 맞춤 매물과 알림을 제공합니다.
           </p>
         </div>
@@ -641,7 +641,7 @@ export default function OnboardingPage() {
               {keywords.map((kw) => (
                 <span
                   key={kw}
-                  className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[12px] font-medium"
+                  className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-[13px] font-medium"
                   style={{
                     background: 'var(--color-surface-sunken)',
                     border: '1.5px solid var(--color-border-strong)',
@@ -676,7 +676,7 @@ export default function OnboardingPage() {
             }}
           >
             <p
-              className="text-[11px] font-semibold uppercase tracking-wide mb-3"
+              className="text-[13px] font-semibold uppercase tracking-wide mb-3"
               style={{color: 'var(--color-text-hint)'}}
             >
               선택된 항목
@@ -716,7 +716,7 @@ export default function OnboardingPage() {
         {/* 서버 에러 */}
         {serverError && (
           <div
-            className="text-[13px] mb-4 px-4 py-3 rounded-[8px]"
+            className="text-[14px] mb-4 px-4 py-3 rounded-[8px]"
             style={{
               color: 'var(--color-error)',
               background: 'rgba(255,46,77,0.07)',

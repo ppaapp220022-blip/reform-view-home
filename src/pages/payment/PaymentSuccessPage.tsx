@@ -8,8 +8,8 @@
  * 성공 시 거래 완료 안내, 실패 시 에러 안내.
  */
 import {useEffect, useRef, useState} from 'react'
-import {useNavigate, useSearchParams, Link} from 'react-router-dom'
-import {CheckCircle2, XCircle, Loader2, ShoppingBag, MessageCircle} from 'lucide-react'
+import {Link, useNavigate, useSearchParams} from 'react-router-dom'
+import {CheckCircle2, Loader2, MessageCircle, ShoppingBag, XCircle} from 'lucide-react'
 import {confirmPayment, type PaymentResponse} from '../../features/payment/api/paymentApi'
 import {formatPrice} from '../../utils/format'
 
@@ -18,12 +18,12 @@ type Status = 'loading' | 'success' | 'error'
 export default function PaymentSuccessPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-
+  
   // Toss가 redirect 시 전달하는 쿼리파라미터
   const paymentKey = searchParams.get('paymentKey') ?? ''
   const orderId = searchParams.get('orderId') ?? ''
   const amount = Number(searchParams.get('amount') ?? '0')
-
+  
   // 파라미터 검증을 lazy initializer로 렌더 타임에 처리 — useEffect 내 setState 방지
   const paramsValid = !!(paymentKey && orderId && amount)
   const [status, setStatus] = useState<Status>(() => paramsValid ? 'loading' : 'error')
@@ -31,16 +31,16 @@ export default function PaymentSuccessPage() {
   const [errorMsg, setErrorMsg] = useState<string>(() =>
     paramsValid ? '' : '결제 정보가 올바르지 않습니다.'
   )
-
+  
   // confirm API는 한 번만 호출 (StrictMode 이중 호출 방지)
   const called = useRef(false)
-
+  
   useEffect(() => {
     // 파라미터 검증 실패 시 호출 건너뜀 (초기 상태에서 이미 error 처리됨)
     if (!paramsValid) return
     if (called.current) return
     called.current = true
-
+    
     // POST /api/payments/confirm
     confirmPayment({paymentKey, orderId, amount})
       .then(data => {
@@ -53,7 +53,7 @@ export default function PaymentSuccessPage() {
         setStatus('error')
       })
   }, [paramsValid, paymentKey, orderId, amount])
-
+  
   // ── 로딩 ────────────────────────────────────────────────────────────────────
   if (status === 'loading') {
     return (
@@ -69,7 +69,7 @@ export default function PaymentSuccessPage() {
       </div>
     )
   }
-
+  
   // ── 오류 ────────────────────────────────────────────────────────────────────
   if (status === 'error') {
     return (
@@ -116,7 +116,7 @@ export default function PaymentSuccessPage() {
       </div>
     )
   }
-
+  
   // ── 성공 ────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center px-4" style={{background: 'var(--color-bg)'}}>
@@ -131,7 +131,7 @@ export default function PaymentSuccessPage() {
         >
           <CheckCircle2 size={44} style={{color: 'var(--color-success)'}}/>
         </div>
-
+        
         {/* 타이틀 */}
         <div>
           <h1
@@ -148,7 +148,7 @@ export default function PaymentSuccessPage() {
             결제가 완료되었습니다. 판매자에게 배송 요청이 전달됩니다.
           </p>
         </div>
-
+        
         {/* 결제 금액 */}
         {result && (
           <div
@@ -167,21 +167,35 @@ export default function PaymentSuccessPage() {
             </p>
           </div>
         )}
-
+        
         {/* 에스크로 안내 */}
         <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
           RE:FORM 에스크로 안전결제 — 상품 수령 확인 후 판매자에게 정산됩니다.
         </p>
-
+        
         {/* CTA 버튼 */}
         <div className="flex flex-col gap-3">
           {result && (
             <Link
-              to={`/chat`}
+              to={`/trade/${result.tradeId}/confirm`}
               className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white hover:text-white"
               style={{background: 'var(--color-accent)'}}
             >
-              <MessageCircle size={16}/>
+              <ShoppingBag size={16}/>
+              거래 현황 확인하기
+            </Link>
+          )}
+          {result && (
+            <Link
+              to={`/chat`}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm hover:text-[var(--color-accent)]"
+              style={{
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text-main)',
+                border: '1px solid var(--color-border)'
+              }}
+            >
+              <MessageCircle size={15}/>
               판매자와 채팅하기
             </Link>
           )}

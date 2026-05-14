@@ -12,6 +12,7 @@
  *   - 403 → 인증 실패 (토큰 위조/만료/불일치) → 로그인 이동
  */
 import axios, {type AxiosRequestConfig} from 'axios'
+import useAuthStore from '../store/authStore'
 
 // ── 인스턴스 ────────────────────────────────────────────────────────────────
 const apiClient = axios.create({
@@ -116,8 +117,9 @@ apiClient.interceptors.response.use(
 
         if (!newAccessToken) throw new Error('재발급 응답에 accessToken 없음')
 
-        // 새 토큰 저장 및 대기열 해소
+        // 새 토큰 저장 및 대기열 해소 (localStorage + Zustand 스토어 동기화)
         localStorage.setItem('accessToken', newAccessToken)
+        useAuthStore.getState().setAccessToken(newAccessToken)
         resolvePending(newAccessToken)
 
         // 원래 요청 재시도
@@ -125,10 +127,14 @@ apiClient.interceptors.response.use(
           originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
         }
         return apiClient(originalRequest)
-      } catch {
-        // 재발급 실패 → 전체 로그아웃
+      } catch (refreshError) {
+        // 재발급 실패 → 대기 중인 요청 전부 reject 후 전체 로그아웃
+        pendingRequests.forEach((_, __, arr) => {
+          arr.length = 0
+        })
+        pendingRequests = []
         clearAuthAndRedirect()
-        return Promise.reject(error)
+        return Promise.reject(refreshError)
       } finally {
         isRefreshing = false
       }

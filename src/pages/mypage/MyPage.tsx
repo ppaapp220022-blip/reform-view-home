@@ -12,31 +12,46 @@
  */
 import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
-import {Link} from 'react-router-dom'
-import {
-  getPointWallet,
-  getPointHistory,
-  requestWithdraw,
-  getMyWithdrawList,
-  cancelWithdraw
-} from '../../features/payment/api/pointApi'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Link, useNavigate} from 'react-router-dom'
 import type {WithdrawItem} from '../../features/payment/api/pointApi'
 import {
-  Star, Package, Heart, Coins, Settings,
-  ChevronRight, TrendingUp, ArrowDownToLine,
-  Edit3, Shield, Bell, HelpCircle, LogOut,
-  BarChart2, Award, Clock, Flag, AlertCircle,
+  cancelWithdraw,
+  getMyWithdrawList,
+  getPointHistory,
+  getPointWallet,
+  requestWithdraw
+} from '../../features/payment/api/pointApi'
+import {
+  AlertCircle,
+  ArrowDownToLine,
+  Award,
+  BarChart2,
+  Bell,
+  ChevronRight,
+  Clock,
+  Coins,
+  Edit3,
+  Flag,
+  Heart,
+  HelpCircle,
+  LogOut,
+  Package,
+  Settings,
+  Shield,
+  Star,
+  TrendingUp,
 } from 'lucide-react'
-import type {ListingItem, Grade, TradeStatus} from '../../types/listing'
-import {getMyReports} from '../../features/report/api/reportApi'
-import {REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
+import type {Grade, ListingItem, TradeStatus} from '../../types/listing'
 import type {ReportItem} from '../../features/report/api/reportApi'
+import {getMyReports, REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
 import {getMyProfile} from '../../features/mypage/api/memberApi'
-import {getMyTrades} from '../../features/trade/api/tradeApi'
+import useAuthStore from '../../store/authStore'
+import {logout as logoutApi} from '../../features/auth/api/authApi'
 import type {TradeResponse} from '../../features/trade/api/tradeApi'
-import {getListings} from '../../features/listing/api/listingApi'
+import {getMyTrades} from '../../features/trade/api/tradeApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
+import {getListings} from '../../features/listing/api/listingApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 const MOCK_LIKED: ListingItem[] = [
@@ -130,7 +145,7 @@ function ProfileHeader() {
     queryFn: getMyProfile,
     staleTime: 60_000,
   })
-
+  
   // 스켈레톤 로딩
   if (isLoading || !profile) {
     return (
@@ -146,10 +161,10 @@ function ProfileHeader() {
       </div>
     )
   }
-
+  
   const mc = mannerColor(Number(profile.mannerScore) * 20)
   const interests = profile.interest?.sport ? [profile.interest.sport] : []
-
+  
   return (
     <div
       className="rounded-2xl p-6 mb-6"
@@ -199,10 +214,10 @@ function ProfileHeader() {
           <span className="text-2xl font-bold mt-1" style={{color: mc, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
             {Number(profile.mannerScore).toFixed(1)}
           </span>
-          <span className="text-[10px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>매너점수</span>
+          <span className="text-[12px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>매너점수</span>
         </div>
       </div>
-
+      
       {/* 통계 줄 */}
       <div
         className="grid grid-cols-3 gap-4 mt-5 pt-5"
@@ -227,14 +242,14 @@ function ProfileHeader() {
 /** 거래 내역 탭 — 실제 API 연동 */
 function TradeHistoryTab() {
   const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
-
+  
   const {data, isLoading} = useQuery({
     queryKey: ['myTrades', role],
     queryFn: () => getMyTrades({role, page: 0, size: 20}),
     staleTime: 30_000,
   })
   const trades = data?.content ?? []
-
+  
   return (
     <div>
       {/* 탭 필터: 구매/판매 */}
@@ -254,7 +269,7 @@ function TradeHistoryTab() {
           </button>
         ))}
       </div>
-
+      
       {isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map(i => (
@@ -296,7 +311,7 @@ function TradeHistoryTab() {
                 {/* 정보 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    <span className="text-[12px] font-bold px-1.5 py-0.5 rounded"
                           style={{
                             background: role === 'buyer' ? 'rgba(14,165,233,.1)' : 'rgba(0,179,110,.1)',
                             color: role === 'buyer' ? 'var(--color-info)' : 'var(--color-success)',
@@ -304,7 +319,7 @@ function TradeHistoryTab() {
                           }}>
                       {role === 'buyer' ? '구매' : '판매'}
                     </span>
-                    <span className="text-[10px] font-semibold"
+                    <span className="text-[12px] font-semibold"
                           style={{color: sm.color, fontFamily: "'Giants','Pretendard',sans-serif"}}>
                       {sm.label}
                     </span>
@@ -344,7 +359,7 @@ function MyListingsTab() {
     queryFn: getMyProfile,
     staleTime: 60_000,
   })
-
+  
   // 내 판매글 목록: 전체 listings에서 seller.memberId === 내 memberId
   const {data, isLoading} = useQuery({
     queryKey: ['myListings', profile?.memberId],
@@ -356,9 +371,9 @@ function MyListingsTab() {
       content: res.content.filter((item: PostCard) => item.seller.memberId === profile!.memberId),
     }),
   })
-
+  
   const items = data?.content ?? []
-
+  
   return (
     <div>
       {isLoading ? (
@@ -412,7 +427,7 @@ function MyListingsTab() {
                           style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                       {formatPrice(item.price)}
                     </span>
-                    <span className="text-[10px] flex items-center gap-0.5" style={{color: 'var(--color-text-hint)'}}>
+                    <span className="text-[12px] flex items-center gap-0.5" style={{color: 'var(--color-text-hint)'}}>
                       <Heart size={10}/> {item.wishCount}
                     </span>
                   </div>
@@ -420,7 +435,7 @@ function MyListingsTab() {
               </Link>
             )
           })}
-
+          
           {/* 새 글 쓰기 */}
           <Link
             to="/listing/new"
@@ -444,11 +459,11 @@ function MyListingsTab() {
 /** 찜 목록 탭 */
 function LikesTab() {
   const [likes, setLikes] = useState(MOCK_LIKED)
-
+  
   function unlike(id: number) {
     setLikes(prev => prev.filter(l => l.id !== id))
   }
-
+  
   if (likes.length === 0) {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
@@ -464,7 +479,7 @@ function LikesTab() {
       </div>
     )
   }
-
+  
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       {likes.map(item => {
@@ -526,26 +541,26 @@ function PointsTab() {
   const [withdrawBank, setWithdrawBank] = useState('')
   const [withdrawAccount, setWithdrawAccount] = useState('')
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
-
+  
   // 포인트 지갑 조회
   const {data: wallet, isLoading: walletLoading} = useQuery({
     queryKey: ['pointWallet'],
     queryFn: getPointWallet,
   })
-
+  
   // 포인트 내역 조회 (추후 UI 연동 예정)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {data: _history} = useQuery({
     queryKey: ['pointHistory'],
     queryFn: getPointHistory,
   })
-
+  
   // 내 출금 요청 목록 조회
   const {data: withdrawList} = useQuery({
     queryKey: ['withdrawList'],
     queryFn: getMyWithdrawList,
   })
-
+  
   // 출금 요청 뮤테이션
   const withdrawMutation = useMutation({
     mutationFn: requestWithdraw,
@@ -560,7 +575,7 @@ function PointsTab() {
     },
     onError: () => setWithdrawError('출금 요청 중 오류가 발생했습니다. 다시 시도해주세요.'),
   })
-
+  
   // 출금 취소 뮤테이션
   const cancelMutation = useMutation({
     mutationFn: cancelWithdraw,
@@ -569,7 +584,7 @@ function PointsTab() {
       void qc.invalidateQueries({queryKey: ['withdrawList']})
     },
   })
-
+  
   function handleWithdraw() {
     const amount = Number(withdrawAmount)
     if (amount < 1000) {
@@ -591,10 +606,10 @@ function PointsTab() {
     setWithdrawError(null)
     withdrawMutation.mutate({amount, bankName: withdrawBank, accountNumber: withdrawAccount})
   }
-
+  
   const withdrawable = wallet?.withdrawable ?? 0
   const pending = wallet?.pending ?? 0
-
+  
   return (
     <div className="flex flex-col gap-4">
       {/* 포인트 카드 */}
@@ -608,7 +623,7 @@ function PointsTab() {
           <p className="text-2xl font-bold" style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
             {MOCK_USER.activityPoints.toLocaleString('ko-KR')}<span className="text-sm ml-1 opacity-70">P</span>
           </p>
-          <p className="text-[10px] mt-2 opacity-60">쇼핑·후기·이벤트 적립</p>
+          <p className="text-[12px] mt-2 opacity-60">쇼핑·후기·이벤트 적립</p>
         </div>
         {/* 정산 포인트 (출금 가능) */}
         <div className="rounded-2xl p-4"
@@ -625,7 +640,7 @@ function PointsTab() {
               {'₩'}{withdrawable.toLocaleString('ko-KR')}
             </p>
           )}
-          <p className="text-[10px] mt-2" style={{color: 'var(--color-text-hint)'}}>판매 대금 (출금 가능)</p>
+          <p className="text-[12px] mt-2" style={{color: 'var(--color-text-hint)'}}>판매 대금 (출금 가능)</p>
         </div>
         {/* 정산 대기 포인트 */}
         <div
@@ -641,7 +656,7 @@ function PointsTab() {
             </div>
             <div>
               <p className="text-xs font-semibold" style={{color: 'var(--color-text-sub)'}}>정산 대기</p>
-              <p className="text-[10px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>구매 확정 후 출금 가능</p>
+              <p className="text-[12px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>구매 확정 후 출금 가능</p>
             </div>
           </div>
           {walletLoading ? (
@@ -654,7 +669,7 @@ function PointsTab() {
           )}
         </div>
       </div>
-
+      
       {/* 출금 요청 폼 */}
       <div className="rounded-2xl p-5"
            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -735,7 +750,7 @@ function PointsTab() {
           최소 1,000원 · 영업일 1~3일 내 처리 · 수수료 없음
         </p>
       </div>
-
+      
       {/* 출금 요청 내역 */}
       {withdrawList && withdrawList.length > 0 && (
         <div>
@@ -786,7 +801,7 @@ function PointsTab() {
           </div>
         </div>
       )}
-
+      
       {/* 포인트 내역 */}
       <div>
         <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>포인트 내역</h3>
@@ -837,7 +852,7 @@ function MyReportsTab() {
     queryKey: ['myReports'],
     queryFn: () => getMyReports({page: 0, size: 20}),
   })
-
+  
   /** 처리 상태별 색상 */
   function statusStyle(status: ReportItem['status']): { bg: string; color: string } {
     switch (status) {
@@ -851,7 +866,7 @@ function MyReportsTab() {
         return {bg: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}
     }
   }
-
+  
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3">
@@ -861,7 +876,7 @@ function MyReportsTab() {
       </div>
     )
   }
-
+  
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -873,9 +888,9 @@ function MyReportsTab() {
       </div>
     )
   }
-
+  
   const items = data?.content ?? []
-
+  
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -887,7 +902,7 @@ function MyReportsTab() {
       </div>
     )
   }
-
+  
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>
@@ -921,7 +936,7 @@ function MyReportsTab() {
                     {item.detail ? ` · ${item.detail}` : ''}
                   </p>
                   {/* 날짜 */}
-                  <p className="text-[11px] mt-1" style={{color: 'var(--color-text-hint)'}}>
+                  <p className="text-[13px] mt-1" style={{color: 'var(--color-text-hint)'}}>
                     {new Date(item.createdAt).toLocaleDateString('ko-KR', {
                       year: 'numeric', month: 'long', day: 'numeric',
                     })}
@@ -945,6 +960,22 @@ function MyReportsTab() {
 
 /** 설정 탭 */
 function SettingsTab() {
+  const navigate = useNavigate()
+  const {logout, refreshToken} = useAuthStore()
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  
+  async function handleLogout() {
+    setIsLoggingOut(true)
+    try {
+      if (refreshToken) {
+        await logoutApi(refreshToken).catch(() => null)
+      }
+    } finally {
+      logout()
+      navigate('/login')
+    }
+  }
+  
   const settingItems = [
     {icon: <Edit3 size={18}/>, label: '프로필 수정', sub: '닉네임·관심종목 변경'},
     {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
@@ -952,7 +983,7 @@ function SettingsTab() {
     {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·포인트 요약'},
     {icon: <HelpCircle size={18}/>, label: '고객 지원', sub: 'FAQ·1:1 문의'},
   ]
-
+  
   return (
     <div className="flex flex-col gap-3">
       {settingItems.map(item => (
@@ -972,17 +1003,21 @@ function SettingsTab() {
           <ChevronRight size={16} color="var(--color-text-hint)"/>
         </button>
       ))}
-
+      
       {/* 로그아웃 */}
       <button
-        className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-left mt-2 transition-colors"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-left mt-2 transition-colors disabled:opacity-60"
         style={{background: 'rgba(255,46,77,.06)', border: '1px solid rgba(255,46,77,.2)'}}
       >
         <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
              style={{background: 'rgba(255,46,77,.10)', color: 'var(--color-accent)'}}>
           <LogOut size={18}/>
         </div>
-        <span className="text-sm font-semibold" style={{color: 'var(--color-accent)'}}>로그아웃</span>
+        <span className="text-sm font-semibold" style={{color: 'var(--color-accent)'}}>
+          {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
+        </span>
       </button>
     </div>
   )
@@ -1001,7 +1036,7 @@ const TABS = [
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('trades')
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
@@ -1016,12 +1051,12 @@ export default function MyPage() {
         >
           MY PAGE
         </h1>
-
+        
         <div className="flex flex-col lg:flex-row gap-6">
           {/* 좌: 프로필 + 탭 메뉴 */}
           <div className="lg:w-72 flex-shrink-0">
             <ProfileHeader/>
-
+            
             {/* 탭 네비 (데스크탑: 세로, 모바일: 가로 스크롤) */}
             <div
               className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0"
@@ -1042,7 +1077,7 @@ export default function MyPage() {
               ))}
             </div>
           </div>
-
+          
           {/* 우: 탭 콘텐츠 */}
           <div className="flex-1 min-w-0">
             {activeTab === 'trades' && <TradeHistoryTab/>}

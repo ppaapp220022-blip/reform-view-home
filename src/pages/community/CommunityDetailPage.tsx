@@ -11,22 +11,29 @@
  * 데이터: 목 데이터 (추후 useQuery로 교체)
  * 백엔드 DTO: CommunityPostDetailDTO / ReplyResponseDTO (children 포함)
  */
-import {useState, useRef} from 'react'
-import {useParams, useNavigate} from 'react-router-dom'
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query'
+import {useRef, useState} from 'react'
+import {useNavigate, useParams} from 'react-router-dom'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {
-  ChevronLeft, ThumbsUp, MessageSquare, Eye, Flag,
-  CornerDownRight, Send, MoreHorizontal, Loader2, AlertCircle,
+  AlertCircle,
+  ChevronLeft,
+  CornerDownRight,
+  Eye,
+  Flag,
+  Loader2,
+  MessageSquare,
+  MoreHorizontal,
+  Send,
+  ThumbsUp,
 } from 'lucide-react'
 import type {Sport} from '../../types/listing'
-import type {ReplyItem, AuthorBrief} from '../../types/community'
-import type {ReplyRequest} from '../../types/community'
+import type {AuthorBrief, ReplyItem, ReplyRequest} from '../../types/community'
 import ReportModal from '../../components/ui/ReportModal'
 import {
-  getCommunityPostDetail,
-  getReplies,
   createReply,
   deleteReply,
+  getCommunityPostDetail,
+  getReplies,
   togglePostLike,
   toggleReplyLike,
 } from '../../features/community/api/communityApi'
@@ -99,7 +106,7 @@ function ChildReplyItem({
           <span className="text-xs font-semibold" style={{color: 'var(--color-text-main)'}}>
             {reply.author.nickname}
           </span>
-          <span className="text-[10px]" style={{color: 'var(--color-text-hint)'}}>
+          <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
             {formatDate(reply.createdAt)}
           </span>
         </div>
