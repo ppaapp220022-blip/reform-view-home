@@ -255,15 +255,16 @@ export default function ListingEditPage() {
         uploadedUrls = await uploadListingImages(newFiles)
       }
       
-      /* Step 2: 유지된 기존 URL + 새 URL 합산 후 updateListing 호출 */
+      /* Step 2: 유지된 기존 URL + 새 URL 합산 후 updateListing 호출
+       * 백엔드 필드명: description / condition / tradeType */
       const imageUrls = [...existingUrls, ...uploadedUrls]
       await updateListing(postId, {
         title: form.title,
-        content: form.description,
+        description: form.description,
         price: Number(form.price),
-        grade: form.grade,
+        condition: form.grade,
         size: form.size || undefined,
-        deliveryType: form.deliveryType,
+        tradeType: form.deliveryType,
         imageUrls,
       })
       

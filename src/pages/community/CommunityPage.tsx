@@ -30,6 +30,7 @@ import {
   TrendingUp,
   X,
 } from 'lucide-react'
+import {resolveImageUrl} from '../../utils/image'
 import type {Sport} from '../../types/listing'
 import type {CommunityPostListItem, CommunityPostRequest} from '../../types/community'
 import {
@@ -55,8 +56,8 @@ const SPORT_TABS: { key: Sport | 'all'; label: string }[] = [
 /** 아바타 폴백 컬러 (작성자 프로필 이미지 없을 때) */
 const AVATAR_COLORS = ['#1A3051', '#B5222B', '#034694', '#1A7A40', '#A50044', '#6B0078', '#C8102E']
 
-function avatarColor(memberId: number) {
-  return AVATAR_COLORS[memberId % AVATAR_COLORS.length]
+function avatarColor(memberId: number | null) {
+  return AVATAR_COLORS[(memberId ?? 0) % AVATAR_COLORS.length]
 }
 
 /** 날짜 포맷: ISO → "N시간 전" 형태 */
@@ -87,12 +88,15 @@ function PostCard({
       onClick={() => navigate(`/community/${post.commId}`)}
     >
       <div className="flex gap-3">
-        {/* 아바타 */}
-        {post.author.profileImageUrl ? (
+        {/* 아바타 (resolveImageUrl로 bare filename 필터링) */}
+        {resolveImageUrl(post.author.profileImageUrl) ? (
           <img
-            src={post.author.profileImageUrl}
+            src={resolveImageUrl(post.author.profileImageUrl)!}
             alt={post.author.nickname}
             className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
         ) : (
           <div
@@ -102,7 +106,7 @@ function PostCard({
             {post.author.nickname.slice(0, 2).toUpperCase()}
           </div>
         )}
-
+        
         <div className="flex-1 min-w-0">
           {/* 작성자 + 종목 + 시간 */}
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -122,20 +126,20 @@ function PostCard({
               </span>
             )}
           </div>
-
+          
           {/* 제목 */}
           <h3 className="text-sm font-semibold leading-snug mb-1.5 line-clamp-2"
               style={{color: 'var(--color-text-main)'}}>
             {post.commTitle}
           </h3>
-
+          
           {/* 팀 카테고리 (있으면) */}
           {post.teamCategory && (
             <p className="text-xs mb-2" style={{color: 'var(--color-text-hint)'}}>
               {post.teamCategory}
             </p>
           )}
-
+          
           {/* 메타 — 좋아요/댓글/조회 */}
           <div className="flex items-center gap-4">
             <button
@@ -169,7 +173,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
   const [teamCategory, setTeamCategory] = useState('')
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-
+  
   const {mutate, isPending} = useMutation({
     mutationFn: (req: CommunityPostRequest) => createCommunityPost(req),
     onSuccess: () => {
@@ -177,7 +181,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
       onClose()
     },
   })
-
+  
   function handleSubmit() {
     if (!title.trim() || !content.trim()) return
     mutate({
@@ -187,7 +191,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
       commContent: content.trim(),
     })
   }
-
+  
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -209,7 +213,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
           <h2 className="font-bold text-base" style={{color: 'var(--color-text-main)'}}>게시글 작성</h2>
           <button onClick={onClose} aria-label="닫기"><X size={20} color="var(--color-text-sub)"/></button>
         </div>
-
+        
         <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           {/* 종목 선택 */}
           <div>
@@ -231,7 +235,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
               ))}
             </div>
           </div>
-
+          
           {/* 팀/구단 (선택) */}
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{color: 'var(--color-text-main)'}}>팀/구단
@@ -249,7 +253,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
               }}
             />
           </div>
-
+          
           {/* 제목 */}
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{color: 'var(--color-text-main)'}}>
@@ -269,7 +273,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
               }}
             />
           </div>
-
+          
           {/* 내용 */}
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{color: 'var(--color-text-main)'}}>
@@ -291,7 +295,7 @@ function WriteModal({onClose, onSuccess}: { onClose: () => void; onSuccess: () =
             <p className="text-xs mt-1 text-right" style={{color: 'var(--color-text-hint)'}}>{content.length}/2000</p>
           </div>
         </div>
-
+        
         {/* 등록 버튼 */}
         <div className="px-5 py-4" style={{borderTop: '1px solid var(--color-border)'}}>
           <button
@@ -317,7 +321,7 @@ export default function CommunityPage() {
   const [sort, setSort] = useState<'latest' | 'popular'>('latest')
   const [search, setSearch] = useState('')
   const [writeOpen, setWriteOpen] = useState(false)
-
+  
   /* 게시글 목록 조회 */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['communityPosts', {sport: sportFilter, sort}],
@@ -328,14 +332,14 @@ export default function CommunityPage() {
     }),
     staleTime: 30_000,
   })
-
+  
   /* 인기글 조회 (사이드바) */
   const {data: popularData} = useQuery({
     queryKey: ['communityPopular'],
     queryFn: () => getPopularPosts(5),
     staleTime: 60_000,
   })
-
+  
   /* 클라이언트 정렬 + 검색 필터링 */
   const posts = data?.content ?? []
   const filtered = (() => {
@@ -352,7 +356,7 @@ export default function CommunityPage() {
     }
     return list
   })()
-
+  
   /**
    * 좋아요 토글 핸들러
    * 낙관적 UI: 목록 캐시를 즉시 업데이트 → togglePostLike API 호출 → 실패 시 무효화
@@ -378,12 +382,12 @@ export default function CommunityPage() {
       queryClient.invalidateQueries({queryKey: ['communityPosts']})
     }
   }
-
+  
   /* 게시글 등록 후 목록 무효화 */
   function handleWriteSuccess() {
     queryClient.invalidateQueries({queryKey: ['communityPosts']})
   }
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       {writeOpen && (
@@ -392,7 +396,7 @@ export default function CommunityPage() {
           onSuccess={handleWriteSuccess}
         />
       )}
-
+      
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6 md:py-10">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
@@ -417,7 +421,7 @@ export default function CommunityPage() {
             <PenSquare size={16}/>글쓰기
           </button>
         </div>
-
+        
         <div className="flex flex-col lg:flex-row gap-6">
           {/* 메인 콘텐츠 */}
           <div className="flex-1 min-w-0">
@@ -439,7 +443,7 @@ export default function CommunityPage() {
                 <button onClick={() => setSearch('')}><X size={14} color="var(--color-text-hint)"/></button>
               )}
             </div>
-
+            
             {/* 종목 탭 */}
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4" style={{scrollbarWidth: 'none'}}>
               {SPORT_TABS.map((s) => (
@@ -457,7 +461,7 @@ export default function CommunityPage() {
                 </button>
               ))}
             </div>
-
+            
             {/* 정렬 바 */}
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm" style={{color: 'var(--color-text-sub)'}}>
@@ -483,7 +487,7 @@ export default function CommunityPage() {
                 ))}
               </div>
             </div>
-
+            
             {/* 게시글 목록 */}
             <div className="rounded-2xl overflow-hidden"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -532,7 +536,7 @@ export default function CommunityPage() {
               )}
             </div>
           </div>
-
+          
           {/* 우: 사이드바 (데스크탑) */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
             {/* 인기 게시글 — getPopularPosts API 연동 */}
@@ -568,7 +572,7 @@ export default function CommunityPage() {
           </aside>
         </div>
       </div>
-
+      
       {/* 모바일 글쓰기 FAB */}
       <button
         onClick={() => setWriteOpen(true)}

@@ -9,7 +9,7 @@
  *   ReplyCreateRequestDTO     → ReplyRequest
  */
 
-import type { Sport } from './listing'
+import type {Sport} from './listing'
 
 // ── Enum 타입 ─────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ export type CommunityPostStatus = 'ACTIVE' | 'HIDDEN' | 'DELETED'
  * 백엔드 chat.MemberBriefDTO 기준 (community DTO에서 재사용)
  */
 export interface AuthorBrief {
-  memberId: number
+  memberId: number | null
   nickname: string
   profileImageUrl: string | null
 }

@@ -14,6 +14,7 @@ import {Link} from 'react-router-dom'
 import {AlertCircle, Heart, SlidersHorizontal} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {formatPrice} from '../utils/format'
+import {resolveImageUrl} from '../utils/image'
 import type {PostCard} from '../features/listing/api/listingApi'
 import {getListings, toggleWish} from '../features/listing/api/listingApi'
 import type {Grade, HomeFilter, SportFilter,} from '../types/listing'
@@ -81,7 +82,7 @@ function Jersey({color, number, size = 'sm'}: JerseyProps) {
   const sw = size === 'lg' ? 20 : 13  // sleeve width
   const sh = size === 'lg' ? 32 : 22  // sleeve height
   const numSize = size === 'lg' ? 32 : 20
-
+  
   return (
     <svg
       width={w + sw * 2}
@@ -154,19 +155,24 @@ function ProductCard({item, onLike}: ProductCardProps) {
         >
           {item.grade}
         </span>
-
-        {/* 유니폼 이미지: 실제 썸네일 우선, 없으면 색상 폴백 */}
-        {item.thumbnailUrl ? (
+        
+        {/* 유니폼 이미지: 실제 썸네일 우선, 없으면 색상 폴백
+             resolveImageUrl: bare filename·미확인 도메인 → null 처리 */}
+        {resolveImageUrl(item.thumbnailUrl) ? (
           <img
-            src={item.thumbnailUrl}
+            src={resolveImageUrl(item.thumbnailUrl)!}
             alt={item.title}
             className="w-full h-full object-cover"
             style={{position: 'absolute', inset: 0}}
+            onError={(e) => {
+              // 이미지 로드 실패 시 숨기고 폴백 표시
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
         ) : (
           <Jersey color={fallbackColor(item.postId)} number={String(item.postId % 99)}/>
         )}
-
+        
         {/* 찜 버튼 */}
         <button
           type="button"
@@ -191,7 +197,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
           />
         </button>
       </div>
-
+      
       {/* 정보 영역 */}
       <div className="p-3">
         <p
@@ -251,7 +257,7 @@ function HeroSection() {
            style={{border: '36px solid rgba(255,255,255,0.03)'}}/>
       <div className="absolute right-20 -bottom-16 w-44 h-44 rounded-full pointer-events-none"
            style={{border: '24px solid rgba(255,255,255,0.03)'}}/>
-
+      
       <div className="max-w-[1126px] mx-auto flex items-center gap-12">
         {/* 텍스트 */}
         <div className="flex-1 min-w-0">
@@ -284,7 +290,7 @@ function HeroSection() {
               찜하기
             </button>
           </div>
-
+          
           {/* 통계 바 */}
           <div
             className="flex gap-8 mt-8 pt-6"
@@ -310,7 +316,7 @@ function HeroSection() {
             ))}
           </div>
         </div>
-
+        
         {/* 유니폼 일러스트 (데스크탑만) */}
         <div className="hidden md:flex items-center justify-center w-56 flex-shrink-0 relative">
           <div style={{transform: 'rotate(-4deg)', opacity: 0.9}}>
@@ -336,7 +342,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
   function set<K extends keyof HomeFilter>(key: K, value: HomeFilter[K]) {
     onChange({...filter, [key]: value})
   }
-
+  
   return (
     <aside
       className="w-[220px] flex-shrink-0 py-5"
@@ -345,7 +351,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
         borderRight: '1px solid var(--color-border)',
       }}
     >
-
+      
       {/* 종목 — 수직 탭 리스트 */}
       <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2"
          style={{color: 'var(--color-text-hint)'}}>종목</p>
@@ -370,7 +376,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
           )
         })}
       </div>
-
+      
       {/* 컨디션 */}
       <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
          style={{color: 'var(--color-text-hint)'}}>컨디션</p>
@@ -394,7 +400,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
           )
         })}
       </div>
-
+      
       {/* 거래 방식 */}
       <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
          style={{color: 'var(--color-text-hint)'}}>거래 방식</p>
@@ -418,7 +424,7 @@ function FilterSidebar({filter, onChange}: FilterSidebarProps) {
           )
         })}
       </div>
-
+      
       {/* 적용 버튼 */}
       <div className="px-4 mt-6">
         <button
@@ -444,7 +450,7 @@ export default function HomePage() {
   })
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
-
+  
   /**
    * 찜 토글 핸들러
    * 낙관적 UI: 즉시 likedIds 상태 반전 → toggleWish API 호출 → 실패 시 롤백
@@ -475,7 +481,7 @@ export default function HomePage() {
       })
     }
   }, [])
-
+  
   /* API 쿼리 파라미터 빌드 */
   const queryParams = {
     sport: filter.sport !== 'all' ? filter.sport : undefined,
@@ -485,32 +491,32 @@ export default function HomePage() {
     size: 20,
     page: 0,
   }
-
+  
   /* 판매글 목록 조회 */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['listings', queryParams],
     queryFn: () => getListings(queryParams),
     staleTime: 30_000,  // 30초 동안 재요청 없음
   })
-
+  
   /* 찜 상태를 로컬 토글과 병합 */
   const listings: PostCard[] = (data?.content ?? []).map((item) => ({
     ...item,
     isWished: likedIds.has(item.postId) ? !item.isWished : item.isWished,
   }))
-
+  
   return (
     <div style={{background: 'var(--color-bg)'}}>
       {/* 히어로 */}
       <HeroSection/>
-
+      
       {/* 본문 */}
       <div className="flex max-w-[1280px] mx-auto" style={{minHeight: 500}}>
         {/* 사이드바 — md 이상에서만 표시 */}
         <div className="hidden md:block">
           <FilterSidebar filter={filter} onChange={setFilter}/>
         </div>
-
+        
         {/* 콘텐츠 */}
         <main className="flex-1 min-w-0 px-6 py-6">
           {/* 필터 행 */}
@@ -518,7 +524,7 @@ export default function HomePage() {
             <span className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
               상품 <strong style={{color: 'var(--color-text-main)'}}>{data?.totalElements ?? 0}</strong>개
             </span>
-
+            
             {/* 모바일 필터 버튼 */}
             <button
               type="button"
@@ -532,7 +538,7 @@ export default function HomePage() {
               <SlidersHorizontal size={14} strokeWidth={1.75}/>
               필터
             </button>
-
+            
             {/* 정렬 */}
             <div className="flex gap-4 ml-auto">
               {SORT_OPTIONS.map(({key, label}) => (
@@ -551,7 +557,7 @@ export default function HomePage() {
               ))}
             </div>
           </div>
-
+          
           {/* 상품 그리드 — 2열(모바일) / 3열(md) / 4열(lg) / 5열(xl) */}
           {isLoading ? (
             /* 스켈레톤 로딩 */
@@ -595,7 +601,7 @@ export default function HomePage() {
               </p>
             </div>
           )}
-
+        
         </main>
       </div>
     </div>

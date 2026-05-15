@@ -43,9 +43,9 @@ export interface PopularPost {
 
 /** 게시글 수정 요청 (CommunityPostUpdateRequestDTO) */
 export interface CommunityPostUpdateRequest {
-  title?: string
-  content?: string
-  sport?: string
+  commTitle?: string
+  commContent?: string
+  commImageUrl?: string
 }
 
 // ── 게시글 API ────────────────────────────────────────────────────────────────
@@ -59,9 +59,11 @@ export async function getCommunityPosts(params?: {
   size?: number
   sport?: string
 }): Promise<PageResponse<CommunityPostListItem>> {
+  // 백엔드 페이지네이션은 1-based (page=1 ~ n). 호출자는 0-indexed로 전달.
+  const backendPage = (params?.page ?? 0) + 1
   const {data} = await axiosInstance.get<PageResponse<CommunityPostListItem>>(
     '/community',
-    {params},
+    {params: {...params, page: backendPage}},
   )
   return data
 }
@@ -84,7 +86,11 @@ export async function getCommunityPostDetail(commId: number): Promise<CommunityP
 export async function createCommunityPost(
   request: CommunityPostRequest,
 ): Promise<{ commId: number }> {
-  const {data} = await axiosInstance.post<{ commId: number }>('/community', request)
+  // 백엔드 CommunityPostCreateRequestDTO 필드명이 "Sport"(대문자 S)임
+  // Java Record 선언: "Sport Sport" → Jackson이 "Sport" 키로 역직렬화
+  const {sport, ...rest} = request
+  const body = {Sport: sport, ...rest}
+  const {data} = await axiosInstance.post<{ commId: number }>('/community', body)
   return data
 }
 

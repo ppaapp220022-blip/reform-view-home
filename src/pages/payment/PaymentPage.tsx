@@ -22,6 +22,7 @@ import {AlertCircle, ChevronLeft, Loader2, Lock, Shield, User} from 'lucide-reac
 import {useInitPayment} from '../../features/payment/hooks/usePayment'
 import {getTrade, type TradeResponse} from '../../features/trade/api/tradeApi'
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import useAuthStore from '../../store/authStore'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -98,11 +99,14 @@ function OrderSummaryCard({trade}: { trade: TradeResponse }) {
           className="relative rounded-xl overflow-hidden flex-shrink-0"
           style={{width: 72, height: 72, background: fallbackColor(trade.post.postId)}}
         >
-          {trade.post.thumbnailUrl ? (
+          {resolveImageUrl(trade.post.thumbnailUrl) ? (
             <img
-              src={trade.post.thumbnailUrl}
+              src={resolveImageUrl(trade.post.thumbnailUrl)!}
               alt={trade.post.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
             />
           ) : (
             <>
@@ -133,11 +137,14 @@ function OrderSummaryCard({trade}: { trade: TradeResponse }) {
           
           {/* 판매자 정보 */}
           <div className="flex items-center gap-1.5">
-            {trade.seller.profileImageUrl ? (
+            {resolveImageUrl(trade.seller.profileImageUrl) ? (
               <img
-                src={trade.seller.profileImageUrl}
+                src={resolveImageUrl(trade.seller.profileImageUrl)!}
                 alt={trade.seller.nickname}
                 className="w-5 h-5 rounded-full object-cover"
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                }}
               />
             ) : (
               <div

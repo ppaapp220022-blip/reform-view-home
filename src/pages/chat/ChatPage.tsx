@@ -31,6 +31,7 @@ import {
   WifiOff,
 } from 'lucide-react'
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import {useStompChat} from '../../features/chat/hooks/useStompChat'
 import useAuthStore from '../../store/authStore'
 import type {ChatMessage, ChatRoomDetail, ChatRoomSummary, TradeStatus,} from '../../features/chat/api/chatApi'
@@ -109,7 +110,7 @@ function RoomItem({
   onClick: () => void
 }) {
   const avatarColor = getAvatarColor(room.partner.memberId)
-
+  
   return (
     <button
       onClick={onClick}
@@ -119,12 +120,16 @@ function RoomItem({
         borderLeft: active ? '3px solid var(--color-accent)' : '3px solid transparent',
       }}
     >
-      {/* 아바타 — 프로필 이미지 우선, 없으면 이니셜 */}
-      {room.partner.profileImageUrl ? (
+      {/* 아바타 — 프로필 이미지 우선, 없으면 이니셜 (resolveImageUrl로 잘못된 URL 필터링) */}
+      {resolveImageUrl(room.partner.profileImageUrl) ? (
         <img
-          src={room.partner.profileImageUrl}
+          src={resolveImageUrl(room.partner.profileImageUrl)!}
           alt={room.partner.nickname}
           className="w-11 h-11 rounded-full flex-shrink-0 object-cover"
+          onError={(e) => {
+            // 이미지 로드 실패 시 숨기고 이니셜 폴백 표시
+            ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+          }}
         />
       ) : (
         <div
@@ -134,7 +139,7 @@ function RoomItem({
           {room.partner.nickname[0].toUpperCase()}
         </div>
       )}
-
+      
       <div className="flex-1 min-w-0">
         {/* 닉네임 + 시간 */}
         <div className="flex items-center justify-between mb-0.5">
@@ -151,7 +156,7 @@ function RoomItem({
             {formatChatTime(room.lastMessageAt)}
           </span>
         </div>
-
+        
         {/* 마지막 메시지 + 읽지 않음 뱃지 */}
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs truncate" style={{color: 'var(--color-text-sub)'}}>
@@ -166,7 +171,7 @@ function RoomItem({
             </span>
           )}
         </div>
-
+        
         {/* 연결된 상품명 */}
         <div className="flex items-center gap-1.5 mt-0.5">
           <ShoppingBag size={10} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
@@ -196,7 +201,7 @@ function SidebarPanel({
   isLoading?: boolean
 }) {
   const [searchVal, setSearchVal] = useState('')
-
+  
   // 닉네임 / 상품명으로 실시간 필터링
   const filtered = useMemo(() => {
     if (!searchVal.trim()) return rooms
@@ -207,10 +212,10 @@ function SidebarPanel({
         r.post.title.toLowerCase().includes(q),
     )
   }, [rooms, searchVal])
-
+  
   // 전체 미읽음 메시지 수
   const totalUnread = rooms.reduce((acc, r) => acc + r.unreadCount, 0)
-
+  
   return (
     <div
       className="flex flex-col h-full"
@@ -238,7 +243,7 @@ function SidebarPanel({
             </span>
           )}
         </div>
-
+        
         {/* 검색 입력 */}
         <div
           className="flex items-center gap-2 rounded-xl px-3 py-2"
@@ -258,7 +263,7 @@ function SidebarPanel({
           />
         </div>
       </div>
-
+      
       {/* 목록 영역 */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -285,7 +290,7 @@ function SidebarPanel({
           ))
         )}
       </div>
-
+      
       {/* 하단 채팅방 수 */}
       <div
         className="px-4 py-3 flex-shrink-0"
@@ -312,7 +317,7 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
   })
   // messageId < 0 → 낙관적(전송 중) 메시지
   const isPending = msg.messageId < 0
-
+  
   return (
     <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-2`}>
       <div
@@ -371,48 +376,48 @@ function ChatRoomPanelInner({
 }) {
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
-
+  
   // STOMP WebSocket 실시간 채팅 훅
   const {messages, sendMessage, connected, error} = useStompChat({
     chatId,
     myMemberId,
     initialMessages,
   })
-
+  
   // 상대방 정보 계산 (내가 buyer면 상대는 seller, 아니면 buyer)
   const opponent = useMemo(() => {
     if (!detail) return null
     return detail.buyer.memberId === myMemberId ? detail.seller : detail.buyer
   }, [detail, myMemberId])
-
+  
   // 거래 상태 (null: 거래 미연결)
   const tradeStatus = detail?.tradeStatus ?? null
-
+  
   // 아바타 색상
   const avatarColor = opponent ? getAvatarColor(opponent.memberId) : '#1A3051'
-
+  
   // 새 메시지 도착 시 자동 스크롤
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: 'smooth'})
   }, [messages])
-
+  
   function handleSend() {
     const trimmed = input.trim()
     if (!trimmed) return
     sendMessage(trimmed, 'TEXT')
     setInput('')
   }
-
+  
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSend()
     }
   }
-
+  
   return (
     <div className="flex flex-col h-full min-h-0">
-
+      
       {/* ── 헤더 ──────────────────────────────────────────────────────────── */}
       <div
         className="flex items-center gap-3 px-5 py-3.5 flex-shrink-0"
@@ -429,13 +434,16 @@ function ChatRoomPanelInner({
         >
           <ChevronLeft size={20}/>
         </button>
-
-        {/* 상대방 아바타 */}
-        {opponent?.profileImageUrl ? (
+        
+        {/* 상대방 아바타 (resolveImageUrl로 잘못된 URL 필터링) */}
+        {resolveImageUrl(opponent?.profileImageUrl) ? (
           <img
-            src={opponent.profileImageUrl}
-            alt={opponent.nickname}
+            src={resolveImageUrl(opponent?.profileImageUrl)!}
+            alt={opponent?.nickname}
             className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
         ) : (
           <div
@@ -445,7 +453,7 @@ function ChatRoomPanelInner({
             {opponent ? opponent.nickname[0].toUpperCase() : '?'}
           </div>
         )}
-
+        
         {/* 상대방 정보 */}
         <div className="flex-1 min-w-0">
           <p
@@ -460,7 +468,7 @@ function ChatRoomPanelInner({
             </p>
           )}
         </div>
-
+        
         {/* 상품 가격 (데스크톱 전용) */}
         {detail && (
           <div className="hidden md:flex items-center gap-3">
@@ -482,7 +490,7 @@ function ChatRoomPanelInner({
             <div className="h-8 w-px flex-shrink-0" style={{background: 'var(--color-border)'}}/>
           </div>
         )}
-
+        
         {/* WebSocket 연결 상태 표시기 */}
         <div
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg"
@@ -510,7 +518,7 @@ function ChatRoomPanelInner({
             </>
           )}
         </div>
-
+        
         <button
           className="p-2 rounded-lg transition-colors hover:bg-[var(--color-surface-raised)]"
           style={{color: 'var(--color-text-hint)'}}
@@ -518,7 +526,7 @@ function ChatRoomPanelInner({
           <MoreHorizontal size={18}/>
         </button>
       </div>
-
+      
       {/* ── 거래 상태바 (채팅방 상세 로드 완료 후 표시) ───────────────────── */}
       {detail && (
         <div
@@ -528,12 +536,15 @@ function ChatRoomPanelInner({
             borderBottom: '1px solid var(--color-border)',
           }}
         >
-          {/* 상품 썸네일 — 없으면 ShoppingBag 아이콘 플레이스홀더 */}
-          {detail.post.thumbnailUrl ? (
+          {/* 상품 썸네일 — 없으면 ShoppingBag 아이콘 플레이스홀더 (resolveImageUrl로 필터링) */}
+          {resolveImageUrl(detail.post.thumbnailUrl) ? (
             <img
-              src={detail.post.thumbnailUrl}
+              src={resolveImageUrl(detail.post.thumbnailUrl)!}
               alt={detail.post.title}
               className="w-9 h-9 rounded-xl flex-shrink-0 object-cover"
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
             />
           ) : (
             <div
@@ -546,7 +557,7 @@ function ChatRoomPanelInner({
               <ShoppingBag size={16} style={{color: 'var(--color-text-hint)'}}/>
             </div>
           )}
-
+          
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <p
@@ -572,7 +583,7 @@ function ChatRoomPanelInner({
               {formatPrice(detail.post.price)}
             </p>
           </div>
-
+          
           {/* 결제하기 버튼 (ACCEPTED 상태 + tradeId 있을 때) */}
           {tradeStatus === 'ACCEPTED' && detail.tradeId && (
             <Link
@@ -595,7 +606,7 @@ function ChatRoomPanelInner({
           )}
         </div>
       )}
-
+      
       {/* ── 에스크로 보호 배너 (PAID / IN_PROGRESS 상태) ────────────────── */}
       {(tradeStatus === 'PAID' || tradeStatus === 'IN_PROGRESS') && (
         <div
@@ -611,7 +622,7 @@ function ChatRoomPanelInner({
           </p>
         </div>
       )}
-
+      
       {/* ── WebSocket 에러 배너 ────────────────────────────────────────── */}
       {error && (
         <div
@@ -627,7 +638,7 @@ function ChatRoomPanelInner({
           </p>
         </div>
       )}
-
+      
       {/* ── 메시지 목록 ───────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-5 py-5 min-h-0">
         {messages.map(msg => (
@@ -640,7 +651,7 @@ function ChatRoomPanelInner({
         {/* 새 메시지 도착 시 자동 스크롤 앵커 */}
         <div ref={bottomRef}/>
       </div>
-
+      
       {/* ── 메시지 입력바 ─────────────────────────────────────────────────── */}
       <div
         className="px-4 py-3.5 flex items-end gap-2.5 flex-shrink-0"
@@ -656,7 +667,7 @@ function ChatRoomPanelInner({
         >
           <ImageIcon size={20}/>
         </button>
-
+        
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -676,7 +687,7 @@ function ChatRoomPanelInner({
             maxHeight: 120,
           }}
         />
-
+        
         <button
           onClick={handleSend}
           disabled={!input.trim() || !connected}
@@ -714,14 +725,14 @@ function ChatRoomPanel({
     queryFn: () => getChatRoomDetail(chatId),
     staleTime: 30_000,   // 30초 캐시
   })
-
+  
   // 메시지 이력 (최근 30개, sentAt desc → 역정렬 후 initialMessages 주입)
   const {data: msgPage, isLoading: msgLoading} = useQuery({
     queryKey: ['chatMessages', chatId],
     queryFn: () => getMessages(chatId, 0, 30),
     staleTime: 0,   // 채팅방 진입 시 항상 최신 메시지 로드
   })
-
+  
   // 로딩 중 스피너
   if (msgLoading) {
     return (
@@ -736,10 +747,10 @@ function ChatRoomPanel({
       </div>
     )
   }
-
+  
   // 백엔드는 sentAt desc 정렬로 반환 → 화면 표시는 오름차순이므로 역정렬
   const initialMessages = msgPage ? [...msgPage.content].reverse() : []
-
+  
   return (
     <ChatRoomPanelInner
       chatId={chatId}
@@ -789,32 +800,32 @@ function EmptyState() {
 export default function ChatPage() {
   // 현재 로그인 사용자 memberId (useStompChat + MessageBubble isMine 판단에 사용)
   const myMemberId = useAuthStore(s => s.user?.id ?? 0)
-
+  
   // 채팅방 목록 조회 (GET /api/chats)
   const {data: rooms = [], isLoading: roomsLoading} = useQuery({
     queryKey: ['chatRooms'],
     queryFn: getChatRooms,
     staleTime: 30_000,
   })
-
+  
   // URL ?roomId=xxx 쿼리파라미터로 초기 방 지정 지원
   // SellerCard에서 채팅방 생성 후 /chat?roomId={chatId} 로 navigate 할 때 사용
   const [searchParams] = useSearchParams()
   const urlRoomId = searchParams.get('roomId') ? Number(searchParams.get('roomId')) : null
-
+  
   // 사용자가 명시적으로 선택한 방 ID (null = 미선택)
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(urlRoomId)
-
+  
   // 파생 상태: URL 지정 방 > 선택된 방 > 첫 번째 방 순으로 우선 적용
   const activeRoomId = selectedRoomId ?? rooms[0]?.chatId ?? null
-
+  
   return (
     /*
      * 모바일 : 100% 높이, 목록/본문 전환
      * 데스크톱: max-w 컨테이너 + 카드 형태, 좌우 패널 분할
      */
     <div className="flex flex-1 overflow-hidden" style={{background: 'var(--color-bg)'}}>
-
+      
       {/* ── 데스크톱 레이아웃 래퍼 ─────────────────────────────────────── */}
       <div className="flex flex-1 w-full md:max-w-[1200px] md:mx-auto md:my-6 md:px-6 min-h-0">
         <div
@@ -824,7 +835,7 @@ export default function ChatPage() {
             boxShadow: '0 4px 24px rgba(0,33,71,.08)',
           }}
         >
-
+          
           {/* 좌: 채팅방 사이드바
               모바일: 방 선택 전에만 표시 (전체 너비)
               데스크톱: 360px 고정 너비로 항상 표시 */}
@@ -840,7 +851,7 @@ export default function ChatPage() {
               isLoading={roomsLoading}
             />
           </div>
-
+          
           {/* 우: 채팅 본문 패널
               모바일: 방 선택 후에만 표시 (전체 너비)
               데스크톱: 남은 공간 모두 차지 */}
@@ -864,7 +875,7 @@ export default function ChatPage() {
               <EmptyState/>
             )}
           </div>
-
+        
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@
  * 데이터: 목 데이터 (추후 useQuery + authStore 연동)
  */
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import {useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from 'react-router-dom'
@@ -175,12 +176,15 @@ function ProfileHeader() {
       }}
     >
       <div className="flex items-center gap-4">
-        {/* 아바타: 프로필 이미지 or 이니셜 */}
-        {profile.profileImageUrl ? (
+        {/* 아바타: 프로필 이미지 or 이니셜 (resolveImageUrl로 잘못된 URL 필터링) */}
+        {resolveImageUrl(profile.profileImageUrl) ? (
           <img
-            src={profile.profileImageUrl}
+            src={resolveImageUrl(profile.profileImageUrl)!}
             alt={profile.nickname}
             className="w-16 h-16 rounded-full flex-shrink-0 object-cover"
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
         ) : (
           <div
@@ -300,8 +304,15 @@ function TradeHistoryTab() {
                   className="w-14 h-14 rounded-xl flex-shrink-0 relative overflow-hidden bg-[var(--color-surface-raised)]"
                   style={{aspectRatio: '1'}}
                 >
-                  {t.post.thumbnailUrl ? (
-                    <img src={t.post.thumbnailUrl} alt={t.post.title} className="w-full h-full object-cover"/>
+                  {resolveImageUrl(t.post.thumbnailUrl) ? (
+                    <img
+                      src={resolveImageUrl(t.post.thumbnailUrl)!}
+                      alt={t.post.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Package size={20} color="var(--color-border)"/>
@@ -401,9 +412,15 @@ function MyListingsTab() {
                 style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
               >
                 <div className="relative" style={{aspectRatio: '4/5', background: 'var(--color-surface-raised)'}}>
-                  {item.thumbnailUrl ? (
-                    <img src={item.thumbnailUrl} alt={item.title}
-                         className="absolute inset-0 w-full h-full object-cover"/>
+                  {resolveImageUrl(item.thumbnailUrl) ? (
+                    <img
+                      src={resolveImageUrl(item.thumbnailUrl)!}
+                      alt={item.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      }}
+                    />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Package size={28} color="var(--color-border)" strokeWidth={1.5}/>

@@ -26,6 +26,7 @@ import {
   Send,
   ThumbsUp,
 } from 'lucide-react'
+import {resolveImageUrl} from '../../utils/image'
 import type {Sport} from '../../types/listing'
 import type {AuthorBrief, ReplyItem, ReplyRequest} from '../../types/community'
 import ReportModal from '../../components/ui/ReportModal'
@@ -54,19 +55,25 @@ function formatDate(iso: string): string {
 
 // ── 서브 컴포넌트: 아바타 ─────────────────────────────────────────────────────
 function Avatar({author, size = 32}: { author: AuthorBrief; size?: number }) {
-  if (author.profileImageUrl) {
+  // resolveImageUrl로 bare filename·잘못된 도메인 필터링
+  const validUrl = resolveImageUrl(author.profileImageUrl)
+  if (validUrl) {
     return (
       <img
-        src={author.profileImageUrl}
+        src={validUrl}
         alt={author.nickname}
         className="rounded-full object-cover flex-shrink-0"
         style={{width: size, height: size}}
+        onError={(e) => {
+          // 이미지 로드 실패(ERR_NAME_NOT_RESOLVED 등) 시 숨김
+          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+        }}
       />
     )
   }
   // 이니셜 아바타
   const colors = ['#002147', '#343F5B', '#1A3051', '#5A6A7A']
-  const color = colors[author.memberId % colors.length]
+  const color = colors[(author.memberId ?? 0) % colors.length]
   return (
     <div
       className="rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold"
@@ -93,14 +100,14 @@ function ChildReplyItem({
       </div>
     )
   }
-
+  
   return (
     <div className="flex items-start gap-2.5 pl-8 py-2.5">
       {/* 들여쓰기 화살표 */}
       <CornerDownRight size={14} style={{color: 'var(--color-border)', flexShrink: 0, marginTop: 6}}/>
-
+      
       <Avatar author={reply.author} size={26}/>
-
+      
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xs font-semibold" style={{color: 'var(--color-text-main)'}}>
@@ -144,7 +151,7 @@ function TopReplyItem({
   myMemberId: number | null
 }) {
   const isReplying = replyingToId === reply.replyId
-
+  
   if (reply.isDeleted) {
     return (
       <div className="py-3" style={{borderBottom: '1px solid var(--color-border)'}}>
@@ -156,12 +163,12 @@ function TopReplyItem({
       </div>
     )
   }
-
+  
   return (
     <div className="py-3" style={{borderBottom: '1px solid var(--color-border)'}}>
       <div className="flex items-start gap-3">
         <Avatar author={reply.author} size={32}/>
-
+        
         <div className="flex-1 min-w-0">
           {/* 작성자 + 날짜 */}
           <div className="flex items-center gap-2 mb-1.5">
@@ -172,12 +179,12 @@ function TopReplyItem({
               {formatDate(reply.createdAt)}
             </span>
           </div>
-
+          
           {/* 댓글 내용 */}
           <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-main)'}}>
             {reply.replyContent}
           </p>
-
+          
           {/* 액션 버튼 */}
           <div className="flex items-center gap-3 mt-2">
             {/* 좋아요 */}
@@ -189,7 +196,7 @@ function TopReplyItem({
               <ThumbsUp size={12}/>
               {reply.likeCount > 0 && <span>{reply.likeCount}</span>}
             </button>
-
+            
             {/* 답글 달기 */}
             <button
               onClick={() => onReplyTo(reply.replyId, reply.author.nickname)}
@@ -200,7 +207,7 @@ function TopReplyItem({
             </button>
           </div>
         </div>
-
+        
         {/* 내 댓글인 경우 삭제 버튼 */}
         {reply.author.memberId === myMemberId && (
           <button
@@ -214,7 +221,7 @@ function TopReplyItem({
           </button>
         )}
       </div>
-
+      
       {/* 대댓글 목록 */}
       {reply.children.length > 0 && (
         <div
@@ -236,10 +243,10 @@ export default function CommunityDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const commId = Number(id)
-
+  
   /* 현재 로그인 유저 ID (본인 댓글 삭제 버튼 표시용) */
   const myMemberId = useAuthStore(s => s.user?.id ?? null)
-
+  
   // ── 게시글 상세 조회 ─────────────────────────────────────────────────────
   const {
     data: post,
@@ -251,7 +258,7 @@ export default function CommunityDetailPage() {
     enabled: !!commId,
     staleTime: 30_000,
   })
-
+  
   // ── 댓글 목록 조회 ─────────────────────────────────────────────────────
   const {data: replies = []} = useQuery({
     queryKey: ['communityReplies', commId],
@@ -259,7 +266,7 @@ export default function CommunityDetailPage() {
     enabled: !!commId,
     staleTime: 15_000,
   })
-
+  
   // ── 로컬 상태 ───────────────────────────────────────────────────────────
   const [reportModalOpen, setReportModalOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
@@ -267,7 +274,7 @@ export default function CommunityDetailPage() {
   const [localLiked, setLocalLiked] = useState<boolean | null>(null)   // null = 서버값 사용
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-
+  
   // ── 댓글 작성 mutation ──────────────────────────────────────────────────
   const {mutate: submitReply, isPending: isSubmittingReply} = useMutation({
     mutationFn: (req: ReplyRequest) => createReply(commId, req),
@@ -278,7 +285,7 @@ export default function CommunityDetailPage() {
       setReplyingTo(null)
     },
   })
-
+  
   // ── 댓글 삭제 mutation ──────────────────────────────────────────────────
   const {mutate: removeReply} = useMutation({
     mutationFn: (replyId: number) => deleteReply(replyId),
@@ -287,7 +294,7 @@ export default function CommunityDetailPage() {
       queryClient.invalidateQueries({queryKey: ['communityPost', commId]})
     },
   })
-
+  
   // ── 게시글 좋아요 ───────────────────────────────────────────────────────
   async function handlePostLike() {
     if (!post) return
@@ -305,7 +312,7 @@ export default function CommunityDetailPage() {
       setLocalLikeCount(prevCount)
     }
   }
-
+  
   // ── 댓글 좋아요 ────────────────────────────────────────────────────────
   async function handleReplyLike(replyId: number) {
     try {
@@ -315,7 +322,7 @@ export default function CommunityDetailPage() {
       /* 실패 무시 */
     }
   }
-
+  
   // ── 답글 달기 클릭 ─────────────────────────────────────────────────────
   function handleReplyTo(replyId: number, nickname: string) {
     if (replyingTo?.id === replyId) {
@@ -325,7 +332,7 @@ export default function CommunityDetailPage() {
     setReplyingTo({id: replyId, nickname})
     inputRef.current?.focus()
   }
-
+  
   // ── 댓글 제출 ──────────────────────────────────────────────────────────
   function handleSubmitReply() {
     if (!replyText.trim() || isSubmittingReply) return
@@ -334,7 +341,7 @@ export default function CommunityDetailPage() {
       parentId: replyingTo?.id,
     })
   }
-
+  
   /* 로딩 / 에러 처리 */
   if (postLoading) {
     return (
@@ -351,13 +358,13 @@ export default function CommunityDetailPage() {
       </div>
     )
   }
-
+  
   /* 좋아요 표시값: 낙관적 로컬값 우선, 없으면 서버값 */
   const displayLiked = localLiked ?? post.isLiked
   const displayLikeCount = localLikeCount ?? post.likeCount
-
+  
   const sportLabel = SPORT_LABEL[post.sport as keyof typeof SPORT_LABEL] ?? post.sport
-
+  
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
       {reportModalOpen && (
@@ -368,7 +375,7 @@ export default function CommunityDetailPage() {
         />
       )}
       <div className="max-w-[800px] mx-auto px-4 md:px-7 py-6 md:py-10">
-
+        
         {/* 뒤로가기 */}
         <div className="flex items-center gap-2 mb-6">
           <button
@@ -380,7 +387,7 @@ export default function CommunityDetailPage() {
             커뮤니티
           </button>
         </div>
-
+        
         {/* 게시글 카드 */}
         <article
           className="rounded-2xl overflow-hidden mb-6"
@@ -413,13 +420,13 @@ export default function CommunityDetailPage() {
                 </span>
               )}
             </div>
-
+            
             {/* 제목 */}
             <h1 className="text-xl font-bold mb-4 leading-snug"
                 style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}>
               {post.commTitle}
             </h1>
-
+            
             {/* 작성자 + 메타 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -433,7 +440,7 @@ export default function CommunityDetailPage() {
                   </p>
                 </div>
               </div>
-
+              
               <div className="flex items-center gap-3 text-xs" style={{color: 'var(--color-text-hint)'}}>
                 <span className="flex items-center gap-1">
                   <Eye size={12}/>
@@ -454,7 +461,7 @@ export default function CommunityDetailPage() {
               </div>
             </div>
           </div>
-
+          
           {/* 본문 */}
           <div
             className="px-5 md:px-6 pb-5"
@@ -466,17 +473,20 @@ export default function CommunityDetailPage() {
             >
               {post.commContent}
             </p>
-
-            {/* 첨부 이미지 */}
-            {post.commImageUrl && (
+            
+            {/* 첨부 이미지 (resolveImageUrl로 bare filename 필터링) */}
+            {resolveImageUrl(post.commImageUrl) && (
               <img
-                src={post.commImageUrl}
+                src={resolveImageUrl(post.commImageUrl)!}
                 alt="첨부 이미지"
                 className="mt-4 rounded-xl w-full object-cover max-h-[400px]"
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                }}
               />
             )}
           </div>
-
+          
           {/* 게시글 좋아요 버튼 */}
           <div
             className="px-5 md:px-6 py-4 flex items-center justify-center"
@@ -496,7 +506,7 @@ export default function CommunityDetailPage() {
             </button>
           </div>
         </article>
-
+        
         {/* 댓글 섹션 */}
         <section
           className="rounded-2xl overflow-hidden"
@@ -513,7 +523,7 @@ export default function CommunityDetailPage() {
               댓글 {post.commentCount}
             </h2>
           </div>
-
+          
           {/* 댓글 목록 */}
           <div className="px-5">
             {replies.length === 0 ? (
@@ -533,7 +543,7 @@ export default function CommunityDetailPage() {
               ))
             )}
           </div>
-
+          
           {/* 댓글 입력 폼 */}
           <div
             className="px-5 py-4"
@@ -558,7 +568,7 @@ export default function CommunityDetailPage() {
                 </button>
               </div>
             )}
-
+            
             <div className="flex items-end gap-2">
               <Avatar author={{memberId: myMemberId ?? 0, nickname: '나'}} size={30}/>
               <textarea

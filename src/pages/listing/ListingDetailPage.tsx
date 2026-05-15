@@ -12,6 +12,7 @@
  * 데이터: 목 데이터 (추후 useQuery + /listing/:id 연동)
  */
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import React, {useCallback, useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useMutation, useQuery} from '@tanstack/react-query'
@@ -268,11 +269,15 @@ function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallb
         className="relative rounded-2xl overflow-hidden select-none"
         style={{aspectRatio: '4/5', background: fallbackColor}}
       >
-        {urls.length > 0 ? (
+        {urls.length > 0 && resolveImageUrl(urls[idx]) ? (
           <img
-            src={urls[idx]}
+            src={resolveImageUrl(urls[idx])!}
             alt={`상품 이미지 ${idx + 1}`}
             className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              // 이미지 로드 실패(ERR_NAME_NOT_RESOLVED 등) 시 숨김 처리
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
           />
         ) : (
           <>
@@ -339,7 +344,16 @@ function ImageGallery({urls, fallbackColor = '#1A3051'}: { urls: string[]; fallb
               }}
               aria-label={`썸네일 ${i + 1}`}
             >
-              <img src={url} alt={`썸네일 ${i + 1}`} className="w-full h-full object-cover"/>
+              {resolveImageUrl(url) && (
+                <img
+                  src={resolveImageUrl(url)!}
+                  alt={`썸네일 ${i + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              )}
             </button>
           ))}
         </div>
@@ -495,8 +509,15 @@ function RelatedCard({item}: { item: PostCard }) {
       style={{border: '1px solid var(--color-border)'}}
     >
       <div className="relative" style={{aspectRatio: '4/5', background: '#1A3051'}}>
-        {item.thumbnailUrl ? (
-          <img src={item.thumbnailUrl} alt={item.title} className="absolute inset-0 w-full h-full object-cover"/>
+        {resolveImageUrl(item.thumbnailUrl) ? (
+          <img
+            src={resolveImageUrl(item.thumbnailUrl)!}
+            alt={item.title}
+            className="absolute inset-0 w-full h-full object-cover"
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
+          />
         ) : (
           <div className="absolute inset-0"
                style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>

@@ -32,6 +32,13 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // 업로드 이미지 서빙 — 백엔드 Spring MVC resource handler
+      // 이미지 URL이 /uploads/post/... or /uploads/member/... 형태로 반환됨
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 })

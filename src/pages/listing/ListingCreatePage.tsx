@@ -16,6 +16,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {deletePostDraft, getPostDraft, savePostDraft} from '../../features/listing/api/draftApi'
 import {AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Loader2, Sparkles, Upload, X,} from 'lucide-react'
 import {useNavigate} from 'react-router-dom'
+import useAuthStore from '../../store/authStore'
 import type {DeliveryType, Grade, RiskLevel, Sport} from '../../types/listing'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -438,17 +439,21 @@ export default function ListingCreatePage() {
   })
   const [images, setImages] = useState<File[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)   // 등록 실패 메시지
   // 초안 관련 상태
   const [draftLoaded, setDraftLoaded] = useState(false)   // 초안 복원 알림 표시 여부
   const [draftSaving, setDraftSaving] = useState(false)   // 저장 중 표시
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 인증 상태 (draft API 호출 여부 결정)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   
   const update = useCallback(<K extends keyof ListingForm>(key: K, val: ListingForm[K]) => {
     setForm(prev => ({...prev, [key]: val}))
   }, [])
   
-  /* 마운트 시 초안 불러오기 */
+  /* 마운트 시 초안 불러오기 — 로그인 상태에서만 호출 (비로그인 시 403) */
   useEffect(() => {
+    if (!isAuthenticated) return
     getPostDraft()
       .then(draft => {
         if (draft && (draft.title || draft.content)) {
@@ -462,12 +467,12 @@ export default function ListingCreatePage() {
       })
       .catch(() => { /* 초안 없으면 무시 */
       })
-  }, [])
+  }, [isAuthenticated])
   
-  /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) */
+  /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) — 로그인 상태에서만 */
   useEffect(() => {
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
-    if (!form.title && !form.description) return
+    if (!isAuthenticated || (!form.title && !form.description)) return
     
     draftTimerRef.current = setTimeout(() => {
       setDraftSaving(true)
@@ -480,7 +485,7 @@ export default function ListingCreatePage() {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
     }
-  }, [form.title, form.description])
+  }, [isAuthenticated, form.title, form.description])
   
   /* 종목 변경 시 초기화 */
   function handleSportChange(sport: Sport) {
@@ -496,24 +501,32 @@ export default function ListingCreatePage() {
   async function handleSubmit() {
     if (!form.title || !form.price || images.length === 0) return
     setSubmitting(true)
+    setSubmitError(null)   // 이전 에러 초기화
     try {
       /* Step 1: 선택된 File[] 을 서버에 업로드하여 imageUrls[] 확보 */
       const {createListing, uploadListingImages} = await import('../../features/listing/api/listingApi')
-      const imageUrls = images.length > 0
-        ? await uploadListingImages(images)
-        : []
+      let imageUrls: string[] = []
+      try {
+        imageUrls = images.length > 0 ? await uploadListingImages(images) : []
+      } catch {
+        // 이미지 업로드 실패 시 별도 안내 (백엔드 스토리지 미구성 등)
+        setSubmitError('이미지 업로드에 실패했습니다. 이미지 없이 등록하거나 잠시 후 다시 시도해주세요.')
+        setSubmitting(false)
+        return
+      }
       
-      /* Step 2: imageUrls 포함하여 판매글 등록 요청 */
+      /* Step 2: imageUrls 포함하여 판매글 등록 요청
+       * 백엔드 필드명: description / condition / tradeType
+       * (uniformName은 백엔드에서 title로 자동 채움 → 전송 불필요) */
       const postId = await createListing({
         title: form.title,
-        content: form.description,
+        description: form.description,
         sport: form.sport,
         team: form.team,
-        uniformName: form.team,
-        grade: form.grade,
+        condition: form.grade,
         size: form.size || undefined,
         price: Number(form.price),
-        deliveryType: form.deliveryType,
+        tradeType: form.deliveryType,
         imageUrls,
       })
       // 등록 성공 → 초안 삭제 후 상세 페이지 이동
@@ -521,7 +534,8 @@ export default function ListingCreatePage() {
       })
       navigate(`/listing/${postId}`)
     } catch {
-      // 에러 시 재시도 가능하도록 submitting만 해제
+      // 판매글 등록 실패 (400/401/500 등)
+      setSubmitError('게시글 등록에 실패했습니다. 입력 내용을 확인하고 다시 시도해주세요.')
       setSubmitting(false)
     }
   }
@@ -742,6 +756,17 @@ export default function ListingCreatePage() {
               <AiPanel form={form} onApply={applyAiDescription}/>
             </div>
             
+            {/* 등록 실패 에러 메시지 */}
+            {submitError && (
+              <div
+                className="flex items-start gap-2.5 px-4 py-3 rounded-xl"
+                style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.3)'}}
+              >
+                <AlertTriangle size={15} color="var(--color-accent)" className="flex-shrink-0 mt-0.5"/>
+                <p className="text-sm leading-relaxed" style={{color: 'var(--color-accent)'}}>{submitError}</p>
+              </div>
+            )}
+            
             {/* 제출 버튼 */}
             <div className="flex gap-3">
               <button
@@ -755,7 +780,7 @@ export default function ListingCreatePage() {
               </button>
             </div>
             
-            {!canSubmit && (
+            {!canSubmit && !submitError && (
               <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
                 상품명, 가격, 사진을 입력해야 등록할 수 있습니다.
               </p>

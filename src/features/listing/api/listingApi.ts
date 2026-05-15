@@ -96,33 +96,40 @@ export interface ListingQueryParams {
 /**
  * 판매글 등록 요청 (ListingCreateRequestDTO)
  * 이미지는 먼저 /images 업로드 후 URL 목록을 imageUrls에 전달
+ *
+ * 백엔드 필드명 주의:
+ *   description (content X) — 본문
+ *   condition   (grade X)   — 컨디션 등급 (S/A/B/C)
+ *   tradeType   (deliveryType X) — 거래 방식
+ *   uniformName 백엔드에서 title로 자동 채움 → 전송 불필요
  */
 export interface ListingCreateRequest {
   title: string
-  content: string
+  description: string        // 백엔드: description (ListingCreateRequestDTO)
   sport: Sport
   team: string
-  uniformName: string
-  grade: Grade
+  condition: Grade           // 백엔드: condition (PostCardDTO 응답은 grade로 반환)
   size?: string
   marking?: boolean
   price: number
-  deliveryType: DeliveryType
+  tradeType: DeliveryType    // 백엔드: tradeType (PostCardDTO 응답은 deliveryType으로 반환)
   imageUrls: string[]        // 사전 업로드된 이미지 URL 목록
 }
 
 /**
  * 판매글 수정 요청 (ListingUpdateRequestDTO)
  * PATCH이므로 변경할 필드만 전송 (undefined는 생략)
+ *
+ * 백엔드 필드명: description / condition / tradeType (Create와 동일)
  */
 export interface ListingUpdateRequest {
   title?: string
-  content?: string
+  description?: string       // 백엔드: description
   price?: number
-  grade?: Grade
+  condition?: Grade          // 백엔드: condition
   size?: string
   marking?: boolean
-  deliveryType?: DeliveryType
+  tradeType?: DeliveryType   // 백엔드: tradeType
   imageUrls?: string[]       // 새 이미지 URL 목록 (기존 이미지 대체)
 }
 
@@ -168,7 +175,7 @@ export async function getListingDetail(postId: number): Promise<PostDetail> {
 export async function uploadListingImages(files: File[]): Promise<string[]> {
   const fd = new FormData()
   files.forEach((file) => fd.append('images', file))
-
+  
   const {data} = await apiClient.post<{ urls: string[] }>('/listings/images', fd, {
     headers: {'Content-Type': 'multipart/form-data'},
   })

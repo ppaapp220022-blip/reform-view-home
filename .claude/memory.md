@@ -896,3 +896,78 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ### 최종 검증
 - `npx tsc --noEmit` → **EXIT:0**
 - `npx eslint` → **EXIT:0** (warnings만, 0 errors)
+
+## 로그인 직후 인증 풀림 버그 수정 <!-- 2026-05-15 -->
+
+### 증상
+로그인 성공 후 홈(/) 이동 시 몇 초 뒤 자동으로 /login으로 리다이렉트됨
+
+### 원인 1 — axios.ts 403 즉시 로그아웃 (핵심 버그)
+- 기존: 403 수신 시 무조건 `clearAuthAndRedirect()` 호출
+- 문제: Spring Security 표준에서 403은 "인가 실패(권한 없음)"이며 토큰 문제가 아님
+- `getListings` 등 홈 화면 API가 403 반환 시 즉시 로그아웃 트리거됨
+- 수정: 403은 `Promise.reject(error)`만 하여 컴포넌트가 에러 처리하도록 위임
+
+### 원인 2 — axios.ts refresh 실패 시 무조건 로그아웃
+- 기존: refresh 엔드포인트 404/500/네트워크 오류도 `clearAuthAndRedirect()` 호출
+- 문제: refresh 미구현 상태에서 임의 401 → refresh 404 → 로그아웃
+- 수정: refresh가 401/403 반환 시에만 로그아웃 (명시적 토큰 거부), 나머지는 원요청만 실패 처리
+
+### 원인 3 — authStore restore() 타이밍 버그
+- 기존: `App.tsx` useEffect에서 restore() 호출 → 첫 렌더 시 isAuthenticated=false
+- 문제: 첫 렌더 중 isAuthenticated를 보는 컴포넌트가 미인증 상태로 동작
+- 수정: `create()` 콜백 내부에서 즉시 localStorage 동기 읽어 초기 상태 설정
+
+### 변경 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/lib/axios.ts` | 403 로그아웃 제거, refresh 실패 조건 정교화 (401/403만 로그아웃) |
+| `src/store/authStore.ts` | create() 시점 동기 복원 도입, restore()는 no-op 유지(하위호환) |
+| `src/App.tsx` | restore() useEffect 제거 (불필요해짐) |
+
+### 최종 검증
+- `npx tsc --noEmit` → **EXIT:0**
+- `npx eslint src/lib/axios.ts src/store/authStore.ts src/App.tsx` → **0 errors**
+
+## 커뮤니티 API 연동 버그 수정 <!-- 2026-05-15 -->
+
+### 수정 내용 (게시글 등록 + 목록 조회)
+
+| 파일 | 수정 내용 |
+|---|---|
+| `src/types/community.ts` | `AuthorBrief.memberId: number` → `number | null` (백엔드 실제 null 반환) |
+| `src/features/community/api/communityApi.ts` | `createCommunityPost`: `sport` → `Sport`(대문자) 변환 (Java Record 필드명 이슈) |
+| `src/features/community/api/communityApi.ts` | `getCommunityPosts`: page 0-indexed → 1-based 자동 변환 (+1) |
+| `src/features/community/api/communityApi.ts` | `CommunityPostUpdateRequest` 필드명 수정: `title`→`commTitle`, `content`→`commContent` |
+| `src/pages/community/CommunityPage.tsx` | `avatarColor(memberId)` null-safe 처리 (`memberId ?? 0`) |
+
+### 핵심 버그 원인
+1. **게시글 등록 실패**: 백엔드 `CommunityPostCreateRequestDTO`가 Java Record로 선언되어 있고 필드명이 `Sport Sport` (대문자 S). Jackson은 명시적 naming strategy 없으면 accessor명 그대로 사용 → JSON 키 `"Sport"`. 프론트가 `"sport"` (소문자) 전송 → 백엔드에서 null 처리됨.
+2. **목록 조회 실패**: 백엔드 페이지네이션이 1-based (`page=1~n`)인데 프론트가 `page=0` 전송 → 빈 결과.
+3. **tsc/eslint**: 0 errors 유지 확인
+
+## 판매글 등록(/listing/new) 버그 수정 <!-- 2026-05-15 -->
+
+### 원인: 요청 필드명 불일치 (프론트 ↔ 백엔드)
+
+| 프론트 전송 필드 | 백엔드 기대 필드 | 비고 |
+|---|---|---|
+| `content` | `description` | `@NotBlank` → null 취급 → 400 에러 |
+| `grade` | `condition` | `@NotNull` → null 취급 → 400 에러 |
+| `deliveryType` | `tradeType` | `@NotNull` → null 취급 → 400 에러 |
+| `uniformName` | (없음) | 백엔드가 title로 자동 채움, 전송 불필요 |
+
+### 수정 파일
+
+| 파일 | 변경 내용 |
+|---|---|
+| `listingApi.ts` | `ListingCreateRequest`: content→description, grade→condition, deliveryType→tradeType, uniformName 제거 |
+| `listingApi.ts` | `ListingUpdateRequest`: content→description, grade→condition, deliveryType→tradeType |
+| `ListingCreatePage.tsx` | handleSubmit 호출부 필드명 수정 |
+| `ListingEditPage.tsx` | updateListing 호출부 필드명 수정 |
+
+### 주의: 응답 필드명은 다름 (읽기 전용)
+- `PostDetailDTO` 응답: `content` (description X), `grade` (condition X), `deliveryType` (tradeType X)
+- 이는 백엔드 설계 불일치 — 요청(input)과 응답(output) 필드명이 다름
+- `PostDetail` 타입 (읽기용)은 수정하지 않음 (올바름)

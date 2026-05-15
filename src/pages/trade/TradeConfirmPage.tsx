@@ -36,6 +36,7 @@ import {acceptTrade, confirmTrade, getTrade, startShipping,} from '../../feature
 import type {Courier} from '../../features/delivery/api/deliveryApi'
 import {getCouriers} from '../../features/delivery/api/deliveryApi'
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import useAuthStore from '../../store/authStore'
 import type {TradeStatus} from '../../types/listing'
 
@@ -129,8 +130,15 @@ function TradeProductCard({trade}: { trade: TradeResponse }) {
         className="relative rounded-xl overflow-hidden flex-shrink-0"
         style={{width: 72, height: 72, background: '#1A3051'}}
       >
-        {trade.post.thumbnailUrl ? (
-          <img src={trade.post.thumbnailUrl} alt={trade.post.title} className="w-full h-full object-cover"/>
+        {resolveImageUrl(trade.post.thumbnailUrl) ? (
+          <img
+            src={resolveImageUrl(trade.post.thumbnailUrl)!}
+            alt={trade.post.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+            }}
+          />
         ) : (
           <>
             <div className="absolute inset-0"

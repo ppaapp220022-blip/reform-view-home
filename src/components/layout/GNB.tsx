@@ -87,7 +87,7 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
   const navigate = useNavigate()
   const {user, logout, refreshToken} = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-
+  
   async function handleLogout() {
     setIsLoggingOut(true)
     try {
@@ -102,7 +102,7 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
       setIsLoggingOut(false)
     }
   }
-
+  
   return (
     <div
       className="absolute right-0 top-full mt-2 w-56 rounded-2xl overflow-hidden shadow-card z-50"
@@ -117,7 +117,7 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
            style={{color: 'var(--color-text-main)'}}>{user?.nickname ?? '사용자'}</p>
         <p className="text-xs mt-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>{user?.email ?? ''}</p>
       </div>
-
+      
       {/* 메뉴 항목 */}
       <div className="py-1">
         <button
@@ -131,7 +131,7 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
           <User size={15} style={{flexShrink: 0}}/>
           마이페이지
         </button>
-
+        
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
@@ -150,36 +150,43 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
 
 function UserAvatarButton() {
   const [open, setOpen] = useState(false)
+  const [imgError, setImgError] = useState(false)  // 프로필 이미지 로드 실패 추적
   const ref = useRef<HTMLDivElement>(null)
   const {user} = useAuthStore()
-
+  
   useEffect(() => {
     if (!open) return
-
+    
     function handleOutsideClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-
+    
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [open])
-
+  
   return (
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(p => !p)}
         className="w-8 h-8 rounded-full ml-1 shrink-0 border-2 flex items-center justify-center text-white text-xs font-bold overflow-hidden transition-all hover:opacity-80"
         style={{
-          background: user?.profileImageUrl ? 'transparent' : 'linear-gradient(135deg, #FF2E4D, #002147)',
+          background: user?.profileImageUrl && !imgError ? 'transparent' : 'linear-gradient(135deg, #FF2E4D, #002147)',
           borderColor: open ? 'var(--color-accent)' : 'var(--color-border)',
           fontFamily: "'IAMAPLAYER',Giants,sans-serif",
         }}
         aria-label="내 메뉴"
       >
-        {user?.profileImageUrl ? (
-          <img src={user.profileImageUrl} alt={user.nickname} className="w-full h-full object-cover"/>
+        {user?.profileImageUrl && !imgError ? (
+          /* 이미지 로드 실패(ERR_NAME_NOT_RESOLVED 등) 시 이니셜로 폴백 */
+          <img
+            src={user.profileImageUrl}
+            alt={user.nickname}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
         ) : (
           user?.nickname?.slice(0, 2).toUpperCase() ?? 'ME'
         )}
@@ -193,19 +200,19 @@ function UserAvatarButton() {
 function NotificationDropdown({onClose}: { onClose: () => void }) {
   const navigate = useNavigate()
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
-
+  
   const unreadCount = notifications.filter(n => !n.isRead).length
-
+  
   function markAllRead() {
     setNotifications(prev => prev.map(n => ({...n, isRead: true})))
   }
-
+  
   function handleClick(noti: NotificationItem) {
     setNotifications(prev => prev.map(n => n.id === noti.id ? {...n, isRead: true} : n))
     if (noti.link) navigate(noti.link)
     onClose()
   }
-
+  
   return (
     <div
       className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50"
@@ -247,7 +254,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
           </button>
         </div>
       </div>
-
+      
       {/* 알림 목록 */}
       <div className="max-h-[400px] overflow-y-auto">
         {notifications.length === 0 ? (
@@ -275,7 +282,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                 >
                   {meta.icon}
                 </div>
-
+                
                 <div className="flex-1 min-w-0">
                   <p
                     className="text-sm leading-snug mb-0.5"
@@ -295,7 +302,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                     {noti.createdAt}
                   </p>
                 </div>
-
+                
                 {/* 안 읽음 dot */}
                 {!noti.isRead && (
                   <span
@@ -308,7 +315,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
           })
         )}
       </div>
-
+      
       {/* 푸터 */}
       <div
         className="px-4 py-2.5 text-center"
@@ -331,23 +338,23 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
 function NotificationButton({className}: { className?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
+  
   // 외부 클릭 시 닫기
   useEffect(() => {
     if (!open) return
-
+    
     function handleOutsideClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false)
       }
     }
-
+    
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [open])
-
+  
   const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.isRead).length
-
+  
   return (
     <div ref={ref} className={`relative ${className ?? ''}`}>
       <button
@@ -386,7 +393,7 @@ export default function GNB() {
   const location = useLocation()
   const navigate = useNavigate()
   const {isAuthenticated} = useAuthStore()
-
+  
   const getActiveId = () => {
     // '/' (홈 = 마켓 리스팅) → 'market'
     if (location.pathname === '/') return 'market'
@@ -397,12 +404,12 @@ export default function GNB() {
     return null
   }
   const activeId = getActiveId()
-
+  
   const iconBtnCls = 'w-10 h-10 flex items-center justify-center rounded-lg text-[var(--color-text-main)] border border-transparent hover:border-[var(--color-border)] transition-colors'
-
+  
   return (
     <header className="sticky top-0 z-20 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-
+      
       {/* ── 모바일 헤더 ─────────────────────────────────────────────────── */}
       <div className="flex md:hidden items-center h-14 px-4 gap-2">
         <Link to="/" className="inline-flex items-center" aria-label="RE:FORM 홈">
@@ -416,15 +423,15 @@ export default function GNB() {
           <ThemeToggle/>
         </div>
       </div>
-
+      
       {/* ── 데스크톱 헤더 ────────────────────────────────────────────────── */}
       <div className="hidden md:flex items-center max-w-[1280px] mx-auto px-7 py-[14px] gap-7">
-
+        
         {/* 로고 */}
         <Link to="/" className="inline-flex items-center shrink-0" aria-label="RE:FORM 홈">
           <Logo variant="main" height={28}/>
         </Link>
-
+        
         {/* 메인 네비게이션 */}
         <nav className="flex gap-1">
           {NAV_ITEMS.map(({id, label, path}) => {
@@ -449,12 +456,12 @@ export default function GNB() {
             )
           })}
         </nav>
-
+        
         {/* 우측 액션 영역 — 채팅·마이페이지는 nav로 이동, 알림만 아이콘 유지 */}
         <div className="flex items-center gap-2 ml-auto">
           {/* 알림 버튼 (드롭다운 포함) */}
           <NotificationButton/>
-
+          
           {/* 프로필 or 로그인 */}
           {isAuthenticated ? (
             <UserAvatarButton/>
@@ -466,14 +473,14 @@ export default function GNB() {
               로그인
             </Link>
           )}
-
+          
           <Link
             to="/listing/new"
             className="ml-2 px-3 py-[7px] rounded-md text-xs font-semibold no-underline shrink-0 text-white hover:text-white bg-[var(--color-accent)] border border-[var(--color-accent)] transition-colors"
           >
             판매하기
           </Link>
-
+          
           <ThemeToggle/>
         </div>
       </div>
