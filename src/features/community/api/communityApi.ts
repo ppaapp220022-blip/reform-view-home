@@ -174,6 +174,19 @@ export async function deleteReply(replyId: number): Promise<void> {
 }
 
 /**
+ * 댓글 수정 (작성자 본인만 가능)
+ * PUT /api/community/replies/{replyId}
+ * NOTE: 경로에 commId 없음 — 백엔드 설계 기준
+ */
+export async function updateReply(replyId: number, replyContent: string): Promise<ReplyItem> {
+  const {data} = await axiosInstance.put<ReplyItem>(
+    `/community/replies/${replyId}`,
+    {replyContent},
+  )
+  return data
+}
+
+/**
  * 댓글 좋아요 토글
  * POST /api/community/replies/{replyId}/like
  * NOTE: 경로에 commId 없음 — 백엔드 설계 기준

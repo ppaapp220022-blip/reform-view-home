@@ -17,13 +17,34 @@ import apiClient from '../../../lib/axios'
 
 // ── 택배사 목록 ────────────────────────────────────────────────────────────────
 
-/** 단일 택배사 정보 (DeliveryCourierListResponseDTO 내 항목) */
+/**
+ * 프론트엔드에서 사용하는 정규화된 택배사 타입
+ * 백엔드 CourierDTO { trackingApiCode, displayName } → { code, name } 으로 매핑
+ */
 export interface Courier {
-  code: string   // 택배사 코드 (예: "kr.cjlogistics")
-  name: string   // 택배사 이름 (예: "CJ대한통운")
+  code: string   // 택배사 코드 (예: "kr.cjlogistics") ← trackingApiCode
+  name: string   // 택배사 이름 (예: "CJ대한통운")     ← displayName
 }
 
-/** 택배사 목록 응답 (DeliveryCourierListResponseDTO) */
+/**
+ * 백엔드 실제 응답 구조 (DeliveryCourierListResponseDTO)
+ * ApiResponse<T> 언래핑 후 shape:
+ * { isSuccess: boolean, data: { couriers: [{trackingApiCode, displayName}], total: number } }
+ */
+interface RawCourierDTO {
+  trackingApiCode: string
+  displayName: string
+}
+
+interface RawDeliveryCourierListResponse {
+  isSuccess: boolean
+  data: {
+    couriers: RawCourierDTO[]
+    total: number
+  }
+}
+
+/** getCouriers() 반환 타입 — 정규화 후 */
 export interface DeliveryCourierListResponse {
   couriers: Courier[]
 }
@@ -32,12 +53,23 @@ export interface DeliveryCourierListResponse {
  * 지원 택배사 목록 조회
  * GET /api/delivery/tracking/couriers
  * 로그인 불필요
+ *
+ * 백엔드 응답의 중첩 구조를 평탄화하고 필드명을 정규화해서 반환:
+ *   raw: { isSuccess, data: { couriers: [{trackingApiCode, displayName}] } }
+ *   반환: { couriers: [{code, name}] }
  */
 export async function getCouriers(): Promise<DeliveryCourierListResponse> {
-  const {data} = await apiClient.get<DeliveryCourierListResponse>(
+  const {data} = await apiClient.get<RawDeliveryCourierListResponse>(
     '/delivery/tracking/couriers',
   )
-  return data
+  // 백엔드 응답의 data.couriers 배열을 { code, name } 형태로 매핑하고 국내(kr.) 택배사만 필터링
+  const couriers: Courier[] = (data?.data?.couriers ?? [])
+    .filter(c => c.trackingApiCode.startsWith('kr.'))
+    .map(c => ({
+      code: c.trackingApiCode,
+      name: c.displayName,
+    }))
+  return {couriers}
 }
 
 // ── 배송 추적 ─────────────────────────────────────────────────────────────────

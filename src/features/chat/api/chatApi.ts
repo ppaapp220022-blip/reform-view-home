@@ -15,7 +15,7 @@ import axiosInstance from '../../../lib/axios'
 /** 거래 상태 (백엔드 TradeStatus enum 일치) */
 export type TradeStatus =
   | 'REQUESTED' | 'ACCEPTED' | 'PAID' | 'IN_PROGRESS'
-  | 'RECEIVED'  | 'CONFIRMED' | 'COMPLETED' | 'CANCELED' | 'DISPUTED'
+  | 'RECEIVED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELED' | 'DISPUTED'
 
 /** 메시지 타입 */
 export type MessageType = 'TEXT' | 'IMAGE' | 'SYSTEM'
@@ -55,14 +55,26 @@ export interface ChatRoomDetail {
   tradeStatus: TradeStatus | null
 }
 
+/**
+ * AI 위험 분석 결과 (RiskAnalysisResultDTO)
+ * — 백엔드 Spring AI가 메시지 내용을 분석해 반환하는 구조체
+ */
+export interface RiskAnalysisResult {
+  riskLevel: 'LOW' | 'MID' | 'HIGH'
+  reason: string | null
+  suggestion: string | null
+}
+
 /** 채팅 메시지 (ChatMessageDTO) */
 export interface ChatMessage {
   messageId: number
   senderId: number
   content: string
   type: MessageType
-  sentAt: string             // ISO 8601
+  createdAt: string          // ISO 8601 (백엔드 ChatMessageDTO.createdAt 일치)
   isRead: boolean
+  /** AI 위험 탐지 결과 — 백엔드가 HIGH/MID 감지 시에만 포함 */
+  moderation?: RiskAnalysisResult | null
 }
 
 /** 채팅방 생성 요청 */
@@ -76,7 +88,7 @@ export interface ChatRoomCreateRequest {
  * 채팅방 생성 — 판매글에서 "채팅하기" 클릭 시 호출
  */
 export async function createChatRoom(request: ChatRoomCreateRequest): Promise<ChatRoomDetail> {
-  const { data } = await axiosInstance.post<ChatRoomDetail>('/chats', request)
+  const {data} = await axiosInstance.post<ChatRoomDetail>('/chats', request)
   return data
 }
 
@@ -84,7 +96,7 @@ export async function createChatRoom(request: ChatRoomCreateRequest): Promise<Ch
  * 내 채팅방 목록 조회
  */
 export async function getChatRooms(): Promise<ChatRoomSummary[]> {
-  const { data } = await axiosInstance.get<ChatRoomSummary[]>('/chats')
+  const {data} = await axiosInstance.get<ChatRoomSummary[]>('/chats')
   return data
 }
 
@@ -92,7 +104,7 @@ export async function getChatRooms(): Promise<ChatRoomSummary[]> {
  * 채팅방 상세 조회
  */
 export async function getChatRoomDetail(chatId: number): Promise<ChatRoomDetail> {
-  const { data } = await axiosInstance.get<ChatRoomDetail>(`/chats/${chatId}`)
+  const {data} = await axiosInstance.get<ChatRoomDetail>(`/chats/${chatId}`)
   return data
 }
 
@@ -106,8 +118,8 @@ export async function getMessages(chatId: number, page = 0, size = 30): Promise<
   totalPages: number
   last: boolean
 }> {
-  const { data } = await axiosInstance.get(`/chats/${chatId}/message`, {
-    params: { page, size, sort: 'sentAt,desc' },
+  const {data} = await axiosInstance.get(`/chats/${chatId}/message`, {
+    params: {page, size, sort: 'createdAt,desc'},
   })
   return data
 }

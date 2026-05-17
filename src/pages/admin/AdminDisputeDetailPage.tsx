@@ -15,7 +15,9 @@
 import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
+import {useQuery} from '@tanstack/react-query'
 import {AlertOctagon, CheckCircle2, ChevronLeft, Clock, FileText, Gavel, ShieldCheck,} from 'lucide-react'
+import {getTrade} from '../../features/trade/api/tradeApi'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -108,12 +110,18 @@ const RESOLUTION_OPTIONS: { key: NonNullable<Resolution>; label: string; desc: s
 
 export default function AdminDisputeDetailPage() {
   const {id} = useParams<{ id: string }>()
+  // 분쟁 처리 전용 admin API 미구현 → tradeApi.getTrade로 기본 정보 조회
+  const {data: trade} = useQuery({
+    queryKey: ['trade', id],
+    queryFn: () => getTrade(Number(id)),
+    enabled: !!id,
+  })
   const [dispute, setDispute] = useState<DisputeDetail>({...MOCK_DISPUTE, id: Number(id) || MOCK_DISPUTE.id})
   const [selectedResolution, setSelectedResolution] = useState<NonNullable<Resolution> | null>(null)
   const [adminNote, setAdminNote] = useState(dispute.adminNote)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [done, setDone] = useState(false)
-
+  
   async function handleResolve() {
     if (!selectedResolution) return
     setIsSubmitting(true)
@@ -123,10 +131,10 @@ export default function AdminDisputeDetailPage() {
     setIsSubmitting(false)
     setDone(true)
   }
-
+  
   return (
     <div className="max-w-[960px] mx-auto px-4 py-8">
-
+      
       {/* 헤더 */}
       <div className="flex items-center gap-3 mb-6">
         <Link
@@ -149,7 +157,7 @@ export default function AdminDisputeDetailPage() {
           </p>
         </div>
       </div>
-
+      
       {/* 판정 완료 배너 */}
       {(dispute.resolution || done) && (
         <div
@@ -168,12 +176,12 @@ export default function AdminDisputeDetailPage() {
           </div>
         </div>
       )}
-
+      
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
-
+        
         {/* ── 왼쪽 ── */}
         <div className="flex flex-col gap-5">
-
+          
           {/* 거래 개요 */}
           <div
             className="rounded-[12px] p-5"
@@ -186,7 +194,7 @@ export default function AdminDisputeDetailPage() {
             <div className="flex items-start justify-between gap-4 mb-4">
               <div>
                 <h2 className="text-[16px] font-bold mb-1" style={{color: 'var(--color-text-main)'}}>
-                  {dispute.postTitle}
+                  {trade?.post?.title ?? dispute.postTitle}
                 </h2>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
@@ -204,10 +212,10 @@ export default function AdminDisputeDetailPage() {
                 className="text-[22px] font-bold flex-shrink-0"
                 style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
-                {formatPrice(dispute.price)}
+                {formatPrice(trade?.tradePrice ?? dispute.price)}
               </p>
             </div>
-
+            
             {/* 거래 타임라인 */}
             <div className="flex items-center gap-0 overflow-x-auto pb-1">
               {dispute.timeline.map((t, i) => (
@@ -249,7 +257,7 @@ export default function AdminDisputeDetailPage() {
               ))}
             </div>
           </div>
-
+          
           {/* 구매자 / 판매자 주장 */}
           {[
             {party: '구매자', data: dispute.buyer, role: 'buyer' as const},
@@ -294,7 +302,7 @@ export default function AdminDisputeDetailPage() {
               </div>
             </div>
           ))}
-
+          
           {/* 제출된 증거 */}
           <div
             className="rounded-[12px] p-5"
@@ -326,7 +334,7 @@ export default function AdminDisputeDetailPage() {
             </p>
           </div>
         </div>
-
+        
         {/* ── 오른쪽: 판정 패널 ── */}
         <div>
           <div
@@ -339,7 +347,7 @@ export default function AdminDisputeDetailPage() {
                 분쟁 판정
               </p>
             </div>
-
+            
             {/* 판정 선택 */}
             <div className="flex flex-col gap-2.5 mb-4">
               {RESOLUTION_OPTIONS.map((opt) => (
@@ -374,7 +382,7 @@ export default function AdminDisputeDetailPage() {
                 </button>
               ))}
             </div>
-
+            
             {/* 관리자 메모 */}
             <div className="mb-4">
               <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
@@ -392,7 +400,7 @@ export default function AdminDisputeDetailPage() {
                   focus:border-[var(--color-primary)] disabled:opacity-60"
               />
             </div>
-
+            
             {/* 판정 확정 버튼 */}
             <button
               type="button"
@@ -415,13 +423,13 @@ export default function AdminDisputeDetailPage() {
                 </>
               )}
             </button>
-
+            
             {!selectedResolution && !dispute.resolution && !done && (
               <p className="text-[13px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 판정 유형을 먼저 선택해 주세요
               </p>
             )}
-
+            
             {/* 유의사항 */}
             <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
               <p className="text-[13px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>

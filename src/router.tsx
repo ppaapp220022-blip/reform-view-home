@@ -2,12 +2,14 @@
  * router.tsx — 클라이언트 라우트 정의
  *
  * 레이아웃 구조:
- * - MainLayout  → GNB + Footer 있는 일반 페이지
- * - AuthLayout  → 로그인/회원가입/온보딩 (GNB 없음)
+ *   MainLayout  → GNB + Footer 있는 일반 페이지
+ *   AuthLayout  → 로그인/회원가입/온보딩 (GNB 없음)
+ *   AdminLayout → 관리자 사이드바 + 라우트 가드 (ROLE_ADMIN 전용)
  */
 import {createBrowserRouter} from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
 import AuthLayout from './components/layout/AuthLayout'
+import AdminLayout from './components/layout/AdminLayout'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 import LoginPage from './pages/auth/LoginPage'
@@ -18,6 +20,7 @@ import OAuthCallbackPage from './pages/auth/OAuthCallbackPage'
 
 // ── 메인 ─────────────────────────────────────────────────────────────────────
 import HomePage from './pages/HomePage'
+import NotFoundPage from './pages/NotFoundPage'
 
 // ── 검색 ─────────────────────────────────────────────────────────────────────
 import SearchPage from './pages/search/SearchPage'
@@ -25,6 +28,7 @@ import SearchPage from './pages/search/SearchPage'
 // ── 판매글 ───────────────────────────────────────────────────────────────────
 import ListingDetailPage from './pages/listing/ListingDetailPage'
 import ListingCreatePage from './pages/listing/ListingCreatePage'
+import ListingEditPage from './pages/listing/ListingEditPage'
 
 // ── 마이페이지 ────────────────────────────────────────────────────────────────
 import MyPage from './pages/mypage/MyPage'
@@ -40,17 +44,16 @@ import CommunityDetailPage from './pages/community/CommunityDetailPage'
 import PaymentPage from './pages/payment/PaymentPage'
 import PaymentSuccessPage from './pages/payment/PaymentSuccessPage'
 import PaymentFailPage from './pages/payment/PaymentFailPage'
+import TradePage from './pages/trade/TradePage'
 import TradeConfirmPage from './pages/trade/TradeConfirmPage'
 import ReviewPage from './pages/trade/ReviewPage'
-
-// ── 판매글 수정 ──────────────────────────────────────────────────────────────
-import ListingEditPage from './pages/listing/ListingEditPage'
 
 // ── 관리자 ───────────────────────────────────────────────────────────────────
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminMemberDetailPage from './pages/admin/AdminMemberDetailPage'
 import AdminDisputeDetailPage from './pages/admin/AdminDisputeDetailPage'
 import AdminReportDetailPage from './pages/admin/AdminReportDetailPage'
+import AdminListingPage from './pages/admin/AdminListingPage'
 
 const router = createBrowserRouter([
   // ── 인증 레이아웃 (GNB 없음) ──────────────────────────────────────────────
@@ -69,7 +72,7 @@ const router = createBrowserRouter([
   {
     element: <MainLayout/>,
     children: [
-      // 메인
+      // 메인 / 검색
       {path: '/', element: <HomePage/>},
       {path: '/search', element: <SearchPage/>},
       {path: '/likes', element: <MyPage/>},   // 찜 목록 → MyPage 찜 탭으로 통합
@@ -80,7 +83,8 @@ const router = createBrowserRouter([
       {path: '/listing/:id/edit', element: <ListingEditPage/>},
       
       // 거래 / 결제
-      {path: '/trade/:id/confirm', element: <TradeConfirmPage/>},
+      {path: '/trade/:id', element: <TradePage/>},
+      {path: '/trade/:id/confirm', element: <TradeConfirmPage/>}, // 구버전 URL 호환
       {path: '/trade/:id/review', element: <ReviewPage/>},
       {path: '/payment/:id', element: <PaymentPage/>},
       {path: '/payment/success', element: <PaymentSuccessPage/>},
@@ -96,11 +100,20 @@ const router = createBrowserRouter([
       {path: '/community', element: <CommunityPage/>},
       {path: '/community/:id', element: <CommunityDetailPage/>},
       
-      // 관리자
+      // 404
+      {path: '*', element: <NotFoundPage/>},
+    ],
+  },
+  
+  // ── 관리자 레이아웃 (ROLE_ADMIN 전용 가드 포함) ────────────────────────────
+  {
+    element: <AdminLayout/>,
+    children: [
       {path: '/admin', element: <AdminDashboardPage/>},
       {path: '/admin/members/:id', element: <AdminMemberDetailPage/>},
-      {path: '/admin/disputes/:id', element: <AdminDisputeDetailPage/>},
+      {path: '/admin/listings', element: <AdminListingPage/>},
       {path: '/admin/reports/:id', element: <AdminReportDetailPage/>},
+      {path: '/admin/disputes/:id', element: <AdminDisputeDetailPage/>},
     ],
   },
 ])

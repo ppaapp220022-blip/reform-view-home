@@ -177,7 +177,7 @@ export default function PaymentSuccessPage() {
         <div className="flex flex-col gap-3">
           {result && (
             <Link
-              to={`/trade/${result.tradeId}/confirm`}
+              to={`/trade/${result.tradeId}`}
               className="flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white hover:text-white"
               style={{background: 'var(--color-accent)'}}
             >

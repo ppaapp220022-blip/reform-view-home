@@ -59,7 +59,7 @@ function StarRating({value, onChange}: { value: number; onChange: (v: number) =>
             <Star
               size={40}
               fill={n <= display ? 'var(--color-gold)' : 'none'}
-              color={n <= display ? 'var(--color-gold)' : 'var(--color-border)'}
+              color='var(--color-gold)' // 항상 gold 외곽선 — 선택 전에도 경계가 보이도록
               style={{transition: 'fill .1s, color .1s'}}
             />
           </button>

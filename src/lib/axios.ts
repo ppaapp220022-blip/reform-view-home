@@ -98,7 +98,12 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean }
     
     // 401 Unauthorized — accessToken 만료 시 refreshToken으로 재발급 후 재시도
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 403 + code "40300" — RestAuthenticationEntryPoint else branch:
+    //   토큰이 없거나 type이 "access"가 아닐 때 백엔드가 403을 반환하는 케이스.
+    //   axios 인터셉터는 401만 처리하므로 이 케이스도 갱신 재시도 대상에 포함한다.
+    const _respData = error.response?.data as Record<string, unknown> | undefined
+    const _is403AuthMissing = error.response?.status === 403 && _respData?.['code'] === '40300'
+    if ((error.response?.status === 401 || _is403AuthMissing) && !originalRequest._retry) {
       const refreshToken = localStorage.getItem('refreshToken')
       
       // refreshToken 자체가 없으면 즉시 로그아웃
@@ -142,6 +147,15 @@ apiClient.interceptors.response.use(
         // 새 토큰 저장 및 대기열 해소 (localStorage + Zustand 스토어 동기화)
         localStorage.setItem('accessToken', newAccessToken)
         useAuthStore.getState().setAccessToken(newAccessToken)
+        
+        // 백엔드가 refresh token rotation을 하므로 새 refreshToken도 반드시 갱신해야 한다.
+        // 저장하지 않으면 다음 만료 시 구 토큰으로 재발급 요청 → Redis 불일치 → 재발급 실패 → 강제 로그아웃
+        const _rotatedRefreshToken = (body as Record<string, unknown>)?.['data'] as Record<string, unknown>
+        const _newRefreshToken = _rotatedRefreshToken?.['refreshToken'] as string | undefined
+        if (_newRefreshToken) {
+          localStorage.setItem('refreshToken', _newRefreshToken)
+        }
+        
         resolvePending(newAccessToken)
         
         // 원래 요청 재시도

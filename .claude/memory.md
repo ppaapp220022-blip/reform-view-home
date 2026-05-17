@@ -763,7 +763,7 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `SidebarPanel` → `ChatRoomSummary[]` + isLoading 스피너
 - `ChatRoomPanel` (래퍼) → `getChatRoomDetail` + `getMessages` 페치 후 Inner 마운트
 - `ChatRoomPanelInner` → `useStompChat({ chatId, myMemberId, initialMessages })` 초기화
-- `initialMessages` = `getMessages` 결과를 sentAt desc → 오름차순 역정렬
+- `initialMessages` = `getMessages` 결과를 creatAt desc → 오름차순 역정렬
 - `key={activeRoomId}` → 방 전환 시 전체 remount (STOMP 재초기화 보장)
 - `getAvatarColor(memberId)` → 6색 팔레트 결정론적 배정
 - `myMemberId` → `useAuthStore(s => s.user?.id ?? 0)` (MY_ID=1 하드코딩 제거)
@@ -971,3 +971,92 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `PostDetailDTO` 응답: `content` (description X), `grade` (condition X), `deliveryType` (tradeType X)
 - 이는 백엔드 설계 불일치 — 요청(input)과 응답(output) 필드명이 다름
 - `PostDetail` 타입 (읽기용)은 수정하지 않음 (올바름)
+
+## 요구사항 정의서 기반 전체 연동 작업 완료 <!-- 2026-05-15 -->
+
+### 완료된 작업 목록
+
+| 작업 | 파일 | 내용 |
+|---|---|---|
+| adminApi 확장 | `src/features/admin/api/adminApi.ts` | 회원/게시글/신고/출금 CRUD 타입+함수 전체 추가 (67→313줄) |
+| Admin 페이지 연동 | `AdminDashboardPage.tsx` | 목 데이터 → useQuery/useMutation 실연동 |
+| Admin 페이지 연동 | `AdminMemberDetailPage.tsx` | getAdminMember + processAdminMember 연동, 로딩/에러 처리 |
+| Admin 페이지 연동 | `AdminReportDetailPage.tsx` | getAdminReports + 신고 처리 연동 |
+| Admin 페이지 연동 | `AdminDisputeDetailPage.tsx` | getTrade로 기본 정보 조회 연동 |
+| GNB 알림 | `GNB.tsx` | notificationApi 연동, 읽음/전체읽음 처리 |
+| AI 설명 추천 | `ListingCreatePage.tsx` | AiPanel → suggestListingFromImage 실API 연동, images prop |
+| riskLevel 배지 | `ListingDetailPage.tsx` | MID/HIGH riskLevel 배너 표시 (RISK_META 상수) |
+| Chat moderation | `ChatPage.tsx` | MessageBubble에 moderation 경고 배너 표시 |
+| Chat 읽음 처리 | `useStompChat.ts` | markRead 함수 + /pub/chat/read STOMP 발행 |
+| ChatMessage 타입 | `chatApi.ts` | RiskAnalysisResult + moderation 필드 추가 |
+| AI 업로드 함수 | `listingApi.ts` | suggestListingFromImage 함수 추가 |
+| MyPage 이미지업로드 | `MyPage.tsx` | ProfileHeader — 카메라 오버레이 + uploadProfileImage 연동 |
+| MyPage 관심설정 | `MyPage.tsx` | SettingsTab — 관심종목 인라인 편집 패널 (saveInterestSetting 연동) |
+| 환경변수 | `.env.example` | 템플릿 파일 생성 |
+
+### 현재 상태
+- `npx tsc --noEmit` → 0 errors
+- `npx eslint src/` → **0 errors**, 1176 warnings (style-only, 기존 누적분)
+- 경고는 CSS var를 style={{}} 대신 className에서 쓰라는 프로젝트 custom rule — 수정 불필요
+
+### 미연동 항목 (백엔드 API 미제공)
+- 찜 목록 GET — `/api/users/me/wishlist` 없음 → MyPage MOCK_LIKED 유지
+- 관리자 거래 목록 — `/api/admin/trades` 없음 → AdminDashboard MOCK_TRADES 유지
+- 관리자 분쟁 단일 조회 — `/api/admin/disputes/:id` 없음 → getTrade로 대체
+- 신고 단일 조회 — `/api/admin/reports/:id` 없음 → 목록 페치 후 find로 대체
+
+## TradePage 구현 완료 <!-- 2026-05-16 -->
+
+### 신규 파일
+- `src/pages/trade/TradePage.tsx` (1365줄) — `/trade/:id` 라우트
+
+### 핵심 설계
+- 데스크탑 2컬럼: 왼쪽(거래정보+타임라인+액션) + 오른쪽(인라인 채팅 380px, sticky)
+- 모바일 탭: 거래현황 탭 / 채팅 탭 전환
+- 임베드 채팅: `getChatRooms()` → postId 매칭 → 없으면 `createChatRoom()` → `useStompChat`
+- 상태별 뱃지: STATUS_META 상수 (라벨+컬러+배경)
+- 모든 TradeStatus 처리 (DISPUTED 포함):
+  - REQUESTED: 판매자 수락 버튼 / 구매자 대기
+  - ACCEPTED: 구매자 결제하기 버튼 / 판매자 대기
+  - PAID: 판매자 배송입력 폼(택배사+송장) / 구매자 대기
+  - IN_PROGRESS/RECEIVED: 구매자 2-step 구매확정 / 판매자 대기
+  - CONFIRMED/COMPLETED: 리뷰 작성 링크
+  - CANCELED: 취소 안내
+  - DISPUTED: 분쟁 배너 + 에스크로 보관 안내
+
+### 라우팅 변경
+- `router.tsx`: `/trade/:id` → TradePage 추가 (기존 `/trade/:id/confirm` 유지)
+- `ListingDetailPage.tsx`: createTrade 성공 후 `/trade/${tradeId}` 이동 (기존 /confirm 제거)
+- `PaymentSuccessPage.tsx`: `/trade/${tradeId}` 링크로 변경
+
+### 버그 수정
+- `PaymentSuccessPage.tsx`: Edit 툴이 NUL 바이트 삽입 → Python으로 제거
+
+### 최종 검증
+- `npx tsc --noEmit` → EXIT:0
+- `npx eslint src/` → 0 errors, 1300 warnings (CSS var 스타일 경고만)
+
+## 관리자 페이지 + 보완 작업 완료 <!-- 2026-05-16 -->
+
+### 신규 파일
+- `src/components/layout/AdminLayout.tsx` (224줄) — 역할 기반 라우트 가드 (USER→`/` 리다이렉트, 미인증→`/login`)
+  - 좌측 사이드바(데스크탑): navy 배경, 6개 nav (대시보드/회원/게시글/신고/분쟁/출금요청)
+  - 모바일 헤더: 현재 섹션명 표시
+- `src/pages/admin/AdminListingPage.tsx` (637줄) — `/admin/listings` 게시글 관리
+  - 키워드/종목/상태 필터 + 페이지네이션
+  - PostDetailModal: 이미지 썸네일, 정보 그리드, 숨김/삭제 사유 입력
+  - 빠른 숨김 버튼 인라인
+- `src/pages/NotFoundPage.tsx` (80줄) — `*` 라우트 404 페이지
+  - IAMAPLAYER "404" 대형 타이틀
+  - 이전 페이지 / 홈으로 버튼
+
+### router.tsx 변경 (110→121줄)
+- `/admin/*` 전체 → AdminLayout 래핑 (역할 가드 적용)
+- `/admin/listings` → AdminListingPage 추가
+- `*` → NotFoundPage (MainLayout 내)
+- `/trade/:id` → TradePage (기존 `/trade/:id/confirm` 유지)
+
+### 최종 검증 <!-- 2026-05-16 -->
+- `npx tsc --noEmit` → EXIT:0 (타입 에러 0)
+- `npx eslint src/` → **0 errors**, 1382 warnings (CSS var 스타일 경고만)
+- 수정 내역: AdminListingPage에서 미사용 타입 3개 제거 (AdminPostDetail, PostRow, AdminPostListItem)

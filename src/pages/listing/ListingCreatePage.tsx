@@ -7,8 +7,8 @@
  *   AiPanel          — AI 설명 추천 + 위험도 탐지 (오른쪽 사이드패널)
  *   LivePreview      — 작성 중 카드 프리뷰
  *
- * AI 기능: 목 시뮬레이션 (백엔드 미연동)
- *   - 설명 추천: 제목/팀/등급 입력 후 버튼 클릭 시 AI 추천 텍스트 생성
+ * AI 기능: 실제 백엔드 연동
+ *   - 설명·제목 추천: 첫 번째 이미지를 /api/listings/ai-suggest에 업로드하면 AI가 title+description 반환
  *   - 위험 탐지: 설명 입력 중 키워드 실시간 감지 (택배비 선불, 계좌이체 등)
  */
 import {formatPrice} from '../../utils/format'
@@ -56,16 +56,6 @@ const RISK_KEYWORDS: { word: string; level: RiskLevel; msg: string }[] = [
   {word: '도용', level: 'HIGH', msg: '저작권 도용 의심 문구가 감지되었습니다.'},
 ]
 
-/** AI 설명 추천 템플릿 (목) */
-function generateAiDescription(_title: string, team: string, grade: Grade): string {
-  const cond: Record<Grade, string> = {
-    S: '구매 후 착용하지 않은 제품으로 상태가 완벽합니다.',
-    A: '5회 이내 착용한 제품으로 오염·손상이 없습니다.',
-    B: '10회 이내 착용하였으며 미세 보풀이 있으나 착용감에 지장 없습니다.',
-    C: '장기 착용 제품으로 일부 색바램이 있습니다. 기능에는 이상 없습니다.',
-  }
-  return `${team} 공식 유니폼입니다.\n\n${cond[grade]}\n세탁은 손세탁만 진행하였으며 형태가 잘 유지되어 있습니다.\n원래 구성품(태그·보증 스티커) 부착 상태입니다.\n\n궁금한 점은 채팅으로 문의해 주세요. 빠르게 답변 드리겠습니다.`
-}
 
 // ── 폼 타입 ──────────────────────────────────────────────────────────────────
 
@@ -267,15 +257,19 @@ function RiskBanner({level, msg}: { level: RiskLevel; msg: string }) {
   )
 }
 
-/** AI 패널 */
+/** AI 패널 — /api/listings/ai-suggest 실연동 */
 function AiPanel({
-                   form, onApply,
+                   form, onApply, images,
                  }: {
   form: ListingForm
-  onApply: (text: string) => void
+  /** AI 추천 결과 적용 콜백 — title + description 동시 반영 */
+  onApply: (result: { title: string; description: string }) => void
+  /** 업로드된 이미지 파일 목록 (첫 번째 파일을 AI에 전송) */
+  images: File[]
 }) {
   const [aiLoading, setAiLoading] = useState(false)
-  const [aiResult, setAiResult] = useState('')
+  /** AI 추천 결과 — null이면 미생성 또는 오류 */
+  const [aiResult, setAiResult] = useState<{ title: string; description: string } | null>(null)
   /* 설명 변경 시 위험 탐지 — useState+useEffect 대신 useMemo로 파생 상태 계산 */
   const risks = useMemo<{ level: RiskLevel; msg: string }[]>(() => {
     if (!form.description) return []
@@ -285,16 +279,25 @@ function AiPanel({
   }, [form.description])
   
   async function requestAiDescription() {
-    if (!form.title || !form.grade) return
+    if (images.length === 0) return
     setAiLoading(true)
-    setAiResult('')
-    // 실제 API 호출 대신 딜레이 후 목 텍스트
-    await new Promise(r => setTimeout(r, 1400))
-    setAiResult(generateAiDescription(form.title, form.team, form.grade))
-    setAiLoading(false)
+    setAiResult(null)
+    try {
+      /* 첫 번째 이미지를 multipart/form-data로 서버에 전송
+         — 백엔드 POST /api/listings/ai-suggest → { title, description } */
+      const {suggestListingFromImage} = await import('../../features/listing/api/listingApi')
+      const result = await suggestListingFromImage(images[0])
+      setAiResult(result)
+    } catch (err) {
+      console.error('[AI 추천] 오류:', err)
+      setAiResult(null)
+    } finally {
+      setAiLoading(false)
+    }
   }
   
-  const canGenerate = !!form.title && !!form.grade
+  /** 이미지가 1장 이상 업로드되어 있어야 AI 추천 가능 */
+  const canGenerate = images.length > 0
   
   return (
     <div className="flex flex-col gap-4">
@@ -307,7 +310,7 @@ function AiPanel({
         </div>
         <div className="p-4" style={{background: 'var(--color-surface)'}}>
           <p className="text-xs mb-3 leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
-            제목·팀·등급을 입력하면 AI가 매물 설명을 자동 작성해드립니다.
+            첫 번째 사진을 분석해 AI가 제목과 설명을 자동으로 작성해드립니다.
           </p>
           <button
             onClick={requestAiDescription}
@@ -319,31 +322,50 @@ function AiPanel({
             {aiLoading ? 'AI 생성 중...' : '설명 자동 생성'}
           </button>
           
+          {/* AI 추천 결과 카드 */}
           {aiResult && (
             <div className="mt-3">
-              <div
-                className="text-xs leading-relaxed p-3 rounded-xl whitespace-pre-line"
-                style={{
-                  background: 'var(--color-surface-raised)',
-                  color: 'var(--color-text-sub)',
-                  border: '1px solid var(--color-border)'
-                }}
-              >
-                {aiResult}
+              {/* 추천 제목 미리보기 */}
+              <div className="mb-2">
+                <span className="text-[11px] font-semibold" style={{color: 'var(--color-text-hint)'}}>추천 제목</span>
+                <div
+                  className="text-xs leading-relaxed px-3 py-2 rounded-lg mt-1"
+                  style={{
+                    background: 'var(--color-surface-raised)',
+                    color: 'var(--color-text-main)',
+                    border: '1px solid var(--color-border)'
+                  }}
+                >
+                  {aiResult.title}
+                </div>
+              </div>
+              {/* 추천 설명 미리보기 */}
+              <div className="mb-3">
+                <span className="text-[11px] font-semibold" style={{color: 'var(--color-text-hint)'}}>추천 설명</span>
+                <div
+                  className="text-xs leading-relaxed p-3 rounded-xl mt-1 whitespace-pre-line"
+                  style={{
+                    background: 'var(--color-surface-raised)',
+                    color: 'var(--color-text-sub)',
+                    border: '1px solid var(--color-border)'
+                  }}
+                >
+                  {aiResult.description}
+                </div>
               </div>
               <button
                 onClick={() => onApply(aiResult)}
-                className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white"
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold text-white"
                 style={{background: 'var(--color-success)'}}
               >
-                <CheckCircle2 size={13}/>적용하기
+                <CheckCircle2 size={13}/>제목·설명 모두 적용하기
               </button>
             </div>
           )}
           
           {!canGenerate && (
             <p className="text-[13px] mt-2 flex items-center gap-1" style={{color: 'var(--color-text-hint)'}}>
-              <Info size={11}/>제목과 등급을 먼저 입력해주세요.
+              <Info size={11}/>사진을 먼저 추가해주세요.
             </p>
           )}
         </div>
@@ -492,9 +514,10 @@ export default function ListingCreatePage() {
     update('sport', sport)
   }
   
-  /* AI 추천 적용 */
-  function applyAiDescription(text: string) {
-    update('description', text)
+  /* AI 추천 적용 — 제목과 설명을 동시에 업데이트 */
+  function applyAiDescription({title, description}: { title: string; description: string }) {
+    update('title', title)
+    update('description', description)
   }
   
   /* 제출 — createListing API 연동 */
@@ -753,7 +776,7 @@ export default function ListingCreatePage() {
             
             {/* AI 패널 (모바일: 인라인) */}
             <div className="xl:hidden">
-              <AiPanel form={form} onApply={applyAiDescription}/>
+              <AiPanel form={form} onApply={applyAiDescription} images={images}/>
             </div>
             
             {/* 등록 실패 에러 메시지 */}
@@ -790,7 +813,7 @@ export default function ListingCreatePage() {
           {/* ── 우: AI 패널 (데스크탑) ───────────────────────────────── */}
           <div className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-20 flex flex-col gap-4">
-              <AiPanel form={form} onApply={applyAiDescription}/>
+              <AiPanel form={form} onApply={applyAiDescription} images={images}/>
             </div>
           </div>
         </div>

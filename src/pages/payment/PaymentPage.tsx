@@ -27,10 +27,7 @@ import useAuthStore from '../../store/authStore'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 // Toss 테스트 키 — 실서비스 전환 시 VITE_TOSS_CLIENT_KEY 환경변수로 교체
-const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY ?? 'test_ck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
-
-// 플랫폼 수수료율 3%
-const FEE_RATE = 0.03
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY ?? 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
 
 // 폴백 유니폼 색상 (썸네일 없을 때 사용)
 const JERSEY_COLORS = [
@@ -84,8 +81,9 @@ function ErrorState({id}: { id?: string }) {
  * 수수료 breakdown: 상품가 + 수수료 3% = 최종 결제액
  */
 function OrderSummaryCard({trade}: { trade: TradeResponse }) {
-  const fee = Math.round(trade.tradePrice * FEE_RATE)
-  const total = trade.tradePrice + fee
+  // 구매자는 거래가 그대로 결제 — 플랫폼 수수료(3%)는 판매자 정산 시 차감
+  const sellerFee = Math.round(trade.tradePrice * 0.03)
+  const sellerReceives = trade.tradePrice - sellerFee
   
   return (
     <div
@@ -163,31 +161,25 @@ function OrderSummaryCard({trade}: { trade: TradeResponse }) {
       
       {/* 금액 Breakdown */}
       <div style={{borderTop: '1px solid var(--color-border)'}} className="px-5 py-4 space-y-2">
-        <div className="flex justify-between text-sm">
-          <span style={{color: 'var(--color-text-sub)'}}>상품 가격</span>
-          <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-main)'}}>
-            {formatPrice(trade.tradePrice)}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span style={{color: 'var(--color-text-sub)'}}>수수료 (3%)</span>
-          <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-sub)'}}>
-            {formatPrice(fee)}
-          </span>
-        </div>
         <div
-          className="flex justify-between pt-2"
-          style={{borderTop: '1px solid var(--color-border)'}}
+          className="flex justify-between pt-1"
         >
           <span className="font-bold"
                 style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}>
-            최종 결제액
+            결제 금액
           </span>
           <span
             className="text-lg font-bold"
             style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-primary)'}}
           >
-            {formatPrice(total)}
+            {formatPrice(trade.tradePrice)}
+          </span>
+        </div>
+        {/* 판매자 정산 안내: 수수료 3%는 관리자가 정산 시 차감 */}
+        <div className="flex justify-between text-xs" style={{color: 'var(--color-text-hint)'}}>
+          <span>판매자 정산액 (수수료 3% 차감)</span>
+          <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+            {formatPrice(sellerReceives)}
           </span>
         </div>
       </div>
@@ -234,10 +226,6 @@ export default function PaymentPage() {
   // ── 결제 초기화 mutation ─────────────────────────────────────────────────────
   const {mutate: initPayment, isPending: isInitPending} = useInitPayment()
   
-  // 결제 총액 계산 (수수료 3% 포함)
-  const fee = trade ? Math.round(trade.tradePrice * FEE_RATE) : 0
-  const total = trade ? trade.tradePrice + fee : 0
-  
   // Toss customerKey: 로그인한 회원이면 memberId 사용, 아니면 ANONYMOUS
   const customerKey = user?.id ? `member_${user.id}` : 'ANONYMOUS'
   
@@ -258,7 +246,7 @@ export default function PaymentPage() {
         // 2) 결제 수단 위젯 렌더링 (#toss-payment-method div에 주입)
         paymentMethodsRef.current = widget.renderPaymentMethods(
           '#toss-payment-method',
-          {value: total, currency: 'KRW'},
+          {value: trade.tradePrice, currency: 'KRW'},
         )
         
         // 3) 약관 위젯 렌더링
@@ -276,12 +264,12 @@ export default function PaymentPage() {
     return () => {
       cancelled = true
     }
-  }, [trade, total, customerKey])
+  }, [trade, customerKey])
   
   // ── 금액 변경 시 위젯 업데이트 (쿠폰/할인 적용 등) ──────────────────────────
   useEffect(() => {
-    paymentMethodsRef.current?.updateAmount(total)
-  }, [total])
+    paymentMethodsRef.current?.updateAmount(trade ? trade.tradePrice : 0)
+  }, [trade])
   
   // ── 결제하기 버튼 핸들러 ────────────────────────────────────────────────────
   function handlePay() {
@@ -412,7 +400,7 @@ export default function PaymentPage() {
               ) : (
                 <>
                   <Lock size={16}/>
-                  {formatPrice(total)} 결제하기
+                  {formatPrice(trade.tradePrice)} 결제하기
                 </>
               )}
             </button>

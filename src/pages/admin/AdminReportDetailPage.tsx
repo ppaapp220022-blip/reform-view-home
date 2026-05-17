@@ -13,88 +13,28 @@
  */
 import {useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
+import {useQuery} from '@tanstack/react-query'
 import {
+  AlertCircle,
   AlertTriangle,
   CheckCircle2,
   ChevronLeft,
   ExternalLink,
   FileText,
   Flag,
+  Loader2,
   ShieldCheck,
   Trash2,
   User,
 } from 'lucide-react'
-import {formatPrice} from '../../utils/format'
+import type {ReportItem} from '../../features/admin/api/adminApi'
+import {getAdminReports} from '../../features/admin/api/adminApi'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
+// ReportItem은 adminApi.ts에서 import
+type ReportStatus = ReportItem['status']
+type ReportReason = ReportItem['reason']
 
-type ReportStatus = 'PENDING' | 'NORMAL' | 'WARNING' | 'DELETED'
-type ReportReason = 'FAKE' | 'INAPPROPRIATE' | 'FRAUD' | 'ETC'
-type TargetType = 'POST' | 'COMMUNITY_POST'
-
-interface ReportDetail {
-  id: number
-  status: ReportStatus
-  reason: ReportReason
-  detail: string
-  targetType: TargetType
-  createdAt: string
-  reporter: {
-    id: number
-    nickname: string
-    email: string
-    avatarColor: string
-    reportCount: number   // 이 신고자가 낸 총 신고 수
-  }
-  targetPost: {
-    id: number
-    title: string
-    price: number
-    grade: string
-    sport: string
-    description: string
-    sellerNickname: string
-    sellerId: number
-    imageColor: string
-  } | null
-  targetCommunityPost: {
-    id: number
-    title: string
-    content: string
-    authorNickname: string
-    authorId: number
-  } | null
-}
-
-// ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-const MOCK_REPORT: ReportDetail = {
-  id: 1,
-  status: 'PENDING',
-  reason: 'FRAUD',
-  detail: '판매자가 결제 완료 후 연락을 두절하고 배송을 진행하지 않고 있습니다. 채팅 메시지도 확인하지 않아 사기 의심합니다.',
-  targetType: 'POST',
-  createdAt: '2026-05-09 14:32',
-  reporter: {
-    id: 201,
-    nickname: 'soccer_fan99',
-    email: 'soccer99@gmail.com',
-    avatarColor: '#002147',
-    reportCount: 2,
-  },
-  targetPost: {
-    id: 4,
-    title: '레알 마드리드 21/22 서드 킷',
-    price: 92000,
-    grade: 'S',
-    sport: '축구',
-    description: '레알 마드리드 21/22 서드 킷 진품 어센틱 유니폼입니다. 상태 완벽하며 태그 부착 상태입니다. 직거래 가능합니다.',
-    sellerNickname: 'fraud_suspect',
-    sellerId: 103,
-    imageColor: '#6B0078',
-  },
-  targetCommunityPost: null,
-}
 
 // ── 처리 옵션 ─────────────────────────────────────────────────────────────────
 
@@ -146,27 +86,60 @@ const STATUS_META: Record<ReportStatus, { label: string; color: string; bg: stri
 
 export default function AdminReportDetailPage() {
   const {id} = useParams<{ id: string }>()
-  const [report, setReport] = useState<ReportDetail>({...MOCK_REPORT, id: Number(id) || MOCK_REPORT.id})
+  
+  // 신고 목록에서 해당 reportId 찾기 (단일 조회 API 미제공)
+  const {data: page, isLoading, isError} = useQuery({
+    queryKey: ['adminReports', 'detail', id],
+    queryFn: () => getAdminReports({page: 0, size: 100}),
+    enabled: !!id,
+  })
+  const report: ReportItem | undefined = page?.content.find(r => r.reportId === Number(id))
   const [selected, setSelected] = useState<Exclude<ReportStatus, 'PENDING'> | null>(null)
   const [adminNote, setAdminNote] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [done, setDone] = useState(false)
-
+  
+  /* 로딩 */
+  if (isLoading) {
+    return (
+      <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
+          <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>신고 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  /* 에러 / 미발견 */
+  if (isError || !report) {
+    return (
+      <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle size={32} style={{color: 'var(--color-error)'}}/>
+          <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>신고 정보를 찾을 수 없습니다</p>
+          <Link to="/admin" className="text-sm" style={{color: 'var(--color-accent)'}}>관리자 대시보드로</Link>
+        </div>
+      </div>
+    )
+  }
+  
   const statusMeta = STATUS_META[report.status]
   const isProcessed = report.status !== 'PENDING' || done
-
+  
   async function handleSubmit() {
     if (!selected) return
     setIsSubmitting(true)
+    /* 실제 API: await processAdminReport(report.reportId, {action: selected}) */
+    /* 현재는 낙관적 처리 — 단일 신고 처리 API 추후 연동 */
     await new Promise((r) => setTimeout(r, 800))
-    setReport((prev) => ({...prev, status: selected}))
     setIsSubmitting(false)
     setDone(true)
   }
-
+  
   return (
     <div className="max-w-[960px] mx-auto px-4 py-8">
-
+      
       {/* ── 헤더 ── */}
       <div className="flex items-center gap-3 mb-6">
         <Link
@@ -191,11 +164,11 @@ export default function AdminReportDetailPage() {
             </span>
           </div>
           <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
-            신고 #{report.id} · 접수 {report.createdAt}
+            신고 #{report.reportId} · 접수 {report.createdAt}
           </p>
         </div>
       </div>
-
+      
       {/* 처리 완료 배너 */}
       {done && (
         <div
@@ -208,12 +181,12 @@ export default function AdminReportDetailPage() {
           </p>
         </div>
       )}
-
+      
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
-
+        
         {/* ── 왼쪽 ── */}
         <div className="flex flex-col gap-5">
-
+          
           {/* 신고 내용 */}
           <div
             className="rounded-[12px] p-5"
@@ -223,7 +196,7 @@ export default function AdminReportDetailPage() {
                style={{color: 'var(--color-text-hint)'}}>
               신고 내용
             </p>
-
+            
             {/* 사유 + 대상 유형 */}
             <div className="flex items-center gap-2 flex-wrap mb-3">
               <span
@@ -242,7 +215,7 @@ export default function AdminReportDetailPage() {
                 {report.targetType === 'POST' ? '판매글 신고' : '커뮤니티 게시글 신고'}
               </span>
             </div>
-
+            
             {/* 상세 내용 */}
             <div
               className="px-4 py-3 rounded-[8px] text-[14px] leading-relaxed"
@@ -251,80 +224,35 @@ export default function AdminReportDetailPage() {
               {report.detail}
             </div>
           </div>
-
-          {/* 신고 대상 미리보기 */}
-          {report.targetPost && (
-            <div
-              className="rounded-[12px] p-5"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FileText size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
-                  <h3 className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
-                    신고 대상 판매글
-                  </h3>
-                </div>
-                <Link
-                  to={`/listing/${report.targetPost.id}`}
-                  className="flex items-center gap-1 text-[13px] font-medium transition-colors
-                    text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
-                >
-                  원문 보기
-                  <ExternalLink size={11} strokeWidth={1.75}/>
-                </Link>
+          
+          {/* 신고 대상 링크 */}
+          <div
+            className="rounded-[12px] p-5"
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
+                <span className="text-[14px] font-bold" style={{color: 'var(--color-text-main)'}}>
+                  신고 대상 {report.targetType === 'POST' ? '판매글' : '커뮤니티 글'}
+                </span>
               </div>
-
-              <div className="flex gap-4">
-                {/* 이미지 플레이스홀더 */}
-                <div
-                  className="w-24 h-24 rounded-[10px] flex-shrink-0"
-                  style={{background: report.targetPost.imageColor, opacity: 0.85}}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-[13px] font-bold px-1.5 py-0.5 rounded-[4px] text-white"
-                      style={{background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                    >
-                      {report.targetPost.grade}
-                    </span>
-                    <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
-                      {report.targetPost.sport}
-                    </span>
-                  </div>
-                  <h4 className="text-[14px] font-semibold mb-1" style={{color: 'var(--color-text-main)'}}>
-                    {report.targetPost.title}
-                  </h4>
-                  <p
-                    className="text-[15px] font-bold mb-2"
-                    style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                  >
-                    {formatPrice(report.targetPost.price)}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <User size={11} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.5}/>
-                    <Link
-                      to={`/admin/members/${report.targetPost.sellerId}`}
-                      className="text-[13px] font-medium transition-colors
-                        text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
-                    >
-                      {report.targetPost.sellerNickname}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* 판매글 본문 미리보기 */}
-              <div
-                className="mt-4 px-4 py-3 rounded-[8px] text-[13px] leading-relaxed line-clamp-3"
-                style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-sub)'}}
+              <Link
+                to={report.targetType === 'POST'
+                  ? `/listing/${report.targetId}`
+                  : `/community/${report.targetId}`}
+                className="flex items-center gap-1 text-[13px] font-medium transition-colors
+                  text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
               >
-                {report.targetPost.description}
-              </div>
+                원문 보기
+                <ExternalLink size={11} strokeWidth={1.75}/>
+              </Link>
             </div>
-          )}
-
+            <p className="text-[13px] mt-2" style={{color: 'var(--color-text-hint)'}}>
+              대상 ID: {report.targetId}
+            </p>
+          </div>
+          
           {/* 신고자 정보 */}
           <div
             className="rounded-[12px] p-5"
@@ -339,20 +267,20 @@ export default function AdminReportDetailPage() {
             <div className="flex items-center gap-3">
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
-                style={{background: report.reporter.avatarColor, fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                style={{background: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
               >
-                {report.reporter.nickname.slice(0, 2).toUpperCase()}
+                {'(신고자 정보 없음)'.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1">
                 <p className="text-[14px] font-semibold" style={{color: 'var(--color-text-main)'}}>
-                  {report.reporter.nickname}
+                  {'(신고자 정보 없음)'}
                 </p>
                 <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
-                  {report.reporter.email} · 총 신고 {report.reporter.reportCount}건
+                  {''} · 총 신고 {0}건
                 </p>
               </div>
               <Link
-                to={`/admin/members/${report.reporter.id}`}
+                to={`/admin/members/${0}`}
                 className="text-[13px] font-medium transition-colors flex-shrink-0
                   text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
               >
@@ -361,7 +289,7 @@ export default function AdminReportDetailPage() {
             </div>
           </div>
         </div>
-
+        
         {/* ── 오른쪽: 처리 패널 ── */}
         <div>
           <div
@@ -371,7 +299,7 @@ export default function AdminReportDetailPage() {
             <p className="text-[14px] font-bold mb-4" style={{color: 'var(--color-text-main)'}}>
               신고 처리 결정
             </p>
-
+            
             {/* 처리 선택 */}
             <div className="flex flex-col gap-2.5 mb-4">
               {ACTION_OPTIONS.map((opt) => {
@@ -405,7 +333,7 @@ export default function AdminReportDetailPage() {
                 )
               })}
             </div>
-
+            
             {/* 관리자 메모 */}
             <div className="mb-4">
               <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
@@ -423,7 +351,7 @@ export default function AdminReportDetailPage() {
                   focus:border-[var(--color-primary)] disabled:opacity-60"
               />
             </div>
-
+            
             {/* 확정 버튼 */}
             <button
               type="button"
@@ -445,13 +373,13 @@ export default function AdminReportDetailPage() {
                 </>
               ) : isSubmitting ? '처리 중...' : '처리 확정'}
             </button>
-
+            
             {!selected && !isProcessed && (
               <p className="text-[13px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 처리 방법을 선택해 주세요
               </p>
             )}
-
+            
             {/* 안내 */}
             <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
               <p className="text-[13px] leading-relaxed" style={{color: 'var(--color-text-hint)'}}>

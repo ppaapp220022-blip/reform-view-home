@@ -9,7 +9,8 @@
  *   SellerCard       — 판매자 프로필 + 매너점수 + 채팅 버튼
  *   RelatedListings  — 같은 종목 관련 상품 4개
  *
- * 데이터: 목 데이터 (추후 useQuery + /listing/:id 연동)
+ * 데이터: useQuery + /api/listings/:id 연동
+ *   - riskLevel(LOW/MID/HIGH) 배너 표시
  */
 import {formatPrice} from '../../utils/format'
 import {resolveImageUrl} from '../../utils/image'
@@ -18,6 +19,7 @@ import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useMutation, useQuery} from '@tanstack/react-query'
 import {
   AlertCircle,
+  AlertTriangle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -29,18 +31,21 @@ import {
   MessageCircle,
   MoreHorizontal,
   Package,
+  Pencil,
   Share2,
   Shield,
   Truck,
   X,
 } from 'lucide-react'
-import type {Grade, PostStatus} from '../../types/listing'
+import type {Grade, PostStatus, RiskLevel} from '../../types/listing'
 import ReportModal from '../../components/ui/ReportModal'
 import {createChatRoom} from '../../features/chat/api/chatApi'
 import type {PostCard, SellerBrief} from '../../features/listing/api/listingApi'
 import {getListingDetail, getListings, toggleWish} from '../../features/listing/api/listingApi'
 import type {TradeDeliveryType} from '../../features/trade/api/tradeApi'
-import {createTrade} from '../../features/trade/api/tradeApi'
+import {createTrade, getMyTrades} from '../../features/trade/api/tradeApi'
+import axios from 'axios'
+import useAuthStore from '../../store/authStore'
 
 // ── 상수/유틸 (목 데이터 없음 — 실제 API 사용) ────────────────────────────────
 
@@ -59,6 +64,25 @@ const STATUS_META: Record<PostStatus, { label: string; bg: string; text: string 
   SOLD: {label: '판매완료', bg: 'rgba(90,106,122,.10)', text: 'var(--color-text-sub)'},
   HIDDEN: {label: '숨김', bg: 'rgba(90,106,122,.10)', text: 'var(--color-text-sub)'},
   DELETED: {label: '삭제됨', bg: 'rgba(255,46,77,.10)', text: 'var(--color-accent)'},
+}
+
+
+/** AI 사기 탐지 위험도 — MID/HIGH만 배너 표시, LOW는 숨김 */
+const RISK_META: Partial<Record<RiskLevel, { label: string; desc: string; bg: string; text: string; icon: string }>> = {
+  MID: {
+    label: '주의',
+    desc: '이 게시글에서 주의가 필요한 내용이 감지되었습니다. 거래 전 꼼꼼히 확인하세요.',
+    bg: 'rgba(255,149,0,.08)',
+    text: 'var(--color-warning)',
+    icon: 'var(--color-warning)',
+  },
+  HIGH: {
+    label: '위험',
+    desc: '사기 또는 규정 위반 의심 내용이 감지되었습니다. 플랫폼 외부 결제 요구 시 거래를 중단하세요.',
+    bg: 'rgba(255,46,77,.07)',
+    text: 'var(--color-accent)',
+    icon: 'var(--color-accent)',
+  },
 }
 
 function mannerColor(score: number) {
@@ -102,8 +126,14 @@ function TradeStartModal({
     onSuccess(data) {
       onSuccess(data.tradeId)
     },
-    onError() {
-      setError('거래 시작 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+    onError(err) {
+      // 백엔드 ApiResponse.message 또는 data.message 추출
+      let msg = '거래 시작 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      if (axios.isAxiosError(err)) {
+        const body = err.response?.data as { message?: string; data?: { message?: string } } | undefined
+        msg = body?.message ?? body?.data?.message ?? msg
+      }
+      setError(msg)
     },
   })
   
@@ -550,6 +580,9 @@ export default function ListingDetailPage() {
   const navigate = useNavigate()
   const postId = Number(id)
   
+  // 로그인 유저 정보 — 본인 판매글 여부 판단에 사용
+  const {user: authUser} = useAuthStore()
+  
   // null = 서버값 미도착 (listing 로드 후 파생값 사용)
   const [localLiked, setLiked] = useState<boolean | null>(null)
   const [localLikedCount, setLikedCount] = useState<number | null>(null)
@@ -580,6 +613,20 @@ export default function ListingDetailPage() {
     staleTime: 60_000,
   })
   const related = (relatedData?.content ?? []).filter(i => i.postId !== postId).slice(0, 4)
+  
+  // 본인 판매글이면 구매 버튼 대신 수정/거래관리 버튼 표시
+  const isOwnListing = authUser !== null && listing?.seller.memberId === authUser.id
+  
+  // 본인 글일 때 → 해당 게시글에 진행 중인 거래가 있으면 "거래 관리하기" 버튼 표시
+  // 백엔드에 /api/trades/by-post 엔드포인트 없으므로 판매자 거래 목록에서 필터
+  const {data: sellerTrades} = useQuery({
+    queryKey: ['myTrades', 'seller'],
+    queryFn: () => getMyTrades({role: 'seller', size: 50, page: 0}),
+    enabled: isOwnListing,
+    staleTime: 30_000,
+  })
+  // 이 게시글에 연결된 활성 거래 (있으면 거래 관리 버튼, 없으면 수정 버튼)
+  const activeTradeForPost = sellerTrades?.content.find(t => t.post.postId === postId)
   
   /**
    * 찜 토글 핸들러
@@ -645,7 +692,7 @@ export default function ListingDetailPage() {
           title={listing.title}
           price={listing.price}
           onClose={() => setTradeModalOpen(false)}
-          onSuccess={(tradeId) => navigate(`/trade/${tradeId}/confirm`)}
+          onSuccess={(tradeId) => navigate(`/trade/${tradeId}`)}
         />
       )}
       {reportMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setReportMenuOpen(false)}/>}
@@ -732,6 +779,31 @@ export default function ListingDetailPage() {
               </h1>
             </div>
             
+            {/* AI 사기 탐지 위험도 배너 — MID/HIGH만 노출 */}
+            {listing.riskLevel && listing.riskLevel !== 'LOW' && (() => {
+              const rm = RISK_META[listing.riskLevel]
+              if (!rm) return null
+              return (
+                <div
+                  className="flex items-start gap-3 px-4 py-3 rounded-xl"
+                  style={{background: rm.bg, border: `1px solid ${rm.text}33`}}
+                >
+                  <AlertTriangle size={16} style={{color: rm.icon, flexShrink: 0, marginTop: 2}}/>
+                  <div>
+                    <span
+                      className="text-xs font-bold mr-1.5"
+                      style={{color: rm.text}}
+                    >
+                      [{rm.label}]
+                    </span>
+                    <span className="text-xs leading-relaxed" style={{color: rm.text}}>
+                      {rm.desc}
+                    </span>
+                  </div>
+                </div>
+              )
+            })()}
+            
             {/* 가격 */}
             <div className="text-3xl font-bold"
                  style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
@@ -808,15 +880,39 @@ export default function ListingDetailPage() {
                        color={liked ? 'var(--color-accent)' : 'currentColor'}/>
                 <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>{likedCount}</span>
               </button>
-              <button
-                onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors"
-                style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
-                disabled={listing.status !== 'ON_SALE'}
-              >
-                <Package size={16}/>
-                {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
-              </button>
+              {isOwnListing ? (
+                /* 본인 판매글 — 진행 중 거래 있으면 거래 관리, 없으면 수정 */
+                activeTradeForPost ? (
+                  <Link
+                    to={`/trade/${activeTradeForPost.tradeId}`}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white"
+                    style={{background: 'var(--color-accent)'}}
+                  >
+                    <Package size={16}/>
+                    거래 관리하기
+                  </Link>
+                ) : (
+                  <Link
+                    to={`/listing/${listing.postId}/edit`}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white"
+                    style={{background: 'var(--color-primary)'}}
+                  >
+                    <Pencil size={16}/>
+                    내 판매글 수정하기
+                  </Link>
+                )
+              ) : (
+                /* 타인 판매글 — 거래 시작 버튼 */
+                <button
+                  onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors"
+                  style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+                  disabled={listing.status !== 'ON_SALE'}
+                >
+                  <Package size={16}/>
+                  {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
+                </button>
+              )}
             </div>
             
             {/* 상품 설명 */}
@@ -900,14 +996,38 @@ export default function ListingDetailPage() {
             <Heart size={20} fill={liked ? 'var(--color-accent)' : 'none'}
                    color={liked ? 'var(--color-accent)' : 'var(--color-text-sub)'}/>
           </button>
-          <button
-            onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
-            disabled={listing.status !== 'ON_SALE'}
-            className="flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-60"
-            style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
-          >
-            {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
-          </button>
+          {isOwnListing ? (
+            /* 본인 판매글 — 진행 중 거래 있으면 거래 관리, 없으면 수정 */
+            activeTradeForPost ? (
+              <Link
+                to={`/trade/${activeTradeForPost.tradeId}`}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white"
+                style={{background: 'var(--color-accent)'}}
+              >
+                <Package size={16}/>
+                거래 관리하기
+              </Link>
+            ) : (
+              <Link
+                to={`/listing/${listing.postId}/edit`}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white"
+                style={{background: 'var(--color-primary)'}}
+              >
+                <Pencil size={16}/>
+                내 판매글 수정하기
+              </Link>
+            )
+          ) : (
+            /* 타인 판매글 — 거래 시작 버튼 */
+            <button
+              onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
+              disabled={listing.status !== 'ON_SALE'}
+              className="flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-60"
+              style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+            >
+              {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
+            </button>
+          )}
         </div>
       </div>
     </div>

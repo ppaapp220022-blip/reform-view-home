@@ -16,15 +16,17 @@ import {useNavigate, useParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {
   AlertCircle,
+  Check,
   ChevronLeft,
   CornerDownRight,
+  Edit2,
   Eye,
   Flag,
   Loader2,
   MessageSquare,
-  MoreHorizontal,
   Send,
   ThumbsUp,
+  X,
 } from 'lucide-react'
 import {resolveImageUrl} from '../../utils/image'
 import type {Sport} from '../../types/listing'
@@ -37,6 +39,7 @@ import {
   getReplies,
   togglePostLike,
   toggleReplyLike,
+  updateReply,
 } from '../../features/community/api/communityApi'
 import useAuthStore from '../../store/authStore'
 
@@ -88,9 +91,25 @@ function Avatar({author, size = 32}: { author: AuthorBrief; size?: number }) {
 function ChildReplyItem({
                           reply,
                           onLike,
+                          onEdit,
+                          onDelete,
+                          myMemberId,
+                          editingReplyId,
+                          editingText,
+                          onEditTextChange,
+                          onEditSubmit,
+                          onEditCancel,
                         }: {
   reply: ReplyItem
   onLike: (replyId: number) => void
+  onEdit: (replyId: number, content: string) => void
+  onDelete: (replyId: number) => void
+  myMemberId: number | null
+  editingReplyId: number | null
+  editingText: string
+  onEditTextChange: (text: string) => void
+  onEditSubmit: () => void
+  onEditCancel: () => void
 }) {
   if (reply.isDeleted) {
     return (
@@ -121,14 +140,77 @@ function ChildReplyItem({
           {reply.replyContent}
         </p>
         {/* 대댓글 좋아요 */}
-        <button
-          onClick={() => onLike(reply.replyId)}
-          className="flex items-center gap-1 mt-1.5 text-xs transition-colors"
-          style={{color: reply.isLiked ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
-        >
-          <ThumbsUp size={11}/>
-          {reply.likeCount > 0 && reply.likeCount}
-        </button>
+        <div className="flex items-center gap-3 mt-1.5">
+          <button
+            onClick={() => onLike(reply.replyId)}
+            className="flex items-center gap-1 text-xs transition-colors"
+            style={{color: reply.isLiked ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+          >
+            <ThumbsUp size={11}/>
+            {reply.likeCount > 0 && reply.likeCount}
+          </button>
+          {/* 내 대댓글인 경우 수정/삭제 버튼 */}
+          {reply.author.memberId === myMemberId && (
+            <>
+              <button
+                onClick={() => onEdit(reply.replyId, reply.replyContent)}
+                className="flex items-center gap-1 text-xs transition-colors"
+                style={{color: 'var(--color-text-hint)'}}
+              >
+                <Edit2 size={11}/>
+                수정
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('댓글을 삭제하시겠습니까?')) onDelete(reply.replyId)
+                }}
+                className="flex items-center gap-1 text-xs transition-colors"
+                style={{color: 'var(--color-text-hint)'}}
+              >
+                <X size={11}/>
+                삭제
+              </button>
+            </>
+          )}
+        </div>
+        {/* 인라인 수정 폼 */}
+        {editingReplyId === reply.replyId && (
+          <div className="mt-2">
+            <textarea
+              className="w-full rounded-xl px-3 py-2 text-sm resize-none"
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-accent)',
+                color: 'var(--color-text-main)',
+              }}
+              rows={2}
+              value={editingText}
+              onChange={e => onEditTextChange(e.target.value)}
+            />
+            <div className="flex gap-2 mt-1.5">
+              <button
+                onClick={onEditSubmit}
+                disabled={!editingText.trim()}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                style={{background: 'var(--color-accent)'}}
+              >
+                <Check size={11}/>
+                저장
+              </button>
+              <button
+                onClick={onEditCancel}
+                className="px-3 py-1 rounded-lg text-xs font-semibold"
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  color: 'var(--color-text-sub)',
+                  border: '1px solid var(--color-border)'
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -140,15 +222,27 @@ function TopReplyItem({
                         onLike,
                         onReplyTo,
                         onDelete,
+                        onEdit,
                         replyingToId,
                         myMemberId,
+                        editingReplyId,
+                        editingText,
+                        onEditTextChange,
+                        onEditSubmit,
+                        onEditCancel,
                       }: {
   reply: ReplyItem
   onLike: (replyId: number) => void
   onReplyTo: (replyId: number, nickname: string) => void
   onDelete: (replyId: number) => void
+  onEdit: (replyId: number, content: string) => void
   replyingToId: number | null
   myMemberId: number | null
+  editingReplyId: number | null
+  editingText: string
+  onEditTextChange: (text: string) => void
+  onEditSubmit: () => void
+  onEditCancel: () => void
 }) {
   const isReplying = replyingToId === reply.replyId
   
@@ -180,10 +274,48 @@ function TopReplyItem({
             </span>
           </div>
           
-          {/* 댓글 내용 */}
-          <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-main)'}}>
-            {reply.replyContent}
-          </p>
+          {/* 댓글 내용 — 수정 중일 때 textarea 표시 */}
+          {editingReplyId === reply.replyId ? (
+            <div>
+              <textarea
+                className="w-full rounded-xl px-3 py-2 text-sm resize-none"
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  border: '1px solid var(--color-accent)',
+                  color: 'var(--color-text-main)',
+                }}
+                rows={2}
+                value={editingText}
+                onChange={e => onEditTextChange(e.target.value)}
+              />
+              <div className="flex gap-2 mt-1.5">
+                <button
+                  onClick={onEditSubmit}
+                  disabled={!editingText.trim()}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+                  style={{background: 'var(--color-accent)'}}
+                >
+                  <Check size={11}/>
+                  저장
+                </button>
+                <button
+                  onClick={onEditCancel}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold"
+                  style={{
+                    background: 'var(--color-surface-raised)',
+                    color: 'var(--color-text-sub)',
+                    border: '1px solid var(--color-border)'
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-main)'}}>
+              {reply.replyContent}
+            </p>
+          )}
           
           {/* 액션 버튼 */}
           <div className="flex items-center gap-3 mt-2">
@@ -208,17 +340,28 @@ function TopReplyItem({
           </div>
         </div>
         
-        {/* 내 댓글인 경우 삭제 버튼 */}
+        {/* 내 댓글인 경우 수정/삭제 버튼 */}
         {reply.author.memberId === myMemberId && (
-          <button
-            onClick={() => {
-              if (confirm('댓글을 삭제하시겠습니까?')) onDelete(reply.replyId)
-            }}
-            style={{color: 'var(--color-text-hint)'}}
-            aria-label="댓글 삭제"
-          >
-            <MoreHorizontal size={16}/>
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onEdit(reply.replyId, reply.replyContent)}
+              className="p-1 rounded-lg transition-colors"
+              style={{color: 'var(--color-text-hint)'}}
+              aria-label="댓글 수정"
+            >
+              <Edit2 size={15}/>
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('댓글을 삭제하시겠습니까?')) onDelete(reply.replyId)
+              }}
+              className="p-1 rounded-lg transition-colors"
+              style={{color: 'var(--color-text-hint)'}}
+              aria-label="댓글 삭제"
+            >
+              <X size={15}/>
+            </button>
+          </div>
         )}
       </div>
       
@@ -229,7 +372,19 @@ function TopReplyItem({
           style={{background: 'var(--color-surface-sunken)'}}
         >
           {reply.children.map(child => (
-            <ChildReplyItem key={child.replyId} reply={child} onLike={onLike}/>
+            <ChildReplyItem
+              key={child.replyId}
+              reply={child}
+              onLike={onLike}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              myMemberId={myMemberId}
+              editingReplyId={editingReplyId}
+              editingText={editingText}
+              onEditTextChange={onEditTextChange}
+              onEditSubmit={onEditSubmit}
+              onEditCancel={onEditCancel}
+            />
           ))}
         </div>
       )}
@@ -274,6 +429,10 @@ export default function CommunityDetailPage() {
   const [localLiked, setLocalLiked] = useState<boolean | null>(null)   // null = 서버값 사용
   const [localLikeCount, setLocalLikeCount] = useState<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  /** 현재 수정 중인 댓글 ID (null이면 수정 모드 아님) */
+  const [editingReplyId, setEditingReplyId] = useState<number | null>(null)
+  /** 수정 중인 댓글 텍스트 */
+  const [editingText, setEditingText] = useState('')
   
   // ── 댓글 작성 mutation ──────────────────────────────────────────────────
   const {mutate: submitReply, isPending: isSubmittingReply} = useMutation({
@@ -294,6 +453,35 @@ export default function CommunityDetailPage() {
       queryClient.invalidateQueries({queryKey: ['communityPost', commId]})
     },
   })
+  
+  // ── 댓글 수정 mutation ──────────────────────────────────────────────────
+  const {mutate: editReplyMutate, isPending: isEditingReply} = useMutation({
+    mutationFn: ({replyId, text}: { replyId: number; text: string }) =>
+      updateReply(replyId, text),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['communityReplies', commId]})
+      setEditingReplyId(null)
+      setEditingText('')
+    },
+  })
+  
+  /** 댓글 수정 시작 — 해당 댓글 ID와 현재 내용으로 상태 초기화 */
+  function handleEditStart(replyId: number, currentContent: string) {
+    setEditingReplyId(replyId)
+    setEditingText(currentContent)
+  }
+  
+  /** 댓글 수정 취소 */
+  function handleEditCancel() {
+    setEditingReplyId(null)
+    setEditingText('')
+  }
+  
+  /** 댓글 수정 제출 */
+  function handleEditSubmit() {
+    if (!editingText.trim() || editingReplyId === null || isEditingReply) return
+    editReplyMutate({replyId: editingReplyId, text: editingText.trim()})
+  }
   
   // ── 게시글 좋아요 ───────────────────────────────────────────────────────
   async function handlePostLike() {
@@ -538,7 +726,14 @@ export default function CommunityDetailPage() {
                   onLike={handleReplyLike}
                   onReplyTo={handleReplyTo}
                   onDelete={(rid) => removeReply(rid)}
+                  onEdit={handleEditStart}
                   replyingToId={replyingTo?.id ?? null}
+                  myMemberId={myMemberId}
+                  editingReplyId={editingReplyId}
+                  editingText={editingText}
+                  onEditTextChange={setEditingText}
+                  onEditSubmit={handleEditSubmit}
+                  onEditCancel={handleEditCancel}
                 />
               ))
             )}
@@ -597,7 +792,11 @@ export default function CommunityDetailPage() {
                 style={{background: 'var(--color-accent)', color: '#fff'}}
               >
                 {/* 전송 중에는 Loader2 스피너, 대기 중에는 Send 아이콘 */}
-                {isSubmittingReply ? <Loader2 size={15} className="animate-spin"/> : <Send size={15}/>}
+                {isSubmittingReply ? (
+                  <Loader2 size={18} className="animate-spin"/>
+                ) : (
+                  <Send size={18}/>
+                )}
               </button>
             </div>
           </div>

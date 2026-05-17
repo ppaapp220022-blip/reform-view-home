@@ -11,9 +11,12 @@
  *   - 읽지 않은 알림 수 배지 표시
  */
 import {useEffect, useRef, useState} from 'react'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {getNotifications, readAllNotifications, readNotification} from '../../features/notification/api/notificationApi'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import {Bell, Info, LogOut, MessageSquare, Search, ShoppingBag, Star, Tag, User, X,} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import {useStompNotification} from '../../features/notification/hooks/useStompNotification'
 import {logout as logoutApi} from '../../features/auth/api/authApi'
 import Logo from '../ui/Logo'
 import ThemeToggle from '../ui/ThemeToggle'
@@ -22,48 +25,15 @@ import ThemeToggle from '../ui/ThemeToggle'
 type NotificationType = 'TRADE' | 'CHAT' | 'PRICE_DROP' | 'REVIEW' | 'SYSTEM'
 
 interface NotificationItem {
-  id: number
+  notiId: number
   type: NotificationType
-  message: string
-  subMessage?: string   // 상품명, 닉네임 등 부가 정보
+  content: string       // 알림 메시지 (백엔드 content 필드)
+  linkUrl?: string      // 클릭 시 이동 경로
   isRead: boolean
-  createdAt: string     // "3분 전", "1시간 전" 등 표시용
-  link?: string         // 클릭 시 이동 경로
+  createdAt: string     // ISO 8601
 }
 
-// 목 알림 데이터 (추후 useQuery + /api/notifications로 교체)
-const MOCK_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 1, type: 'TRADE', isRead: false,
-    message: '거래가 수락되었습니다.',
-    subMessage: '맨유 23/24 홈 어센틱',
-    createdAt: '3분 전', link: '/chat',
-  },
-  {
-    id: 2, type: 'CHAT', isRead: false,
-    message: 'uniform_king님이 메시지를 보냈습니다.',
-    subMessage: '안녕하세요! 아직 판매 중인가요?',
-    createdAt: '15분 전', link: '/chat',
-  },
-  {
-    id: 3, type: 'PRICE_DROP', isRead: false,
-    message: '관심 상품 가격이 인하됐습니다.',
-    subMessage: 'T1 2024 월즈 유니폼 → ₩108,000',
-    createdAt: '1시간 전', link: '/listing/2',
-  },
-  {
-    id: 4, type: 'REVIEW', isRead: true,
-    message: '거래 후기가 등록되었습니다.',
-    subMessage: 'lck_collector님이 후기를 남겼습니다.',
-    createdAt: '어제', link: '/mypage',
-  },
-  {
-    id: 5, type: 'SYSTEM', isRead: true,
-    message: 'RE:FORM 이용약관이 변경됩니다.',
-    subMessage: '2026년 6월 1일부터 적용',
-    createdAt: '3일 전',
-  },
-]
+// 알림 데이터는 useQuery로 조회 (MOCK 제거됨)
 
 // 알림 타입별 아이콘 + 색상
 const NOTI_META: Record<NotificationType, { icon: React.ReactNode; color: string; bg: string }> = {
@@ -199,17 +169,38 @@ function UserAvatarButton() {
 // ── 알림 드롭다운 컴포넌트 ────────────────────────────────────────────────────
 function NotificationDropdown({onClose}: { onClose: () => void }) {
   const navigate = useNavigate()
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS)
+  const qc = useQueryClient()
   
-  const unreadCount = notifications.filter(n => !n.isRead).length
+  // 알림 목록 조회 (최대 20개)
+  const {data: notiData, isLoading} = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => getNotifications({page: 0, size: 20}),
+    staleTime: 30_000,
+    refetchInterval: 60_000, // 60초마다 자동 갱신
+  })
+  
+  const notifications: NotificationItem[] = notiData?.content?.content ?? []
+  const unreadCount = notiData?.unreadCount ?? 0
+  
+  // 전체 읽음 처리
+  const markAllMutation = useMutation({
+    mutationFn: readAllNotifications,
+    onSuccess: () => void qc.invalidateQueries({queryKey: ['notifications']}),
+  })
+  
+  // 개별 읽음 처리
+  const markOneMutation = useMutation({
+    mutationFn: (notiId: number) => readNotification(notiId),
+    onSuccess: () => void qc.invalidateQueries({queryKey: ['notifications']}),
+  })
   
   function markAllRead() {
-    setNotifications(prev => prev.map(n => ({...n, isRead: true})))
+    markAllMutation.mutate()
   }
   
   function handleClick(noti: NotificationItem) {
-    setNotifications(prev => prev.map(n => n.id === noti.id ? {...n, isRead: true} : n))
-    if (noti.link) navigate(noti.link)
+    if (!noti.isRead) markOneMutation.mutate(noti.notiId)
+    if (noti.linkUrl) navigate(noti.linkUrl)
     onClose()
   }
   
@@ -257,7 +248,12 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
       
       {/* 알림 목록 */}
       <div className="max-h-[400px] overflow-y-auto">
-        {notifications.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <div className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
+                 style={{borderColor: 'var(--color-border)', borderTopColor: 'var(--color-primary)'}}/>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="py-12 text-center">
             <Bell size={28} className="mx-auto mb-2" style={{color: 'var(--color-border)'}}/>
             <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>알림이 없습니다.</p>
@@ -267,7 +263,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
             const meta = NOTI_META[noti.type]
             return (
               <button
-                key={noti.id}
+                key={noti.notiId}
                 onClick={() => handleClick(noti)}
                 className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-surface-raised)]"
                 style={{
@@ -291,7 +287,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                       fontWeight: noti.isRead ? 400 : 600,
                     }}
                   >
-                    {noti.message}
+                    {noti.content}
                   </p>
                   {noti.subMessage && (
                     <p className="text-xs truncate" style={{color: 'var(--color-text-sub)'}}>
@@ -299,7 +295,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                     </p>
                   )}
                   <p className="text-[12px] mt-1" style={{color: 'var(--color-text-hint)'}}>
-                    {noti.createdAt}
+                    {noti.createdAt.slice(0, 16).replace('T', ' ')}
                   </p>
                 </div>
                 
@@ -338,6 +334,10 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
 function NotificationButton({className}: { className?: string }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const {user} = useAuthStore()  // 로그인 상태 확인용 — enabled: !!user 에서 사용
+  
+  // 로그인 상태일 때 /sub/notification/{memberId} 구독 — 알림 수신 시 자동 re-fetch
+  useStompNotification(user?.id ?? null)
   
   // 외부 클릭 시 닫기
   useEffect(() => {
@@ -353,7 +353,15 @@ function NotificationButton({className}: { className?: string }) {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [open])
   
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.isRead).length
+  // 미읽음 알림 수: useQuery로 조회 (Bell 배지용)
+  const {data: notiCountData} = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => getNotifications({page: 0, size: 1}),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    enabled: !!user,     // 로그인 시에만
+  })
+  const unreadCount = notiCountData?.unreadCount ?? 0  // NotificationPageResponse.unreadCount
   
   return (
     <div ref={ref} className={`relative ${className ?? ''}`}>

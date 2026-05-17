@@ -30,8 +30,14 @@ import {
   Users,
   XCircle,
 } from 'lucide-react'
-import type {AdminWithdrawItem} from '../../features/admin/api/adminApi'
-import {getAdminWithdrawList, processWithdraw} from '../../features/admin/api/adminApi'
+import type {AdminMemberListItem, AdminWithdrawItem, ReportItem} from '../../features/admin/api/adminApi'
+import {
+  getAdminMembers,
+  getAdminReports,
+  getAdminWithdrawList,
+  processAdminReport,
+  processWithdraw,
+} from '../../features/admin/api/adminApi'
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 
@@ -42,126 +48,7 @@ const STATS = [
   {label: '진행 중 분쟁', value: '3', sub: '48시간 내 처리', icon: AlertOctagon, color: 'var(--color-warning)'},
 ]
 
-type ReportStatus = 'PENDING' | 'NORMAL' | 'WARNING' | 'DELETED'
-type ReportReason = 'FAKE' | 'INAPPROPRIATE' | 'FRAUD' | 'ETC'
-
-interface ReportRow {
-  id: number
-  reporterNickname: string
-  targetType: 'POST' | 'COMMUNITY_POST'
-  reason: ReportReason
-  detail: string
-  status: ReportStatus
-  createdAt: string
-}
-
-const MOCK_REPORTS: ReportRow[] = [
-  {
-    id: 1,
-    reporterNickname: 'soccer_fan99',
-    targetType: 'POST',
-    reason: 'FRAUD',
-    detail: '결제 후 연락 두절 의심',
-    status: 'PENDING',
-    createdAt: '2026-05-09 14:32'
-  },
-  {
-    id: 2,
-    reporterNickname: 'hoops_king',
-    targetType: 'POST',
-    reason: 'FAKE',
-    detail: '가품으로 의심되는 유니폼',
-    status: 'PENDING',
-    createdAt: '2026-05-09 11:15'
-  },
-  {
-    id: 3,
-    reporterNickname: 'barca_fan99',
-    targetType: 'COMMUNITY_POST',
-    reason: 'INAPPROPRIATE',
-    detail: '욕설 및 인신공격성 댓글 포함',
-    status: 'PENDING',
-    createdAt: '2026-05-09 09:04'
-  },
-  {
-    id: 4,
-    reporterNickname: 'hoops_seoul',
-    targetType: 'POST',
-    reason: 'FRAUD',
-    detail: '가격 부풀리기 의심',
-    status: 'WARNING',
-    createdAt: '2026-05-08 17:20'
-  },
-  {
-    id: 5,
-    reporterNickname: 'volley_pro',
-    targetType: 'POST',
-    reason: 'FAKE',
-    detail: '동일 이미지 반복 게시',
-    status: 'DELETED',
-    createdAt: '2026-05-08 10:00'
-  },
-]
-
-type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
-
-interface MemberRow {
-  id: number
-  nickname: string
-  email: string
-  status: MemberStatus
-  warningCount: number
-  tradeCount: number
-  joinedAt: string
-}
-
-const MOCK_MEMBERS: MemberRow[] = [
-  {
-    id: 101,
-    nickname: 'jersey_master',
-    email: 'jmaster@gmail.com',
-    status: 'ACTIVE',
-    warningCount: 0,
-    tradeCount: 47,
-    joinedAt: '2026-05-09'
-  },
-  {
-    id: 102,
-    nickname: 'uniform_king',
-    email: 'uking@naver.com',
-    status: 'ACTIVE',
-    warningCount: 0,
-    tradeCount: 32,
-    joinedAt: '2026-05-08'
-  },
-  {
-    id: 103,
-    nickname: 'fraud_suspect',
-    email: 'suspect@hotmail.com',
-    status: 'SUSPENDED',
-    warningCount: 3,
-    tradeCount: 5,
-    joinedAt: '2026-05-07'
-  },
-  {
-    id: 104,
-    nickname: 'faker_fan',
-    email: 'fakerfan@gmail.com',
-    status: 'ACTIVE',
-    warningCount: 1,
-    tradeCount: 12,
-    joinedAt: '2026-05-06'
-  },
-  {
-    id: 105,
-    nickname: 'barca_fan99',
-    email: 'barca99@kakao.com',
-    status: 'ACTIVE',
-    warningCount: 0,
-    tradeCount: 8,
-    joinedAt: '2026-05-05'
-  },
-]
+// ReportStatus/ReportReason/MemberStatus 는 adminApi.ts에서 import
 
 interface TradeRow {
   id: number
@@ -223,21 +110,21 @@ const MOCK_TRADES: TradeRow[] = [
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
-const REPORT_STATUS_META: Record<ReportStatus, { label: string; color: string; bg: string }> = {
+const REPORT_STATUS_META: Record<ReportItem['status'], { label: string; color: string; bg: string }> = {
   PENDING: {label: '미처리', color: 'var(--color-warning)', bg: 'rgba(255,149,0,0.1)'},
   NORMAL: {label: '정상', color: 'var(--color-success)', bg: 'rgba(0,179,110,0.1)'},
   WARNING: {label: '경고', color: 'var(--color-accent)', bg: 'rgba(255,46,77,0.1)'},
   DELETED: {label: '삭제됨', color: 'var(--color-text-hint)', bg: 'var(--color-surface-sunken)'},
 }
 
-const REPORT_REASON_LABEL: Record<ReportReason, string> = {
+const REPORT_REASON_LABEL: Record<ReportItem['reason'], string> = {
   FAKE: '허위 매물',
   INAPPROPRIATE: '부적절 게시글',
   FRAUD: '사기 의심',
   ETC: '기타',
 }
 
-const MEMBER_STATUS_META: Record<MemberStatus, { label: string; color: string }> = {
+const MEMBER_STATUS_META: Record<AdminMemberListItem['status'], { label: string; color: string }> = {
   ACTIVE: {label: '활성', color: 'var(--color-success)'},
   SUSPENDED: {label: '정지', color: 'var(--color-accent)'},
   WITHDRAWN: {label: '탈퇴', color: 'var(--color-text-hint)'},
@@ -281,7 +168,7 @@ function SectionHeader({title, linkTo, linkLabel}: { title: string; linkTo?: str
 export default function AdminDashboardPage() {
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
-
+      
       {/* ── 헤더 ── */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -305,7 +192,7 @@ export default function AdminDashboardPage() {
           알림 설정
         </button>
       </div>
-
+      
       {/* ── KPI 카드 4개 ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {STATS.map((s) => {
@@ -343,91 +230,22 @@ export default function AdminDashboardPage() {
           )
         })}
       </div>
-
+      
       {/* ── 메인 그리드 ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-
+        
         {/* 왼쪽 */}
         <div className="flex flex-col gap-6">
-
-          {/* 미처리 신고 */}
+          
+          {/* 미처리 신고 — 실제 API 연동 */}
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <SectionHeader title="최근 신고 내역"/>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
-                <thead>
-                <tr style={{borderBottom: '1px solid var(--color-border)'}}>
-                  {['신고자', '대상', '사유', '접수일', '상태', ''].map((h) => (
-                    <th
-                      key={h}
-                      className="pb-2 text-left font-semibold pr-3 last:pr-0"
-                      style={{color: 'var(--color-text-hint)', fontSize: 11}}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-                </thead>
-                <tbody>
-                {MOCK_REPORTS.map((r) => {
-                  const meta = REPORT_STATUS_META[r.status]
-                  return (
-                    <tr
-                      key={r.id}
-                      style={{borderBottom: '1px solid var(--color-border)'}}
-                    >
-                      <td className="py-3 pr-3 font-medium" style={{color: 'var(--color-text-main)'}}>
-                        {r.reporterNickname}
-                      </td>
-                      <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
-                          <span
-                            className="px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium"
-                            style={{
-                              background: r.targetType === 'POST' ? 'rgba(14,165,233,0.1)' : 'rgba(255,184,0,0.1)',
-                              color: r.targetType === 'POST' ? 'var(--color-info)' : 'var(--color-gold)',
-                            }}
-                          >
-                            {r.targetType === 'POST' ? '판매글' : '커뮤니티'}
-                          </span>
-                      </td>
-                      <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
-                        {REPORT_REASON_LABEL[r.reason]}
-                      </td>
-                      <td className="py-3 pr-3 whitespace-nowrap" style={{
-                        color: 'var(--color-text-hint)',
-                        fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-                        fontSize: 12
-                      }}>
-                        {r.createdAt.slice(5)}
-                      </td>
-                      <td className="py-3 pr-3">
-                          <span
-                            className="px-2 py-0.5 rounded-full text-[13px] font-medium"
-                            style={{background: meta.bg, color: meta.color}}
-                          >
-                            {meta.label}
-                          </span>
-                      </td>
-                      <td className="py-3">
-                        <Link
-                          to={`/admin/reports/${r.id}`}
-                          className="text-[13px] font-medium transition-colors
-                              text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
-                        >
-                          처리 &rsaquo;
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-                </tbody>
-              </table>
-            </div>
+            <RecentReportsSection/>
           </div>
-
+          
           {/* 최근 거래 */}
           <div
             className="rounded-[12px] p-5"
@@ -495,69 +313,19 @@ export default function AdminDashboardPage() {
             <WithdrawManagementSection/>
           </div>
         </div>
-
+        
         {/* 오른쪽 */}
         <div className="flex flex-col gap-6">
-
-          {/* 최근 가입 회원 */}
+          
+          {/* 최근 가입 회원 — 실제 API 연동 */}
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <SectionHeader title="최근 가입 회원"/>
-            <div className="flex flex-col gap-3">
-              {MOCK_MEMBERS.map((m) => {
-                const statusMeta = MEMBER_STATUS_META[m.status]
-                return (
-                  <div key={m.id} className="flex items-center gap-3">
-                    {/* 아바타 */}
-                    <div
-                      className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-white"
-                      style={{
-                        background: m.status === 'SUSPENDED' ? 'var(--color-accent)' : 'var(--color-primary)',
-                        fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-                      }}
-                    >
-                      {m.nickname.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-medium truncate" style={{color: 'var(--color-text-main)'}}>
-                          {m.nickname}
-                        </p>
-                        <span
-                          className="text-[12px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                          style={{
-                            background: `${statusMeta.color}18`,
-                            color: statusMeta.color,
-                          }}
-                        >
-                          {statusMeta.label}
-                        </span>
-                        {m.warningCount > 0 && (
-                          <span className="text-[12px] font-medium flex-shrink-0"
-                                style={{color: 'var(--color-warning)'}}>
-                            ⚠ {m.warningCount}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[13px] truncate" style={{color: 'var(--color-text-hint)'}}>
-                        {m.email}
-                      </p>
-                    </div>
-                    <Link
-                      to={`/admin/members/${m.id}`}
-                      className="flex-shrink-0 text-[13px] font-medium transition-colors
-                        text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
-                    >
-                      상세
-                    </Link>
-                  </div>
-                )
-              })}
-            </div>
+            <RecentMembersSection/>
           </div>
-
+          
           {/* 빠른 관리 바로가기 */}
           <div
             className="rounded-[12px] p-5"
@@ -606,7 +374,7 @@ export default function AdminDashboardPage() {
               })}
             </div>
           </div>
-
+          
           {/* 오늘의 지표 요약 */}
           <div
             className="rounded-[12px] p-5"
@@ -640,7 +408,7 @@ export default function AdminDashboardPage() {
               })}
             </div>
           </div>
-
+          
           {/* 시스템 상태 */}
           <div
             className="rounded-[12px] p-4"
@@ -679,25 +447,223 @@ export default function AdminDashboardPage() {
   )
 }
 
+/** 최근 신고 내역 섹션 — 실제 AdminController 연동 */
+function RecentReportsSection() {
+  const qc = useQueryClient()
+  const {data: page, isLoading, isError} = useQuery({
+    queryKey: ['adminReports', 'recent'],
+    queryFn: () => getAdminReports({page: 0, size: 5}),
+    staleTime: 30_000,
+  })
+  
+  const processMutation = useMutation({
+    mutationFn: ({reportId, action}: { reportId: number; action: ReportItem['status'] }) =>
+      processAdminReport(reportId, {action}),
+    onSuccess: () => void qc.invalidateQueries({queryKey: ['adminReports']}),
+  })
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-2">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-10 rounded animate-pulse" style={{background: 'var(--color-surface-raised)'}}/>
+        ))}
+      </div>
+    )
+  }
+  
+  if (isError) {
+    return (
+      <div className="py-6 text-center">
+        <AlertCircle size={20} className="mx-auto mb-1" style={{color: 'var(--color-error)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>신고 목록을 불러오지 못했습니다.</p>
+      </div>
+    )
+  }
+  
+  const reports = page?.content ?? []
+  if (reports.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <CheckCircle2 size={24} className="mx-auto mb-2" style={{color: 'var(--color-success)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>처리 대기 중인 신고가 없습니다.</p>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
+        <thead>
+        <tr style={{borderBottom: '1px solid var(--color-border)'}}>
+          {['대상', '사유', '접수일', '상태', '처리'].map((h) => (
+            <th key={h} className="pb-2 text-left font-semibold pr-3 last:pr-0"
+                style={{color: 'var(--color-text-hint)', fontSize: 11}}>
+              {h}
+            </th>
+          ))}
+        </tr>
+        </thead>
+        <tbody>
+        {reports.map((r) => {
+          const meta = REPORT_STATUS_META[r.status]
+          return (
+            <tr key={r.reportId} style={{borderBottom: '1px solid var(--color-border)'}}>
+              <td className="py-3 pr-3">
+                <span className="px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium"
+                      style={{
+                        background: r.targetType === 'POST' ? 'rgba(14,165,233,0.1)' : 'rgba(255,184,0,0.1)',
+                        color: r.targetType === 'POST' ? 'var(--color-info)' : 'var(--color-gold)',
+                      }}>
+                  {r.targetType === 'POST' ? '판매글' : '커뮤니티'}
+                </span>
+              </td>
+              <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+                {REPORT_REASON_LABEL[r.reason]}
+              </td>
+              <td className="py-3 pr-3 whitespace-nowrap"
+                  style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 12}}>
+                {r.createdAt.slice(5, 16)}
+              </td>
+              <td className="py-3 pr-3">
+                <span className="px-2 py-0.5 rounded-full text-[13px] font-medium"
+                      style={{background: meta.bg, color: meta.color}}>
+                  {meta.label}
+                </span>
+              </td>
+              <td className="py-3">
+                {r.status === 'PENDING' ? (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => processMutation.mutate({reportId: r.reportId, action: 'WARNING'})}
+                      disabled={processMutation.isPending}
+                      className="px-2 py-1 rounded text-[12px] font-bold disabled:opacity-50"
+                      style={{background: 'rgba(255,149,0,.15)', color: 'var(--color-warning)'}}>
+                      경고
+                    </button>
+                    <button
+                      onClick={() => processMutation.mutate({reportId: r.reportId, action: 'DELETED'})}
+                      disabled={processMutation.isPending}
+                      className="px-2 py-1 rounded text-[12px] font-bold disabled:opacity-50"
+                      style={{background: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}}>
+                      삭제
+                    </button>
+                    <Link to={`/admin/reports/${r.reportId}`}
+                          className="px-2 py-1 rounded text-[12px] font-medium transition-colors
+                            text-[var(--color-text-hint)] hover:text-[var(--color-accent)]">
+                      상세
+                    </Link>
+                  </div>
+                ) : (
+                  <Link to={`/admin/reports/${r.reportId}`}
+                        className="text-[13px] font-medium transition-colors
+                          text-[var(--color-text-hint)] hover:text-[var(--color-accent)]">
+                    보기 &rsaquo;
+                  </Link>
+                )}
+              </td>
+            </tr>
+          )
+        })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** 최근 가입 회원 섹션 — 실제 AdminController 연동 */
+function RecentMembersSection() {
+  const {data: page, isLoading, isError} = useQuery({
+    queryKey: ['adminMembers', 'recent'],
+    queryFn: () => getAdminMembers({page: 0, size: 5}),
+    staleTime: 30_000,
+  })
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-12 rounded-xl animate-pulse"
+               style={{background: 'var(--color-surface-raised)'}}/>
+        ))}
+      </div>
+    )
+  }
+  
+  if (isError) {
+    return (
+      <div className="py-6 text-center">
+        <AlertCircle size={20} className="mx-auto mb-1" style={{color: 'var(--color-error)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>회원 목록을 불러오지 못했습니다.</p>
+      </div>
+    )
+  }
+  
+  const members: AdminMemberListItem[] = page?.content ?? []
+  
+  return (
+    <div className="flex flex-col gap-3">
+      {members.map((m) => {
+        const statusMeta = MEMBER_STATUS_META[m.status]
+        return (
+          <div key={m.memberId} className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-[13px] font-bold text-white"
+              style={{
+                background: m.status === 'SUSPENDED' ? 'var(--color-accent)' : 'var(--color-primary)',
+                fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+              }}>
+              {m.nickname.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-[14px] font-medium truncate" style={{color: 'var(--color-text-main)'}}>
+                  {m.nickname}
+                </p>
+                <span className="text-[12px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      style={{background: `${statusMeta.color}18`, color: statusMeta.color}}>
+                  {statusMeta.label}
+                </span>
+                {m.warningCount > 0 && (
+                  <span className="text-[12px] font-medium flex-shrink-0"
+                        style={{color: 'var(--color-warning)'}}>
+                    ! {m.warningCount}
+                  </span>
+                )}
+              </div>
+              <p className="text-[13px] truncate" style={{color: 'var(--color-text-hint)'}}>{m.email}</p>
+            </div>
+            <Link to={`/admin/members/${m.memberId}`}
+                  className="flex-shrink-0 text-[13px] font-medium transition-colors
+                    text-[var(--color-text-hint)] hover:text-[var(--color-accent)]">
+              상세
+            </Link>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 /** 출금 요청 관리 섹션 — 실제 AdminController 연동 */
 export function WithdrawManagementSection() {
   const qc = useQueryClient()
   const [rejectReason, setRejectReason] = useState<Record<number, string>>({})
   const [rejectOpen, setRejectOpen] = useState<number | null>(null)
-
+  
   const {data: list, isLoading, isError} = useQuery({
     queryKey: ['adminWithdraws'],
     queryFn: getAdminWithdrawList,
     staleTime: 15_000,
     refetchInterval: 30_000,  // 30초마다 자동 갱신
   })
-
+  
   const approveMutation = useMutation({
     mutationFn: (withdrawId: number) =>
       processWithdraw(withdrawId, {action: 'APPROVE'}),
     onSuccess: () => void qc.invalidateQueries({queryKey: ['adminWithdraws']}),
   })
-
+  
   const rejectMutation = useMutation({
     mutationFn: ({withdrawId, reason}: { withdrawId: number; reason: string }) =>
       processWithdraw(withdrawId, {action: 'REJECT', rejectReason: reason}),
@@ -706,7 +672,7 @@ export function WithdrawManagementSection() {
       void qc.invalidateQueries({queryKey: ['adminWithdraws']})
     },
   })
-
+  
   if (isLoading) {
     return (
       <div className="flex flex-col gap-3">
@@ -716,7 +682,7 @@ export function WithdrawManagementSection() {
       </div>
     )
   }
-
+  
   if (isError) {
     return (
       <div className="flex flex-col items-center py-8 gap-2">
@@ -725,10 +691,10 @@ export function WithdrawManagementSection() {
       </div>
     )
   }
-
+  
   const pending = (list ?? []).filter((i: AdminWithdrawItem) => i.status === 'PENDING')
   const processed = (list ?? []).filter((i: AdminWithdrawItem) => i.status !== 'PENDING')
-
+  
   return (
     <div className="flex flex-col gap-5">
       {/* 대기 중 */}
@@ -745,7 +711,7 @@ export function WithdrawManagementSection() {
             )}
           </h3>
         </div>
-
+        
         {pending.length === 0 ? (
           <div className="py-8 text-center rounded-xl"
                style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -792,7 +758,7 @@ export function WithdrawManagementSection() {
                     </button>
                   </div>
                 </div>
-
+                
                 {/* 반려 사유 입력 */}
                 {rejectOpen === item.withdrawId && (
                   <div className="mt-3 flex gap-2">
@@ -834,7 +800,7 @@ export function WithdrawManagementSection() {
           </div>
         )}
       </div>
-
+      
       {/* 처리 완료 */}
       {processed.length > 0 && (
         <div>

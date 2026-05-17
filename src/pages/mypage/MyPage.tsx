@@ -12,7 +12,7 @@
  */
 import {formatPrice} from '../../utils/format'
 import {resolveImageUrl} from '../../utils/image'
-import {useState} from 'react'
+import {useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from 'react-router-dom'
 import type {WithdrawItem} from '../../features/payment/api/pointApi'
@@ -29,6 +29,8 @@ import {
   Award,
   BarChart2,
   Bell,
+  Camera,
+  Check,
   ChevronRight,
   Clock,
   Coins,
@@ -46,13 +48,32 @@ import {
 import type {Grade, ListingItem, TradeStatus} from '../../types/listing'
 import type {ReportItem} from '../../features/report/api/reportApi'
 import {getMyReports, REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
-import {getMyProfile} from '../../features/mypage/api/memberApi'
+import type {SportType} from '../../features/mypage/api/memberApi'
+import {
+  getInterestSetting,
+  getMyProfile,
+  saveInterestSetting,
+  updateMyProfile,
+  uploadProfileImage,
+} from '../../features/mypage/api/memberApi'
 import useAuthStore from '../../store/authStore'
 import {logout as logoutApi} from '../../features/auth/api/authApi'
 import type {TradeResponse} from '../../features/trade/api/tradeApi'
 import {getMyTrades} from '../../features/trade/api/tradeApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
 import {getListings} from '../../features/listing/api/listingApi'
+
+// ── 공용 상수 ─────────────────────────────────────────────────────────────────
+
+/** 종목 선택 옵션 */
+const SPORT_OPTIONS: { key: SportType; label: string }[] = [
+  {key: 'SOCCER', label: '축구'},
+  {key: 'BASEBALL', label: '야구'},
+  {key: 'BASKETBALL', label: '농구'},
+  {key: 'VOLLEYBALL', label: '배구'},
+  {key: 'ESPORTS', label: 'e스포츠'},
+  {key: 'ETC', label: '기타'},
+]
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
 const MOCK_LIKED: ListingItem[] = [
@@ -141,11 +162,37 @@ function mannerColor(score: number) {
 
 /** 프로필 헤더 카드 — 실제 API 연동 */
 function ProfileHeader() {
+  const qc = useQueryClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imgUploading, setImgUploading] = useState(false)
+  
   const {data: profile, isLoading} = useQuery({
     queryKey: ['myProfile'],
     queryFn: getMyProfile,
     staleTime: 60_000,
   })
+  
+  /**
+   * 프로필 이미지 변경 핸들러
+   * 1) uploadProfileImage → S3 URL 획득
+   * 2) updateMyProfile({ profileImageUrl }) → 프로필 갱신
+   * 3) myProfile 쿼리 무효화 → 화면 자동 갱신
+   */
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setImgUploading(true)
+    try {
+      const url = await uploadProfileImage(file)
+      await updateMyProfile({profileImageUrl: url})
+      await qc.invalidateQueries({queryKey: ['myProfile']})
+    } catch (err) {
+      console.error('[프로필 이미지] 업로드 실패:', err)
+    } finally {
+      setImgUploading(false)
+    }
+  }
   
   // 스켈레톤 로딩
   if (isLoading || !profile) {
@@ -176,28 +223,51 @@ function ProfileHeader() {
       }}
     >
       <div className="flex items-center gap-4">
-        {/* 아바타: 프로필 이미지 or 이니셜 (resolveImageUrl로 잘못된 URL 필터링) */}
-        {resolveImageUrl(profile.profileImageUrl) ? (
-          <img
-            src={resolveImageUrl(profile.profileImageUrl)!}
-            alt={profile.nickname}
-            className="w-16 h-16 rounded-full flex-shrink-0 object-cover"
-            onError={(e) => {
-              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-            }}
+        {/* 아바타 + 이미지 업로드 버튼 */}
+        <div className="relative flex-shrink-0">
+          {/* 숨겨진 파일 인풋 — 카메라 버튼 클릭 시 트리거 */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleImageChange}
           />
-        ) : (
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-            style={{
-              background: 'var(--color-primary)',
-              fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-              letterSpacing: '0.06em'
-            }}
+          {resolveImageUrl(profile.profileImageUrl) ? (
+            <img
+              src={resolveImageUrl(profile.profileImageUrl)!}
+              alt={profile.nickname}
+              className="w-16 h-16 rounded-full object-cover"
+              onError={(e) => {
+                ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          ) : (
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg"
+              style={{
+                background: 'var(--color-primary)',
+                fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                letterSpacing: '0.06em'
+              }}
+            >
+              {profile.nickname.slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          {/* 카메라 오버레이 버튼 */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={imgUploading}
+            aria-label="프로필 이미지 변경"
+            className="absolute bottom-0 right-0 w-6 h-6 rounded-full flex items-center justify-center shadow"
+            style={{background: 'var(--color-accent)', color: '#fff'}}
           >
-            {profile.nickname.slice(0, 2).toUpperCase()}
-          </div>
-        )}
+            {imgUploading
+              ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin block"/>
+              : <Camera size={12}/>
+            }
+          </button>
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <h2 className="font-bold text-lg truncate" style={{color: 'var(--color-text-main)'}}>{profile.nickname}</h2>
@@ -295,7 +365,7 @@ function TradeHistoryTab() {
             return (
               <Link
                 key={t.tradeId}
-                to={`/listing/${t.post.postId}`}
+                to={`/trade/${t.tradeId}`}
                 className="flex gap-3 p-4 rounded-xl transition-colors"
                 style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
               >
@@ -978,8 +1048,46 @@ function MyReportsTab() {
 /** 설정 탭 */
 function SettingsTab() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const {logout, refreshToken} = useAuthStore()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  /** 관심 종목 편집 패널 open 여부 */
+  const [interestOpen, setInterestOpen] = useState(false)
+  const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
+  const [savingInterest, setSavingInterest] = useState(false)
+  
+  /* 현재 저장된 관심 설정 조회 */
+  const {data: interestData} = useQuery({
+    queryKey: ['interestSetting'],
+    queryFn: getInterestSetting,
+    staleTime: 60_000,
+    enabled: interestOpen,   // 패널 열릴 때만 fetch
+  })
+  
+  /* 패널이 열릴 때 기존 값으로 초기화 */
+  const handleOpenInterest = () => {
+    setSelectedSport(interestData?.sport ?? null)
+    setInterestOpen(true)
+  }
+  
+  /**
+   * 관심 종목 저장
+   * POST /api/users/me/interest-setting → myProfile 쿼리 무효화
+   */
+  async function handleSaveInterest() {
+    if (!selectedSport) return
+    setSavingInterest(true)
+    try {
+      await saveInterestSetting({sport: selectedSport})
+      await qc.invalidateQueries({queryKey: ['myProfile']})
+      await qc.invalidateQueries({queryKey: ['interestSetting']})
+      setInterestOpen(false)
+    } catch (err) {
+      console.error('[관심 설정] 저장 실패:', err)
+    } finally {
+      setSavingInterest(false)
+    }
+  }
   
   async function handleLogout() {
     setIsLoggingOut(true)
@@ -993,17 +1101,97 @@ function SettingsTab() {
     }
   }
   
-  const settingItems = [
-    {icon: <Edit3 size={18}/>, label: '프로필 수정', sub: '닉네임·관심종목 변경'},
-    {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
-    {icon: <Bell size={18}/>, label: '알림 설정', sub: '거래·커뮤니티 알림'},
-    {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·포인트 요약'},
-    {icon: <HelpCircle size={18}/>, label: '고객 지원', sub: 'FAQ·1:1 문의'},
-  ]
-  
   return (
     <div className="flex flex-col gap-3">
-      {settingItems.map(item => (
+      {/* 프로필 수정 — 관심종목 인라인 편집 */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+      >
+        <button
+          className="flex items-center gap-4 px-4 py-3.5 w-full text-left transition-colors"
+          onClick={handleOpenInterest}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{background: 'var(--color-surface-raised)', color: 'var(--color-primary)'}}>
+            <Edit3 size={18}/>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>프로필 수정</p>
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+              관심종목 변경
+              {interestData?.sport && ` · 현재: ${SPORT_OPTIONS.find(s => s.key === interestData.sport)?.label ?? interestData.sport}`}
+            </p>
+          </div>
+          <ChevronRight
+            size={16}
+            color="var(--color-text-hint)"
+            style={{transform: interestOpen ? 'rotate(90deg)' : 'none', transition: 'transform .2s'}}
+          />
+        </button>
+        {/* 관심 종목 인라인 편집 폼 */}
+        {interestOpen && (
+          <div className="px-4 pb-4 border-t" style={{borderColor: 'var(--color-border)'}}>
+            <p className="text-xs font-semibold mt-3 mb-2" style={{color: 'var(--color-text-sub)'}}>관심 종목 선택</p>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {SPORT_OPTIONS.map(opt => {
+                const active = selectedSport === opt.key
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setSelectedSport(opt.key)}
+                    className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors"
+                    style={active
+                      ? {background: 'var(--color-accent)', color: '#fff'}
+                      : {
+                        background: 'var(--color-surface-raised)',
+                        color: 'var(--color-text-sub)',
+                        border: '1px solid var(--color-border)'
+                      }
+                    }
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveInterest}
+                disabled={!selectedSport || savingInterest}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+                style={{background: 'var(--color-accent)'}}
+              >
+                {savingInterest
+                  ?
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin block"/>
+                  : <Check size={14}/>
+                }
+                저장
+              </button>
+              <button
+                onClick={() => setInterestOpen(false)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold"
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  color: 'var(--color-text-sub)',
+                  border: '1px solid var(--color-border)'
+                }}
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* 나머지 설정 항목 */}
+      {[
+        {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
+        {icon: <Bell size={18}/>, label: '알림 설정', sub: '거래·커뮤니티 알림'},
+        {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·포인트 요약'},
+        {icon: <HelpCircle size={18}/>, label: '고객 지원', sub: 'FAQ·1:1 문의'},
+      ].map(item => (
         <button
           key={item.label}
           className="flex items-center gap-4 px-4 py-3.5 rounded-xl w-full text-left transition-colors"

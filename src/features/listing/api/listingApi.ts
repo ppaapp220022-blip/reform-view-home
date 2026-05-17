@@ -15,7 +15,7 @@
  */
 import apiClient from '../../../lib/axios'
 import type {PageResponse} from '../../../types/api'
-import type {Sport, DeliveryType, Grade, PostStatus, RiskLevel} from '../../../types/listing'
+import type {DeliveryType, Grade, PostStatus, RiskLevel, Sport} from '../../../types/listing'
 
 // ── 응답 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────
 
@@ -222,5 +222,28 @@ export async function deleteListing(postId: number): Promise<void> {
  */
 export async function toggleWish(postId: number): Promise<WishToggleResponse> {
   const {data} = await apiClient.post<WishToggleResponse>(`/listings/${postId}/like`)
+  return data
+}
+
+// ── AI 판매글 도우미 API ──────────────────────────────────────────────────────
+
+/**
+ * AI 판매글 제목/설명 자동 제안
+ * POST /api/listings/ai-suggest (multipart/form-data)
+ *
+ * 이미지 파일을 업로드하면 Spring AI가 판매글 제목과 설명을 자동 추천
+ * @param image 분석할 이미지 파일 (첫 번째 사진 권장)
+ * @returns { title: string, description: string }
+ */
+export async function suggestListingFromImage(
+  image: File,
+): Promise<{ title: string; description: string }> {
+  const formData = new FormData()
+  formData.append('image', image)
+  const {data} = await apiClient.post<{ title: string; description: string }>(
+    '/listings/ai-suggest',
+    formData,
+    {headers: {'Content-Type': 'multipart/form-data'}},
+  )
   return data
 }

@@ -194,12 +194,12 @@ export function handleSocialCallback(): LoginResponse | null {
   const hash = new URLSearchParams(window.location.hash.slice(1))
   const accessToken = hash.get('accessToken')
   const refreshToken = hash.get('refreshToken')
-
+  
   if (!accessToken) return null
-
+  
   // URL에서 hash fragment 제거 (뒤로가기·새로고침 시 재처리 방지)
   window.history.replaceState({}, document.title, window.location.pathname)
-
+  
   // user 정보는 accessToken 디코딩 또는 /api/auth/me 호출로 가져와야 하나
   // 소셜 로그인 후 별도 me 요청을 하는 것이 안전하므로 user는 null로 반환
   // 호출자가 /api/auth/me를 호출해서 user를 채워야 함
@@ -253,4 +253,41 @@ export async function saveInterestSetting(body: InterestSettingRequest): Promise
 export async function getInterestSetting(): Promise<InterestSettingResponse> {
   const {data} = await apiClient.get<InterestSettingResponse>('/users/me/interest-setting')
   return data
+}
+
+
+// ── 세션 관리 ────────────────────────────────────────────────────────────────
+
+/** 세션 정보 (AuthSessionResponseDTO) */
+export interface AuthSession {
+  sessionId: string
+  userAgent: string | null
+  ip: string | null
+  createdAt: string
+  isCurrent: boolean
+}
+
+/**
+ * 내 세션 목록 조회
+ * GET /api/auth/sessions
+ */
+export async function readSessions(): Promise<AuthSession[]> {
+  const {data} = await apiClient.get<AuthSession[]>('/auth/sessions')
+  return data
+}
+
+/**
+ * 특정 세션 로그아웃
+ * POST /api/auth/logout/session
+ */
+export async function logoutSession(sessionId: string): Promise<void> {
+  await apiClient.post('/auth/logout/session', {sessionId})
+}
+
+/**
+ * 전체 세션 로그아웃
+ * POST /api/auth/logout/all
+ */
+export async function logoutAll(): Promise<void> {
+  await apiClient.post('/auth/logout/all')
 }

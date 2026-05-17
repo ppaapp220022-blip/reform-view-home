@@ -463,7 +463,7 @@ public record ChatMessageDTO(
     Long senderId,
     String content,
     String type,               // "TEXT" | "IMAGE" | "SYSTEM"
-    LocalDateTime sentAt,
+    LocalDateTime creatAt,
     boolean isRead
 ) {}
 ```

@@ -12,90 +12,28 @@
 import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {
+  AlertCircle,
   AlertTriangle,
   Ban,
   Calendar,
   ChevronLeft,
   ChevronRight,
   Flag,
+  Loader2,
   Mail,
   ShieldCheck,
   ShoppingBag,
   Star,
   UserX,
 } from 'lucide-react'
+import type {AdminMemberDetail, ReportItem} from '../../features/admin/api/adminApi'
+import {getAdminMember, processAdminMember} from '../../features/admin/api/adminApi'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
-
-type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
-
-interface MemberDetail {
-  id: number
-  nickname: string
-  email: string
-  status: MemberStatus
-  warningCount: number
-  mannerScore: number
-  tradeCount: number
-  sellCount: number
-  buyCount: number
-  joinedAt: string
-  lastLoginAt: string
-  bio: string
-  sports: string[]
-  role: 'USER' | 'ADMIN'
-}
-
-interface TradeRow {
-  id: number
-  title: string
-  role: 'buyer' | 'seller'
-  price: number
-  status: string
-  date: string
-}
-
-interface ReportRow {
-  id: number
-  reason: string
-  detail: string
-  status: string
-  date: string
-}
-
-// ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-const MOCK_MEMBER: MemberDetail = {
-  id: 103,
-  nickname: 'fraud_suspect',
-  email: 'suspect@hotmail.com',
-  status: 'SUSPENDED',
-  warningCount: 3,
-  mannerScore: 2.1,
-  tradeCount: 5,
-  sellCount: 4,
-  buyCount: 1,
-  joinedAt: '2026-05-07',
-  lastLoginAt: '2026-05-09 08:22',
-  bio: '유니폼 판매합니다.',
-  sports: ['축구'],
-  role: 'USER',
-}
-
-const MOCK_TRADES: TradeRow[] = [
-  {id: 301, title: '레알 마드리드 21/22 어웨이', role: 'seller', price: 45000, status: 'CANCELED', date: '2026-05-08'},
-  {id: 302, title: '첼시 FC 22/23 홈', role: 'seller', price: 52000, status: 'DISPUTED', date: '2026-05-07'},
-  {id: 303, title: '아스날 20/21 홈', role: 'seller', price: 38000, status: 'DISPUTED', date: '2026-05-06'},
-  {id: 304, title: '리버풀 21/22 어웨이', role: 'seller', price: 61000, status: 'COMPLETED', date: '2026-05-02'},
-  {id: 305, title: '맨시티 20/21 홈', role: 'buyer', price: 49000, status: 'COMPLETED', date: '2026-04-28'},
-]
-
-const MOCK_REPORTS: ReportRow[] = [
-  {id: 1, reason: '사기 의심', detail: '결제 후 연락 두절 의심', status: 'PENDING', date: '2026-05-09'},
-  {id: 2, reason: '허위 매물', detail: '이미지 도용 판매글', status: 'WARNING', date: '2026-05-07'},
-  {id: 3, reason: '사기 의심', detail: '배송 지연 후 환불 거부', status: 'WARNING', date: '2026-05-06'},
-]
+// AdminMemberDetail, ReportItem 은 adminApi.ts에서 import
+type MemberStatus = AdminMemberDetail['status']
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
@@ -111,6 +49,13 @@ const TRADE_STATUS_KO: Record<string, { label: string; color: string }> = {
   DISPUTED: {label: '분쟁', color: 'var(--color-accent)'},
   CANCELED: {label: '취소', color: 'var(--color-text-hint)'},
   CONFIRMED: {label: '수령 확인', color: 'var(--color-success)'},
+}
+
+const REPORT_REASON_LABEL: Record<string, string> = {
+  FAKE: '허위 매물',
+  INAPPROPRIATE: '부적절 게시글',
+  FRAUD: '사기 의심',
+  ETC: '기타',
 }
 
 const REPORT_STATUS_META: Record<string, { label: string; color: string }> = {
@@ -198,41 +143,79 @@ function ActionModal({
 
 export default function AdminMemberDetailPage() {
   const {id} = useParams<{ id: string }>()
-  const [member, setMember] = useState<MemberDetail>({...MOCK_MEMBER, id: Number(id) || MOCK_MEMBER.id})
+  const qc = useQueryClient()
   const [pendingAction, setPendingAction] = useState<AdminAction | null>(null)
   const [actionDone, setActionDone] = useState<string | null>(null)
-
+  
+  // 회원 상세 조회
+  const {data: member, isLoading, isError} = useQuery({
+    queryKey: ['adminMember', id],
+    queryFn: () => getAdminMember(Number(id)),
+    enabled: !!id,
+  })
+  
+  // 회원 제재 처리
+  const actionMutation = useMutation({
+    mutationFn: (action: AdminAction) => {
+      const apiAction = action === 'warn' ? 'WARN'
+        : action === 'suspend' ? 'SUSPEND'
+          : action === 'unsuspend' ? 'WARN'  // unsuspend는 백엔드에서 WARN으로 상태 변경됨
+            : 'WITHDRAW'
+      return processAdminMember(Number(id), {action: apiAction})
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({queryKey: ['adminMember', id]})
+      void qc.invalidateQueries({queryKey: ['adminMembers']})
+    },
+  })
+  
+  /* 로딩 */
+  if (isLoading) {
+    return (
+      <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
+          <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>회원 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  /* 에러 / 404 */
+  if (isError || !member) {
+    return (
+      <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle size={32} style={{color: 'var(--color-error)'}}/>
+          <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>회원 정보를 찾을 수 없습니다</p>
+          <Link to="/admin" className="text-sm" style={{color: 'var(--color-accent)'}}>관리자 대시보드로</Link>
+        </div>
+      </div>
+    )
+  }
+  
   const statusMeta = STATUS_META[member.status]
-
+  
   function handleAction(action: AdminAction) {
     setPendingAction(action)
   }
-
+  
   function confirmAction() {
     if (!pendingAction) return
-    // 목 처리 — 실제: PATCH /admin/members/:id/action
-    const updated = {...member}
-    if (pendingAction === 'warn') {
-      updated.warningCount += 1
-    }
-    if (pendingAction === 'suspend') {
-      updated.status = 'SUSPENDED'
-    }
-    if (pendingAction === 'unsuspend') {
-      updated.status = 'ACTIVE'
-    }
-    if (pendingAction === 'withdraw') {
-      updated.status = 'WITHDRAWN'
-    }
-    setMember(updated)
-    setActionDone(ACTION_CONFIG[pendingAction].confirmLabel)
-    setPendingAction(null)
-    setTimeout(() => setActionDone(null), 2500)
+    const label = ACTION_CONFIG[pendingAction].confirmLabel
+    /* 실제 API 호출 — actionMutation으로 PATCH /admin/members/:id/action */
+    actionMutation.mutate(pendingAction, {
+      onSuccess: () => {
+        setActionDone(label)
+        setPendingAction(null)
+        setTimeout(() => setActionDone(null), 2500)
+      },
+    })
   }
-
+  
   return (
     <div className="max-w-[960px] mx-auto px-4 py-8">
-
+      
       {/* ── 헤더 ── */}
       <div className="flex items-center gap-3 mb-6">
         <Link
@@ -248,11 +231,11 @@ export default function AdminMemberDetailPage() {
             회원 상세 관리
           </h1>
           <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
-            ID #{member.id}
+            ID #{member.memberId}
           </p>
         </div>
       </div>
-
+      
       {/* ── 액션 완료 토스트 ── */}
       {actionDone && (
         <div
@@ -265,12 +248,12 @@ export default function AdminMemberDetailPage() {
           </p>
         </div>
       )}
-
+      
       <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] gap-6">
-
+        
         {/* ── 왼쪽 ── */}
         <div className="flex flex-col gap-5">
-
+          
           {/* 프로필 카드 */}
           <div
             className="rounded-[12px] p-6"
@@ -287,7 +270,7 @@ export default function AdminMemberDetailPage() {
               >
                 {member.nickname.slice(0, 2).toUpperCase()}
               </div>
-
+              
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <h2 className="text-[18px] font-bold" style={{color: 'var(--color-text-main)'}}>
@@ -314,7 +297,7 @@ export default function AdminMemberDetailPage() {
                   <div className="flex items-center gap-2">
                     <Calendar size={12} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.5}/>
                     <span className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
-                      가입일 {member.joinedAt} · 마지막 로그인 {member.lastLoginAt}
+                      가입일 {member.createdAt} · 마지막 로그인 {member.createdAt}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -327,14 +310,14 @@ export default function AdminMemberDetailPage() {
                 </div>
               </div>
             </div>
-
+            
             {/* 통계 행 */}
             <div className="grid grid-cols-3 gap-3 mt-5 pt-5"
                  style={{borderTop: '1px solid var(--color-border)'}}>
               {[
-                {label: '총 거래', value: member.tradeCount},
-                {label: '판매', value: member.sellCount},
-                {label: '구매', value: member.buyCount},
+                {label: '총 거래', value: member.totalSales + member.totalPurchases},
+                {label: '판매', value: member.totalSales},
+                {label: '구매', value: member.totalPurchases},
               ].map((s) => (
                 <div key={s.label} className="text-center">
                   <p className="text-[22px] font-bold leading-none mb-1"
@@ -345,7 +328,7 @@ export default function AdminMemberDetailPage() {
                 </div>
               ))}
             </div>
-
+            
             {/* 경고 횟수 바 */}
             <div className="mt-4 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
               <div className="flex items-center justify-between mb-2">
@@ -382,7 +365,7 @@ export default function AdminMemberDetailPage() {
               )}
             </div>
           </div>
-
+          
           {/* 거래 내역 */}
           <div
             className="rounded-[12px] p-5"
@@ -395,14 +378,22 @@ export default function AdminMemberDetailPage() {
               </h3>
             </div>
             <div className="flex flex-col gap-0">
-              {MOCK_TRADES.map((t) => {
-                const st = TRADE_STATUS_KO[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
-                return (
-                  <div
-                    key={t.id}
-                    className="flex items-center gap-3 py-3"
-                    style={{borderBottom: '1px solid var(--color-border)'}}
-                  >
+              {/* 거래 내역은 별도 Admin Trades API 미구현 - totalSales/totalPurchases만 표시 */
+                []/*MOCK*/.map((t: {
+                  id: number;
+                  title: string;
+                  role: string;
+                  price: number;
+                  status: string;
+                  date: string
+                }) => {
+                  const st = TRADE_STATUS_KO[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex items-center gap-3 py-3"
+                      style={{borderBottom: '1px solid var(--color-border)'}}
+                    >
                     <span
                       className="w-12 text-center text-[12px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
                       style={{
@@ -412,33 +403,33 @@ export default function AdminMemberDetailPage() {
                     >
                       {t.role === 'seller' ? '판매' : '구매'}
                     </span>
-                    <p className="flex-1 text-[14px] truncate" style={{color: 'var(--color-text-main)'}}>
-                      {t.title}
-                    </p>
-                    <span
-                      className="text-[14px] font-medium flex-shrink-0"
-                      style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                    >
+                      <p className="flex-1 text-[14px] truncate" style={{color: 'var(--color-text-main)'}}>
+                        {t.title}
+                      </p>
+                      <span
+                        className="text-[14px] font-medium flex-shrink-0"
+                        style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                      >
                       {formatPrice(t.price)}
                     </span>
-                    <span
-                      className="text-[13px] font-medium flex-shrink-0"
-                      style={{color: st.color}}
-                    >
+                      <span
+                        className="text-[13px] font-medium flex-shrink-0"
+                        style={{color: st.color}}
+                      >
                       {st.label}
                     </span>
-                    <span
-                      className="text-[13px] flex-shrink-0"
-                      style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                    >
+                      <span
+                        className="text-[13px] flex-shrink-0"
+                        style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                      >
                       {t.date.slice(5)}
                     </span>
-                  </div>
-                )
-              })}
+                    </div>
+                  )
+                })}
             </div>
           </div>
-
+          
           {/* 신고 내역 */}
           <div
             className="rounded-[12px] p-5"
@@ -451,11 +442,11 @@ export default function AdminMemberDetailPage() {
               </h3>
             </div>
             <div className="flex flex-col gap-0">
-              {MOCK_REPORTS.map((r) => {
+              {(member.receivedReports ?? []).map((r: ReportItem) => {
                 const st = REPORT_STATUS_META[r.status] ?? {label: r.status, color: 'var(--color-text-hint)'}
                 return (
                   <div
-                    key={r.id}
+                    key={r.reportId}
                     className="flex items-start gap-3 py-3"
                     style={{borderBottom: '1px solid var(--color-border)'}}
                   >
@@ -467,14 +458,14 @@ export default function AdminMemberDetailPage() {
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-medium" style={{color: 'var(--color-text-main)'}}>
-                        {r.reason}
+                        {REPORT_REASON_LABEL[r.reason] ?? r.reason}
                       </p>
                       <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
                         {r.detail}
                       </p>
                     </div>
                     <Link
-                      to={`/admin/reports/${r.id}`}
+                      to={`/admin/reports/${r.reportId}`}
                       className="flex-shrink-0 text-[13px] font-medium flex items-center gap-0.5 transition-colors
                         text-[var(--color-text-hint)] hover:text-[var(--color-accent)]"
                     >
@@ -486,7 +477,7 @@ export default function AdminMemberDetailPage() {
             </div>
           </div>
         </div>
-
+        
         {/* ── 오른쪽: 액션 패널 ── */}
         <div className="flex flex-col gap-4">
           <div
@@ -496,7 +487,7 @@ export default function AdminMemberDetailPage() {
             <p className="text-[14px] font-bold mb-4" style={{color: 'var(--color-text-main)'}}>
               관리자 조치
             </p>
-
+            
             <div className="flex flex-col gap-2.5">
               {/* 경고 */}
               <button
@@ -517,7 +508,7 @@ export default function AdminMemberDetailPage() {
                   현재 {member.warningCount}회
                 </span>
               </button>
-
+              
               {/* 정지 / 정지 해제 */}
               {member.status === 'SUSPENDED' ? (
                 <button
@@ -551,7 +542,7 @@ export default function AdminMemberDetailPage() {
                   계정 정지
                 </button>
               )}
-
+              
               {/* 강제 탈퇴 */}
               <div className="pt-2" style={{borderTop: '1px solid var(--color-border)'}}>
                 <button
@@ -574,7 +565,7 @@ export default function AdminMemberDetailPage() {
                 </p>
               </div>
             </div>
-
+            
             {/* 관심 종목 */}
             {member.sports.length > 0 && (
               <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
@@ -602,7 +593,7 @@ export default function AdminMemberDetailPage() {
           </div>
         </div>
       </div>
-
+      
       {/* ── 액션 확인 모달 ── */}
       {pendingAction && (
         <ActionModal

@@ -19,6 +19,7 @@ import {useEffect, useMemo, useRef, useState} from 'react'
 import {Link, useSearchParams} from 'react-router-dom'
 import {useQuery} from '@tanstack/react-query'
 import {
+  AlertTriangle,
   ChevronLeft,
   Image as ImageIcon,
   Loader2,
@@ -311,15 +312,41 @@ function SidebarPanel({
  *   isMine=false → 왼쪽 정렬 / surface-raised 배경
  */
 function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
-  const time = new Date(msg.sentAt).toLocaleTimeString('ko-KR', {
+  const time = new Date(msg.createdAt).toLocaleTimeString('ko-KR', {
     hour: '2-digit',
     minute: '2-digit',
   })
   // messageId < 0 → 낙관적(전송 중) 메시지
   const isPending = msg.messageId < 0
   
+  /**
+   * moderation 경고 배너 렌더링
+   * — MID: 주의(노란색), HIGH: 위험(빨간색)
+   * — 낙관적 메시지(전송 중)는 moderation 없으므로 자동으로 미노출
+   */
+  const mod = msg.moderation
+  const modBanner = mod && mod.riskLevel !== 'LOW' ? (
+    (() => {
+      const isHigh = mod.riskLevel === 'HIGH'
+      const bgColor = isHigh ? 'rgba(255,46,77,.08)' : 'rgba(255,149,0,.08)'
+      const textColor = isHigh ? 'var(--color-accent)' : 'var(--color-warning)'
+      return (
+        <div
+          className="flex items-start gap-2 px-3 py-2 rounded-xl mt-1.5 text-xs leading-relaxed"
+          style={{background: bgColor, border: `1px solid ${textColor}33`}}
+        >
+          <AlertTriangle size={12} style={{color: textColor, flexShrink: 0, marginTop: 1}}/>
+          <div style={{color: textColor}}>
+            <span className="font-bold mr-1">{isHigh ? '[위험]' : '[주의]'}</span>
+            {mod.suggestion ?? mod.reason ?? '주의가 필요한 내용이 감지되었습니다.'}
+          </div>
+        </div>
+      )
+    })()
+  ) : null
+  
   return (
-    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} mb-2`}>
+    <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'} mb-2`}>
       <div
         className={`flex items-end gap-1.5 max-w-[68%] ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
       >
@@ -349,6 +376,12 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
           {isPending ? '전송 중' : time}
         </span>
       </div>
+      {/* AI 위험 탐지 경고 배너 — MID/HIGH 메시지에만 표시 */}
+      {modBanner && (
+        <div className="max-w-[68%] mt-0.5">
+          {modBanner}
+        </div>
+      )}
     </div>
   )
 }
@@ -378,7 +411,7 @@ function ChatRoomPanelInner({
   const bottomRef = useRef<HTMLDivElement>(null)
   
   // STOMP WebSocket 실시간 채팅 훅
-  const {messages, sendMessage, connected, error} = useStompChat({
+  const {messages, sendMessage, markRead, connected, error} = useStompChat({
     chatId,
     myMemberId,
     initialMessages,
@@ -400,6 +433,16 @@ function ChatRoomPanelInner({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: 'smooth'})
   }, [messages])
+  
+  /**
+   * messages가 업데이트될 때마다 읽음 처리 발행
+   * — 상대방 메시지 수신 시 markRead로 서버에 읽음 상태 전송
+   */
+  useEffect(() => {
+    if (connected && messages.length > 0) {
+      markRead()
+    }
+  }, [messages, connected, markRead])
   
   function handleSend() {
     const trimmed = input.trim()
@@ -726,7 +769,7 @@ function ChatRoomPanel({
     staleTime: 30_000,   // 30초 캐시
   })
   
-  // 메시지 이력 (최근 30개, sentAt desc → 역정렬 후 initialMessages 주입)
+  // 메시지 이력 (최근 30개, createdAt desc → 역정렬 후 initialMessages 주입)
   const {data: msgPage, isLoading: msgLoading} = useQuery({
     queryKey: ['chatMessages', chatId],
     queryFn: () => getMessages(chatId, 0, 30),
@@ -748,7 +791,7 @@ function ChatRoomPanel({
     )
   }
   
-  // 백엔드는 sentAt desc 정렬로 반환 → 화면 표시는 오름차순이므로 역정렬
+  // 백엔드는 createdAt desc 정렬로 반환 → 화면 표시는 오름차순이므로 역정렬
   const initialMessages = msgPage ? [...msgPage.content].reverse() : []
   
   return (
