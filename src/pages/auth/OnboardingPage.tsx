@@ -10,14 +10,9 @@
  * 완료 → POST /user/interest-setting → 홈(/)
  * 건너뛰기 → 홈(/) (API 호출 없음)
  */
-import {
-  useState,
-  useCallback,
-  type KeyboardEvent,
-  type ChangeEvent,
-} from 'react'
+import {type ChangeEvent, type KeyboardEvent, useCallback, useState,} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {Check, X as XIcon, SkipForward, ChevronRight} from 'lucide-react'
+import {Check, ChevronRight, SkipForward, X as XIcon} from 'lucide-react'
 import {useOnboarding} from '../../features/auth/hooks/useOnboarding'
 import type {SportType} from '../../features/auth/api/authApi'
 import Logo from '../../components/ui/Logo'
@@ -212,6 +207,7 @@ const TEAMS_BY_SPORT: Record<SportType, TeamData[]> = {
     {name: 'Fnatic', color: '#FF6600'},
     {name: 'Team Vitality', color: '#FAED02'},
   ],
+  ETC: [],  // 기타 종목 — 팀 목록 없음
 }
 
 const MAX_TEAMS = 5  // 구단 최대 선택 수
@@ -448,14 +444,14 @@ export default function OnboardingPage() {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([])
   const [keywords, setKeywords] = useState<string[]>([])
   const [kwInput, setKwInput] = useState('')
-
+  
   const navigate = useNavigate()
   const {mutate: saveInterest, isPending, error} = useOnboarding()
-
+  
   // ── 파생 데이터 ─────────────────────────────────────────────────────────────
   /** 선택된 종목에 해당하는 전체 팀 목록 */
   const availableTeams = getAvailableTeams(selectedSports)
-
+  
   // ── 핸들러 — 종목 ───────────────────────────────────────────────────────────
   const toggleSport = useCallback((sport: SportType) => {
     setSelectedSports((prev) => {
@@ -468,7 +464,7 @@ export default function OnboardingPage() {
       return [...prev, sport]
     })
   }, [])
-
+  
   // ── 핸들러 — 구단 ───────────────────────────────────────────────────────────
   const toggleTeam = useCallback((teamName: string) => {
     setSelectedTeams((prev) => {
@@ -477,7 +473,7 @@ export default function OnboardingPage() {
       return [...prev, teamName]
     })
   }, [])
-
+  
   // ── 핸들러 — 키워드 ─────────────────────────────────────────────────────────
   /** 입력값을 파싱해 태그 추가 (쉼표/Enter 기준) */
   const commitKeywords = useCallback((raw: string) => {
@@ -495,7 +491,7 @@ export default function OnboardingPage() {
     })
     setKwInput('')
   }, [])
-
+  
   const handleKwKeyDown = useCallback(
     (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' || e.key === ',') {
@@ -508,15 +504,15 @@ export default function OnboardingPage() {
     },
     [kwInput, keywords, commitKeywords],
   )
-
+  
   const handleKwBlur = useCallback(() => {
     if (kwInput.trim()) commitKeywords(kwInput)
   }, [kwInput, commitKeywords])
-
+  
   const removeKeyword = useCallback((kw: string) => {
     setKeywords((prev) => prev.filter((k) => k !== kw))
   }, [])
-
+  
   // ── 핸들러 — 제출 ───────────────────────────────────────────────────────────
   function handleComplete() {
     if (isPending) return
@@ -532,22 +528,22 @@ export default function OnboardingPage() {
       keywords: finalKeywords,
     })
   }
-
+  
   function handleSkip() {
     navigate('/', {replace: true})
   }
-
+  
   // ── 선택 요약 데이터 (하단 뱃지) ──────────────────────────────────────────
   const hasAnySelection =
     selectedSports.length > 0 ||
     selectedTeams.length > 0 ||
     keywords.length > 0
-
+  
   // 서버 에러
   const serverError = error
     ? '관심 설정 저장 중 오류가 발생했습니다. 다시 시도하거나 건너뛰세요.'
     : null
-
+  
   // ── 렌더 ────────────────────────────────────────────────────────────────────
   return (
     <div
@@ -559,16 +555,16 @@ export default function OnboardingPage() {
     >
       {/* 상단 navy 액센트 바 */}
       <div className="h-[3px]" style={{background: 'var(--color-primary)'}}/>
-
+      
       <div className="px-8 py-8">
         {/* 로고 */}
         <div className="mb-6">
           <Logo variant="main" height={26}/>
         </div>
-
+        
         {/* 스텝 인디케이터 */}
         <StepIndicator current={2}/>
-
+        
         {/* 페이지 제목 */}
         <div className="mb-7">
           <h1 className="text-[20px] font-semibold text-[var(--color-text-main)] mb-1">
@@ -578,7 +574,7 @@ export default function OnboardingPage() {
             선택한 정보를 기반으로 맞춤 매물과 알림을 제공합니다.
           </p>
         </div>
-
+        
         {/* ── 1. 종목 선택 ── */}
         <div className="mb-6">
           <SectionLabel hint="복수 선택 가능">종목 선택</SectionLabel>
@@ -593,8 +589,8 @@ export default function OnboardingPage() {
             ))}
           </div>
         </div>
-
-
+        
+        
         {/* ── 2. 관심 구단 (종목 선택 후 노출) ── */}
         {selectedSports.length > 0 && (
           <div
@@ -621,7 +617,7 @@ export default function OnboardingPage() {
             </div>
           </div>
         )}
-
+        
         {/* ── 3. 관심 키워드 ── */}
         <div className="mb-6">
           <SectionLabel hint="직접 입력 · Enter 또는 쉼표로 추가">관심 키워드</SectionLabel>
@@ -663,7 +659,7 @@ export default function OnboardingPage() {
             </div>
           )}
         </div>
-
+        
         {/* ── 4. 선택 요약 뱃지 ── */}
         {hasAnySelection && (
           <div
@@ -712,7 +708,7 @@ export default function OnboardingPage() {
             </div>
           </div>
         )}
-
+        
         {/* 서버 에러 */}
         {serverError && (
           <div
@@ -727,7 +723,7 @@ export default function OnboardingPage() {
             {serverError}
           </div>
         )}
-
+        
         {/* ── 액션 버튼 ── */}
         <div className="flex flex-col gap-3">
           <button
@@ -746,7 +742,7 @@ export default function OnboardingPage() {
               </>
             )}
           </button>
-
+          
           <button
             type="button"
             onClick={handleSkip}

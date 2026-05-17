@@ -233,6 +233,8 @@ export default function PaymentPage() {
   // trade 데이터 로드 완료 후 위젯 초기화 (total이 확정돼야 위젯 렌더링 가능)
   useEffect(() => {
     if (!trade) return
+    // async 클로저에서 타입 narrowing 유지를 위해 로컬 변수로 캡처
+    const currentTrade = trade
     let cancelled = false
     
     async function loadWidget() {
@@ -246,7 +248,7 @@ export default function PaymentPage() {
         // 2) 결제 수단 위젯 렌더링 (#toss-payment-method div에 주입)
         paymentMethodsRef.current = widget.renderPaymentMethods(
           '#toss-payment-method',
-          {value: trade.tradePrice, currency: 'KRW'},
+          {value: currentTrade.tradePrice, currency: 'KRW'},
         )
         
         // 3) 약관 위젯 렌더링
@@ -268,7 +270,7 @@ export default function PaymentPage() {
   
   // ── 금액 변경 시 위젯 업데이트 (쿠폰/할인 적용 등) ──────────────────────────
   useEffect(() => {
-    paymentMethodsRef.current?.updateAmount(trade ? trade.tradePrice : 0)
+    if (trade) paymentMethodsRef.current?.updateAmount(trade.tradePrice)
   }, [trade])
   
   // ── 결제하기 버튼 핸들러 ────────────────────────────────────────────────────

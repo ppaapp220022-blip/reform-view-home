@@ -26,6 +26,7 @@ const SPORT_LABEL: Record<SportType, string> = {
   BASKETBALL: '농구',
   VOLLEYBALL: '배구',
   ESPORTS: '이스포츠',
+  ETC: '기타',
 }
 
 // ── 팀 컬러 맵 (하드코딩 불가피 — 팀 브랜드 컬러) ─────────────────────────────
@@ -51,7 +52,7 @@ function getPrimaryTeamColor(teams: string[]): string {
 // ── 모의 매물 카운트 (종목에 따라 달라지는 척) ──────────────────────────────────
 const MOCK_COUNTS: Record<SportType, number> = {
   SOCCER: 2847, BASEBALL: 1432, BASKETBALL: 893,
-  VOLLEYBALL: 341, ESPORTS: 576,
+  VOLLEYBALL: 341, ESPORTS: 576, ETC: 0,
 }
 
 function getMockCount(sports: SportType[]): number {
@@ -416,6 +417,9 @@ interface WelcomeState {
   sports: SportType[]
   teams: string[]
   keywords: string[]
+  // 단수 형식 호환 (useOnboarding이 단수로 전달할 경우)
+  sport?: SportType
+  team?: string
 }
 
 export default function WelcomePage() {
@@ -431,9 +435,9 @@ export default function WelcomePage() {
    * 하위 useMemo의 deps 비교가 항상 달라져 불필요한 재계산이 발생함
    */
     // useOnboarding이 sport(단일)·team(단일)으로 전달 — 배열 형식과 호환되도록 정규화
-  const sports = useMemo(() => {
-      if (Array.isArray(state.sports)) return state.sports as string[]
-      if (state.sport) return [state.sport as string]
+  const sports = useMemo((): SportType[] => {
+      if (Array.isArray(state.sports)) return state.sports
+      if (state.sport) return [state.sport]
       return []
     }, [state.sports, state.sport])
   const teams = useMemo(() => {
@@ -456,7 +460,7 @@ export default function WelcomePage() {
   const feedCount = useMemo(() => getMockCount(sports), [sports])
   
   /** 종목 한글 라벨 */
-  const sportLabels = sports.map((s) => SPORT_LABEL[s])
+  const sportLabels = sports.map((s) => SPORT_LABEL[s as SportType])
   
   return (
     <div

@@ -61,7 +61,7 @@ export interface PointHistoryItem {
  * 마이페이지 포인트 탭에서 사용
  */
 export async function getPointWallet(): Promise<PointWallet> {
-  const { data } = await apiClient.get<PointWallet>('/users/me/points')
+  const {data} = await apiClient.get<PointWallet>('/users/me/points')
   return data
 }
 
@@ -71,38 +71,47 @@ export async function getPointWallet(): Promise<PointWallet> {
  * 최신순 전체 목록 (서버 측 페이지네이션 없음 — 배열 반환)
  */
 export async function getPointHistory(): Promise<PointHistoryItem[]> {
-  const { data } = await apiClient.get<PointHistoryItem[]>('/users/me/points/history')
+  const {data} = await apiClient.get<PointHistoryItem[]>('/users/me/points/history')
   return data
 }
 
 // ── 출금 요청 타입 ─────────────────────────────────────────────────────────────
 
-/** 출금 처리 상태 */
-export type WithdrawStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+/** 출금 처리 상태 (백엔드 PointRequestStatus enum 일치) */
+export type WithdrawStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELED'
 
 /**
  * 출금 요청 항목 (WithdrawResponseDTO)
- * withdrawId   : 출금 요청 ID
- * amount       : 출금 신청 금액
- * bankName     : 은행명
- * accountNumber: 계좌번호
- * status       : PENDING(대기) | APPROVED(승인) | REJECTED(반려)
- * createdAt    : 신청 일시
+ * withdrawId    : 출금 요청 ID
+ * requestAmount : 출금 신청 금액 (백엔드 필드명 requestAmount, 기존 amount 오기입 수정)
+ * bankName      : 은행명
+ * accountNumber : 계좌번호
+ * status        : PENDING | APPROVED | REJECTED | CANCELED
+ * createdAt     : 신청 일시
  */
 export interface WithdrawItem {
   withdrawId: number
-  amount: number
+  requestAmount: number      // ← 백엔드 필드명 (이전에 amount로 잘못 정의됨)
   bankName: string
   accountNumber: string
   status: WithdrawStatus
   createdAt: string          // ISO 8601
 }
 
-/** 출금 요청 본문 */
+/**
+ * 출금 요청 본문 (WithdrawRequestDTO 필드명 일치)
+ * requestAmount : 출금 금액 (백엔드 @NotNull @Min(1000), 이전에 amount로 잘못 전송)
+ * bankName      : 은행명
+ * accountNumber : 계좌번호
+ * bankCode      : 은행 코드 (2026-05-15 추가, @NotBlank — 예: "090" 카카오뱅크)
+ * holderInfo    : 계좌주 생년월일 6자리 YYMMDD (2026-05-15 추가, @NotBlank)
+ */
 export interface WithdrawRequest {
-  amount: number
+  requestAmount: number      // ← 백엔드 필드명 (이전에 amount로 잘못 전송됨)
   bankName: string
   accountNumber: string
+  bankCode: string           // 은행 코드 (예: "090" = 카카오뱅크)
+  holderInfo: string         // 계좌주 생년월일 6자리 (예: "990101")
 }
 
 /**
@@ -110,7 +119,7 @@ export interface WithdrawRequest {
  * POST /api/users/me/points/withdraw
  */
 export async function requestWithdraw(request: WithdrawRequest): Promise<WithdrawItem> {
-  const { data } = await apiClient.post<WithdrawItem>('/users/me/points/withdraw', request)
+  const {data} = await apiClient.post<WithdrawItem>('/users/me/points/withdraw', request)
   return data
 }
 
@@ -119,7 +128,7 @@ export async function requestWithdraw(request: WithdrawRequest): Promise<Withdra
  * GET /api/users/me/points/withdraw
  */
 export async function getMyWithdrawList(): Promise<WithdrawItem[]> {
-  const { data } = await apiClient.get<WithdrawItem[]>('/users/me/points/withdraw')
+  const {data} = await apiClient.get<WithdrawItem[]>('/users/me/points/withdraw')
   return data
 }
 

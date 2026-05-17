@@ -1,33 +1,39 @@
 # re:form — Claude 프로젝트 메모리
+
 > 세션 시작 시 반드시 이 파일을 먼저 읽을 것.
 > 작업 완료 후 변경사항 업데이트할 것.
 
 ---
 
 ## 프로젝트 개요
+
 - **서비스명**: re:form (스포츠 용품 리셀 마켓)
 - **컨셉**: Sporty + Sophisticated + Trustworthy
 - **작업 폴더**: `C:\Users\polar\WebstormProjects\re-form_view`
 - **유저**: MJ (polarprince333@gmail.com)
 
 ## 기술 스택
+
 - React 19 + Vite 8 + TypeScript 6
 - Tailwind CSS 3.4.19 + PostCSS + Autoprefixer
 - `@vitejs/plugin-react` + `@rolldown/plugin-babel` (React Compiler 활성화)
 - ESLint 10 + typescript-eslint
 
 ## 핵심 컬러 (Primitive)
+
 - Navy: `#002147` / `#1A3051` / `#343F5B`
 - Red (Point): `#FF2E4D`
 - Gold: `#FFB800` | Green(neon): `#00FFAB`
 - Success: `#00B36E` | Warning: `#FF9500` | Info: `#0EA5E9`
 
 ## 폰트
+
 - Display: `Bebas Neue` (Google Fonts) — h1, 로고
 - Body: `DM Sans` (Google Fonts) + `Pretendard` (로컬 fallback, Korean)
 - Mono: ui-monospace (시스템 기본값, @font-face 선언 없음)
 
 ## 파일 구조 (주요)
+
 ```
 re-form_view/
 ├── .claude/
@@ -52,27 +58,30 @@ re-form_view/
 ```
 
 ## 완료된 작업 <!-- 2026-05-07 -->
+
 - [done] Tailwind CSS v3.4.19 + PostCSS + Autoprefixer 설치
 - [done] `postcss.config.js` 생성
 - [done] `src/index.css` — 3-Layer Token 설계 (Primitive / Semantic / Base)
-  - 다크모드: `@media (prefers-color-scheme: dark)` + `.dark` 클래스 이중 지원
-  - `@layer base` 타이포그래피 / 스크롤바 / 리셋
-  - `@layer components` — `.badge-*`, `.card`, `.input-base`, `.logo-text`
+    - 다크모드: `@media (prefers-color-scheme: dark)` + `.dark` 클래스 이중 지원
+    - `@layer base` 타이포그래피 / 스크롤바 / 리셋
+    - `@layer components` — `.badge-*`, `.card`, `.input-base`, `.logo-text`
 - [done] `tailwind.config.ts` 작성
-  - `darkMode: 'class'`
-  - 컬러: primary/accent/status 모두 CSS var 연결
-  - borderRadius: btn/card/modal/badge 시멘틱 별칭
-  - boxShadow: navy 계열 컬러드 그림자 + btn-accent 글로우
-  - animation: fadeInUp, scaleIn, glowPulse
+    - `darkMode: 'class'`
+    - 컬러: primary/accent/status 모두 CSS var 연결
+    - borderRadius: btn/card/modal/badge 시멘틱 별칭
+    - boxShadow: navy 계열 컬러드 그림자 + btn-accent 글로우
+    - animation: fadeInUp, scaleIn, glowPulse
 - [done] `tsc --noEmit` 검증 통과
 - [done] React 설치 이후 손상된 파일들 복구 (package.json, tsconfig.json, index.css)
 
 ## 알려진 버그 / 주의사항
+
 - **Write 툴 truncation**: CSS 파일 등 큰 파일 작성 시 마운트 경계에서 잘림 → bash `cat > file << 'EOF'` 사용
 - **package.json truncation**: React 설치 중 손상 가능 → bash로 직접 덮어쓸 것
 - **npm install 심볼릭 링크 오류**: 마운트된 Windows 폴더에서 `.bin/` symlink 생성 실패 → `node_modules`에 직접 설치되면 동작은 함
 
 ## 다음 할 일 (TODO)
+
 - [ ] `src/styles/fonts.css` Pretendard → `index.css`로 통합 또는 `main.tsx`에서 import 추가
 - [ ] 컴포넌트 작업 시작 (레이아웃, GNavi, 상품카드 등)
 - [ ] `App.tsx` 초기 레이아웃 구성
@@ -80,25 +89,29 @@ re-form_view/
 ## 디자인 시스템 파일 구조 <!-- 2026-05-07 -->
 
 ### Claude 참조 문서 (.claude/design-system/)
+
 - `README.md` — 브랜드 가이드 전문 (컬러·타이포·레이아웃·카피 규칙 모두 포함)
 - `SKILL.md` — 에이전트용 스킬 매니페스트 (작업 시작 전 확인 권장)
 - `colors_and_type.css` — 스탠드얼론 토큰 CSS (Tailwind 불필요, 빠른 HTML 프로토타입용)
 - `ui-kits/desktop/` — 데스크탑 UI Kit JSX (DesktopNav, DesktopScreens, Listing, Shared)
 - `ui-kits/mobile/` — 모바일 UI Kit JSX (Navigation, Screens, Listing, Shared)
-  - !!! `.jsx` 파일이므로 빌드 대상 아님 — 컴포넌트 작업 시 참조/영감 소스로만 활용
-  - TSX 변환 시 props에 타입 추가 + import 정리 필요
+    - !!! `.jsx` 파일이므로 빌드 대상 아님 — 컴포넌트 작업 시 참조/영감 소스로만 활용
+    - TSX 변환 시 props에 타입 추가 + import 정리 필요
 
 ### 폰트 (public/fonts/)
+
 - `IAMAPLAYER.woff2` — 추가됨 [done] (영문·숫자 전용 스포티 디스플레이)
 - `Pretendard-{Regular/Medium/SemiBold/Bold/ExtraBold}.woff2` — 기존
 - index.css @font-face 경로 `/fonts/*.woff2` → Vite dev서버 및 빌드 모두 자동 서빙 OK
 
 ### 브랜드 에셋 (public/assets/)
+
 - `re-form_icon.png` — 메인 아이콘 1254×1254 (신뢰 가능한 것)
 - `re-form_icon.svg`, `re-form_logo_main.svg`, `re-form_logo_simple.svg` — !!! 래퍼 SVG (벡터 원본 없음, 깨진 상태)
 - 코드에서 참조 시: `<img src="/assets/re-form_icon.png" />` 형태로 사용
 
 ### 핵심 주의사항 (디자인 시스템 룰)
+
 - IAMAPLAYER: 영문·숫자·라틴 기호만 → 한글 절대 금지 (폴백이 Bebas Neue로 어색해짐)
 - 레드(#FF2E4D): Hot CTA·라이브 뱃지·에러 전용 — 가격 표시에 레드 금지 (가격은 navy)
 - 골드·네온그린: trophy/special-mode 전용 — 남발 금지
@@ -110,12 +123,15 @@ re-form_view/
 ## 프로젝트 전체 기획 <!-- 2026-05-07 -->
 
 ### 서비스 개요
+
 - **URL**: reform.co.kr (프론트: React/Vite, 백: Spring Boot + JPA)
 - **포트폴리오 프로젝트** — 직접 구현 가능한 수준으로 설계 축소
 - `re-form_view` = React 프론트엔드 뷰 레이어 (현재 작업 중인 레포)
 
 ### 화면 구성 (총 17개)
+
 **Part 1 (reform_desktop_wireframe_DS.html)**
+
 1. 홈 피드 — GNav + Sport Category Bar + Hero + 사이드바 + 상품 그리드 + 경매 섹션
 2. 판매글 상세 — 이미지 갤러리 + 상품정보 + 등급 가이드 + 거래 상태바 + 판매자 정보
 3. 판매글 작성 — AI 보조 (AI 설명 추천 + 위험 탐지) + 사이드 프리뷰
@@ -127,6 +143,7 @@ re-form_view/
 9. 관리자 대시보드 — 신고/회원/게시글/출금/분쟁 관리
 
 **Part 2 (reform_desktop_wireframe_part2_DS.html)**
+
 10. 로그인 — 이메일 + 카카오/구글 소셜 로그인
 11. 회원가입 — 이메일 기반 + NFR-L01
 12. 온보딩 — 관심 종목·구단 설정 (UC-MEM-005)
@@ -137,6 +154,7 @@ re-form_view/
 17. 관리자 — 분쟁 처리 상세
 
 ### DB 설계 (18개 테이블, reform_project_schema_summary.md)
+
 ```
 users / user_social_account / user_preference
 listing / listing_image / listing_like
@@ -146,14 +164,18 @@ payment / point_transaction / withdraw_request
 community_post / community_comment / post_like
 report / notification
 ```
+
 - 경매 제외, JWT/Redis 제외, AI 벡터 저장 제외 (포폴 수준 축소)
 - 지역/종목/팀 = 코드 테이블 없이 문자열 컬럼
 - ERD: planning/reform_project_schema_summary.md 내 mermaid 다이어그램 참고
 
 ### 백엔드 패키지 구조 (Spring Boot + JPA)
-`com.reform` — global(config/auth/common/infra) + domain(user/listing/chat/trade/payment/community/report/notification) + admin
+
+`com.reform` — global(config/auth/common/infra) + domain(
+user/listing/chat/trade/payment/community/report/notification) + admin
 
 ### 핵심 특수 기능
+
 - **AI 사기 탐지**: 판매글 작성 시 위험 문구·허위매물 실시간 차단
 - **AI 설명 보조**: 판매글 작성 AI 추천 패널 (UC-TRD-001, AI-001/002)
 - **에스크로 안전결제**: 구매 확정 전 RE:FORM이 결제금 보관
@@ -163,6 +185,7 @@ report / notification
 - **매너 평가**: 거래 완료 후 별점 + 후기
 
 ### 현재 작업 범위 (프론트엔드)
+
 - 컴포넌트 구현 순서 아직 미정
 - 참고: `.claude/design-system/ui-kits/` JSX 파일 (desktop/mobile 각 4개)
 - 와이어프레임: `planning/reform_desktop_wireframe_DS.html` (1-9번 화면)
@@ -171,12 +194,14 @@ report / notification
 ---
 
 ## 기술 스택 확정 <!-- 2026-05-07 -->
+
 - [done] React Router v7 (`react-router-dom`) 설치 및 `src/router.tsx` 생성
 - [done] Zustand 설치 → `src/store/authStore.ts` (JWT 토큰 복원 포함)
 - [done] Axios 설치 → `src/lib/axios.ts` (요청/응답 인터셉터 포함)
 - [done] TanStack Query v5 설치 → `src/lib/queryClient.ts`
 
 ## src 폴더 구조 확정 <!-- 2026-05-07 -->
+
 - [done] Feature-based 구조 생성 (features/auth, listing, chat, trade, payment, community, mypage, admin)
 - [done] components/ui, components/layout, pages, hooks, store, lib, types, utils 생성
 - [done] `App.tsx` → QueryClientProvider + RouterProvider 진입점으로 교체
@@ -184,12 +209,14 @@ report / notification
 - [done] `App.css` → 보일러플레이트 제거
 
 ## 다음 할 일 업데이트 <!-- 2026-05-07 -->
+
 - [ ] 공통 Layout 컴포넌트 구현 (GNB + 콘텐츠 영역)
 - [ ] 공통 UI 컴포넌트 구현 (Button, Badge, Input, Card 등)
 - [ ] 홈 피드 페이지 구현 (HomePage.tsx) — 첫 번째 실제 화면
 - [ ] 백엔드 API 연동 전 MSW(Mock Service Worker) 또는 목 데이터로 개발 진행 여부 결정
 
 ## Layout 구현 완료 <!-- 2026-05-07 -->
+
 - [done] `lucide-react` 설치
 - [done] `src/components/layout/GNB.tsx` — sticky 헤더, 로고/nav/검색/아이콘/판매하기
 - [done] `src/components/layout/Footer.tsx` — 링크 그리드 + IAMAPLAYER 카피라이트
@@ -199,6 +226,7 @@ report / notification
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## Logo 컴포넌트 작업 완료 <!-- 2026-05-07 -->
+
 - [done] `src/components/ui/Logo.tsx` 생성 (variant: main/simple, height prop)
 - [done] GNB.tsx → Logo variant="main" height={28}
 - [done] Footer.tsx → Logo variant="simple" height={24}
@@ -208,167 +236,181 @@ report / notification
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## Logo 다크모드 업데이트 <!-- 2026-05-07 -->
+
 - [done] `re-form_logo_main_dark.svg` 추가됨 (라이트와 동일 비율 1822×430)
 - [done] `re-form_logo_simple.svg` — 라이트/다크 겸용 단일 파일 (변경 없음)
 - [done] `Logo.tsx` — useDarkMode 훅 추가
-  - Tailwind .dark 클래스 MutationObserver 감시
-  - OS prefers-color-scheme 감시
-  - variant="main" → 다크모드 시 main_dark.svg 자동 전환
-  - variant="simple" → 항상 단일 파일 (분기 없음)
+    - Tailwind .dark 클래스 MutationObserver 감시
+    - OS prefers-color-scheme 감시
+    - variant="main" → 다크모드 시 main_dark.svg 자동 전환
+    - variant="simple" → 항상 단일 파일 (분기 없음)
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## 코드 스타일 지침 추가 + 버그 수정 <!-- 2026-05-07 -->
+
 - [done] CLAUDE.md에 스타일 지침 추가 (이모지 금지 / Lucide 사용 / 다크모드 필수 / CSS 변수 규칙)
 - [done] GNB.tsx 버그 수정
-  - `--color-red-500` (없음) → `--color-accent`
-  - `--color-navy-900` (없음) → `--color-primary`
-  - `shadow-[var(--shadow-btn-accent)]` (없음) → `shadow-btn-accent`
-  - `<kbd>` 단축키 힌트 제거
-  - 검색창 input → div+span으로 교체 (클릭 시 /search 이동)
+    - `--color-red-500` (없음) → `--color-accent`
+    - `--color-navy-900` (없음) → `--color-primary`
+    - `shadow-[var(--shadow-btn-accent)]` (없음) → `shadow-btn-accent`
+    - `<kbd>` 단축키 힌트 제거
+    - 검색창 input → div+span으로 교체 (클릭 시 /search 이동)
 - [done] Footer.tsx / router.tsx / Logo.tsx 동일 변수 교정
 - [done] 소스 전체 이모지 제거
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## GNB 버그 수정 + 다크모드 토글 <!-- 2026-05-07 -->
+
 - [done] 판매하기 hover 글자 빨개지는 버그 수정
-  - 원인: 전역 CSS `a:hover { color: var(--color-accent-hover) }` 상속
-  - 해결: `hover:text-white` 명시 추가 (유틸리티 레이어가 베이스 레이어보다 우선)
-  - 교훈: Link 컴포넌트에 버튼 스타일 입힐 때 항상 hover:text-{color} 명시 필요
+    - 원인: 전역 CSS `a:hover { color: var(--color-accent-hover) }` 상속
+    - 해결: `hover:text-white` 명시 추가 (유틸리티 레이어가 베이스 레이어보다 우선)
+    - 교훈: Link 컴포넌트에 버튼 스타일 입힐 때 항상 hover:text-{color} 명시 필요
 - [done] `src/hooks/useTheme.ts` 생성 (localStorage + OS 기반, html.dark 클래스 토글)
 - [done] `src/components/ui/ThemeToggle.tsx` 생성 (Sun/Moon 아이콘, 판매하기 오른쪽 배치)
 - [done] `App.tsx` — useTheme() 최상단 초기화 추가
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## 모바일 반응형 레이아웃 완료 <!-- 2026-05-08 -->
+
 - [done] `BottomTabBar.tsx` — 모바일 전용 하단 탭 5개 (HOME/SEARCH/SELL/CHAT/MY)
 - [done] `MainLayout.tsx` 업데이트
-  - BottomTabBar import 추가
-  - main에 `pb-16 md:pb-0` — 탭바에 콘텐츠 가림 방지
-  - Footer → `hidden md:block` 래퍼로 감싸 모바일에서 숨김
-  - BottomTabBar는 컴포넌트 내부에서 `md:hidden` 처리
+    - BottomTabBar import 추가
+    - main에 `pb-16 md:pb-0` — 탭바에 콘텐츠 가림 방지
+    - Footer → `hidden md:block` 래퍼로 감싸 모바일에서 숨김
+    - BottomTabBar는 컴포넌트 내부에서 `md:hidden` 처리
 - 판매하기 버튼 shadow 없음 (이전 세션에서 이미 제거됨)
 - 다음: 로그인 페이지 (LoginPage.tsx)
 
 ## 컬러 역할 분리 규칙 확립 <!-- 2026-05-08 -->
+
 - [done] CLAUDE.md — "컬러 역할 분리 규칙" 섹션 추가
 - [done] design-system/README.md — "COLOR ROLE RULES" 섹션 추가
 - 핵심 규칙:
-  - `--color-primary` (navy): 버튼 배경/가격/브랜드 크롬 전용. 다크모드 dark surface에서 묻힘 → 인터랙티브 active에 금지
-  - `--color-accent` (red): 활성 탭/hover/CTA — 라이트/다크 양쪽 항상 선명. 가격 텍스트에는 금지
-  - Link 컴포넌트에 항상 `hover:text-{color}` 명시 필수 (전역 a:hover 덮어씌움 방지)
+    - `--color-primary` (navy): 버튼 배경/가격/브랜드 크롬 전용. 다크모드 dark surface에서 묻힘 → 인터랙티브 active에 금지
+    - `--color-accent` (red): 활성 탭/hover/CTA — 라이트/다크 양쪽 항상 선명. 가격 텍스트에는 금지
+    - Link 컴포넌트에 항상 `hover:text-{color}` 명시 필수 (전역 a:hover 덮어씌움 방지)
 - GNB 활성 탭 텍스트 + BottomTabBar 활성 탭: 모두 accent로 통일 완료
 
 ## 로그인 페이지 구현 완료 <!-- 2026-05-08 -->
+
 - [done] `src/features/auth/api/authApi.ts` — loginWithEmail / redirectToKakao / redirectToGoogle
 - [done] `src/features/auth/hooks/useLogin.ts` — useMutation 래퍼, 성공 시 authStore 저장 + 홈 이동
 - [done] `src/pages/auth/LoginPage.tsx` — 브랜드 패널(좌) + 폼 패널(우), 반응형, 다크모드
-  - 카카오(#FEE500) / 구글(멀티컬러 G) 소셜 버튼
-  - 이메일+비밀번호 폼, 비밀번호 표시 토글 (Eye/EyeOff)
-  - 로그인 유지 체크박스 + 비밀번호 찾기 링크
-  - 401/429 서버 에러 메시지 인라인 표시
-  - 모바일: 브랜드 패널 hidden, 폼 단일 컬럼
+    - 카카오(#FEE500) / 구글(멀티컬러 G) 소셜 버튼
+    - 이메일+비밀번호 폼, 비밀번호 표시 토글 (Eye/EyeOff)
+    - 로그인 유지 체크박스 + 비밀번호 찾기 링크
+    - 401/429 서버 에러 메시지 인라인 표시
+    - 모바일: 브랜드 패널 hidden, 폼 단일 컬럼
 - [done] `src/router.tsx` — `/login` Placeholder → LoginPage 교체
 - [done] `tsc --noEmit` 통과 (에러 없음)
 - 다음: 회원가입 페이지 (RegisterPage.tsx) 또는 홈 피드
 
 ## 회원가입 페이지 구현 완료 <!-- 2026-05-08 -->
+
 - [done] `authApi.ts` — registerWithEmail / checkNickname 추가
 - [done] `useRegister.ts` — useMutation, 성공 시 authStore 저장 + /onboarding 이동
 - [done] `src/pages/auth/RegisterPage.tsx` — Step 1 (계정정보)
-  - 3단계 StepIndicator 컴포넌트 (done/active/pending 상태)
-  - 이메일 형식 실시간 검증 (green/red dot)
-  - 닉네임 2~20자 검증
-  - 비밀번호 강도 바 (4단계: 매우약함/약함/보통/강함)
-  - 비밀번호 확인 일치 여부 (CheckCircle2/Circle 아이콘)
-  - 약관 동의 섹션 (전체동의 + 필수2 + 선택1)
-  - 409/400 서버 에러 인라인 표시
+    - 3단계 StepIndicator 컴포넌트 (done/active/pending 상태)
+    - 이메일 형식 실시간 검증 (green/red dot)
+    - 닉네임 2~20자 검증
+    - 비밀번호 강도 바 (4단계: 매우약함/약함/보통/강함)
+    - 비밀번호 확인 일치 여부 (CheckCircle2/Circle 아이콘)
+    - 약관 동의 섹션 (전체동의 + 필수2 + 선택1)
+    - 409/400 서버 에러 인라인 표시
 - [done] router.tsx — /register Placeholder → RegisterPage 교체
 - [done] tsc --noEmit 통과
 - 다음: 온보딩 페이지 (관심 종목/팀 설정, Step 2) 또는 홈 피드
 
 ## 회원가입/로그인 개선 <!-- 2026-05-08 -->
+
 - [done] AuthLayout — 상단 로고 블록 제거 (콘텐츠 영역만 남김)
 - [done] TermsModal.tsx 생성 (src/components/ui/)
-  - 이용약관 / 개인정보처리방침 전문 표시
-  - ESC 키 닫기, body 스크롤 잠금, 오버레이 클릭 닫기
+    - 이용약관 / 개인정보처리방침 전문 표시
+    - ESC 키 닫기, body 스크롤 잠금, 오버레이 클릭 닫기
 - [done] RegisterPage 전면 재작업
-  - 상단 3px navy 액센트 바 + shadow-card 카드 레이아웃
-  - 내부에 IAMAPLAYER 로고 워드마크 (로고 이미지 대신)
-  - 비밀번호 요건 체크리스트 (8자/대문자/숫자/특수문자, 체크마크)
-  - 약관 보기 버튼 → TermsModal 연결
-  - max-w-[560px]
+    - 상단 3px navy 액센트 바 + shadow-card 카드 레이아웃
+    - 내부에 IAMAPLAYER 로고 워드마크 (로고 이미지 대신)
+    - 비밀번호 요건 체크리스트 (8자/대문자/숫자/특수문자, 체크마크)
+    - 약관 보기 버튼 → TermsModal 연결
+    - max-w-[560px]
 
 ## 홈 피드 구현 완료 <!-- 2026-05-08 -->
+
 - [done] RegisterPage 약관 필수/선택 배지 제거 (동일 스타일로 통일)
 - [done] `src/types/listing.ts` — ListingItem/AuctionItem/HomeFilter 공통 타입
 - [done] `src/pages/HomePage.tsx` — 홈 피드 전체 구현
-  - SportCategoryBar: 종목 탭(7개) + 리그 칩, sticky GNB 아래
-  - HeroSection: navy 배경, IAMAPLAYER 제목, 유니폼 SVG 일러스트, 통계 4개
-  - FilterSidebar: 리그/컨디션/거래방식 필터 (md 이상 표시)
-  - ProductCard: 유니폼 SVG + 등급배지 + 찜버튼 + 가격(primary색)
-  - 상품 그리드: 2(모바일)/3(md)/4(lg)/5(xl)열 반응형
-  - 빈 결과 empty state 처리
-  - AuctionSection: LIVE 배지 + 타이머 + navy 하단 바, 3열 그리드
-  - 클라이언트 사이드 필터링 (목 데이터 10개 상품 + 3개 경매)
+    - SportCategoryBar: 종목 탭(7개) + 리그 칩, sticky GNB 아래
+    - HeroSection: navy 배경, IAMAPLAYER 제목, 유니폼 SVG 일러스트, 통계 4개
+    - FilterSidebar: 리그/컨디션/거래방식 필터 (md 이상 표시)
+    - ProductCard: 유니폼 SVG + 등급배지 + 찜버튼 + 가격(primary색)
+    - 상품 그리드: 2(모바일)/3(md)/4(lg)/5(xl)열 반응형
+    - 빈 결과 empty state 처리
+    - AuctionSection: LIVE 배지 + 타이머 + navy 하단 바, 3열 그리드
+    - 클라이언트 사이드 필터링 (목 데이터 10개 상품 + 3개 경매)
 - [done] router.tsx — / Placeholder → HomePage 교체
 - [done] tsc --noEmit 통과
 - 다음: 상품 상세 페이지 (ListingDetailPage) 또는 검색 결과 페이지
 
 ## 회원가입 선행 조건 안내 추가 <!-- 2026-05-08 -->
+
 - [done] `RegisterPage.tsx` — PreflightHints 컴포넌트 추가
-  - 버튼 비활성 시 (`!canSubmit && !isPending`) 다음 단계 버튼 위에 오렌지 힌트 블록 표시
-  - 미충족 조건만 목록으로 표시 (이메일/닉네임/비밀번호/비밀번호 확인/필수 약관)
-  - 비밀번호 강도 부족 시 미충족 요건(8자/대문자/숫자/특수문자) 세부 표시
-  - HintItem 헬퍼 컴포넌트 추가 (bullet dot + 안내 텍스트)
-  - AlertCircle 아이콘 (lucide-react) 사용
+    - 버튼 비활성 시 (`!canSubmit && !isPending`) 다음 단계 버튼 위에 오렌지 힌트 블록 표시
+    - 미충족 조건만 목록으로 표시 (이메일/닉네임/비밀번호/비밀번호 확인/필수 약관)
+    - 비밀번호 강도 부족 시 미충족 요건(8자/대문자/숫자/특수문자) 세부 표시
+    - HintItem 헬퍼 컴포넌트 추가 (bullet dot + 안내 텍스트)
+    - AlertCircle 아이콘 (lucide-react) 사용
 
 ## 온보딩 페이지 (Step 2) 구현 완료 <!-- 2026-05-08 -->
+
 - [done] `authApi.ts` — SportType 타입 + saveInterestSetting 함수 추가 (POST /user/interest-setting)
 - [done] `src/features/auth/hooks/useOnboarding.ts` — useMutation, 성공 시 / 홈으로 이동
 - [done] `src/pages/auth/OnboardingPage.tsx` — Step 2 (관심 설정)
-  - StepIndicator current=2 (RegisterPage와 동일 디자인, 페이지 내 재정의)
-  - 5개 종목 카드 (BASEBALL/SOCCER/BASKETBALL/VOLLEYBALL/ESPORTS)
-    - 인라인 SVG 종목 아이콘 (24x24, stroke 1.5px)
-    - IAMAPLAYER 영문 라벨 + 한글 라벨
-    - 선택 시 accent(red) 테두리 배경
-    - 동일 카드 재클릭 시 선택 해제
-  - 구단 칩 목록 (종목 선택 후 fadeInUp 애니메이션으로 노출)
-    - 야구 10개(KBO) / 축구 16개(K리그+해외) / 농구 10개(KBL+NBA) / 배구 9개(V리그) / 이스포츠 8개(LCK)
-    - 선택 시 accent 칩, 재클릭 해제 가능
-    - 구단 선택은 optional
-  - 완료하기 버튼 (종목 선택 필수) + 나중에 설정하기(건너뛰기) 버튼
-  - 서버 에러 인라인 표시
+    - StepIndicator current=2 (RegisterPage와 동일 디자인, 페이지 내 재정의)
+    - 5개 종목 카드 (BASEBALL/SOCCER/BASKETBALL/VOLLEYBALL/ESPORTS)
+        - 인라인 SVG 종목 아이콘 (24x24, stroke 1.5px)
+        - IAMAPLAYER 영문 라벨 + 한글 라벨
+        - 선택 시 accent(red) 테두리 배경
+        - 동일 카드 재클릭 시 선택 해제
+    - 구단 칩 목록 (종목 선택 후 fadeInUp 애니메이션으로 노출)
+        - 야구 10개(KBO) / 축구 16개(K리그+해외) / 농구 10개(KBL+NBA) / 배구 9개(V리그) / 이스포츠 8개(LCK)
+        - 선택 시 accent 칩, 재클릭 해제 가능
+        - 구단 선택은 optional
+    - 완료하기 버튼 (종목 선택 필수) + 나중에 설정하기(건너뛰기) 버튼
+    - 서버 에러 인라인 표시
 - [done] router.tsx — /onboarding Placeholder → OnboardingPage 교체
 - [done] tsc --noEmit 통과
 - 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
 
 ## 온보딩 페이지 전면 재작성 <!-- 2026-05-08 -->
+
 - [done] `authApi.ts` — InterestSettingRequest: sport/team 단수 → sports[]/leagues[]/teams[]/keywords[] 다중 배열로 변경
 - [done] `OnboardingPage.tsx` 전면 재작성 (863줄)
-  - 종목 복수 선택 (toggleSport, 선택 해제 시 리그·팀 연쇄 제거)
-  - 관심 리그 칩 (종목 선택 후 fadeInUp 노출, 복수 선택)
-  - 관심 구단 카드 (리그 선택 후 노출, 최대 5개, 팀 컬러 스와치)
-  - 관심 키워드 입력 (Enter/쉼표로 태그 추가, Backspace로 마지막 제거)
-  - 선택 요약 뱃지 영역 (하단 고정, 종목/리그/구단/키워드 모두 표시, X로 개별 제거)
-  - max-w-[680px] (Register보다 넓게)
+    - 종목 복수 선택 (toggleSport, 선택 해제 시 리그·팀 연쇄 제거)
+    - 관심 리그 칩 (종목 선택 후 fadeInUp 노출, 복수 선택)
+    - 관심 구단 카드 (리그 선택 후 노출, 최대 5개, 팀 컬러 스와치)
+    - 관심 키워드 입력 (Enter/쉼표로 태그 추가, Backspace로 마지막 제거)
+    - 선택 요약 뱃지 영역 (하단 고정, 종목/리그/구단/키워드 모두 표시, X로 개별 제거)
+    - max-w-[680px] (Register보다 넓게)
 - [done] tsc --noEmit 통과
 - 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
 
 ## WelcomePage (Step 3) 구현 완료 <!-- 2026-05-08 -->
+
 - [done] `useOnboarding.ts` — navigate 목적지 / → /welcome 으로 변경, router state로 interests 전달
 - [done] `src/pages/auth/WelcomePage.tsx` — Step 3 완료 환영 페이지 (581줄)
-  - StepIndicator current=3 (1·2 green 체크)
-  - 헤드라인: "WELCOME TO THE SQUAD" (IAMAPLAYER 32px)
-  - PlayerCard: 트레이딩 카드 스타일 (팀컬러 상단바·아바타·닉네임·통계·스피드라인)
-  - BadgeUnlock: "NEW PLAYER 배지 획득" 골드 알림
-  - FeedPreview: 관심 종목 mock 매물 카운트 (종목별 고정값 합산)
-  - 관심 요약 칩: router state의 sports/teams 표시
-  - CTA: "홈 피드 보러가기"(primary) + "첫 유니폼 판매하기"(accent)
+    - StepIndicator current=3 (1·2 green 체크)
+    - 헤드라인: "WELCOME TO THE SQUAD" (IAMAPLAYER 32px)
+    - PlayerCard: 트레이딩 카드 스타일 (팀컬러 상단바·아바타·닉네임·통계·스피드라인)
+    - BadgeUnlock: "NEW PLAYER 배지 획득" 골드 알림
+    - FeedPreview: 관심 종목 mock 매물 카운트 (종목별 고정값 합산)
+    - 관심 요약 칩: router state의 sports/teams 표시
+    - CTA: "홈 피드 보러가기"(primary) + "첫 유니폼 판매하기"(accent)
 - [done] router.tsx — /welcome 라우트 추가 (AuthLayout 하위)
 - [done] tsc --noEmit 통과
 - 다음: 상품 상세 페이지 (ListingDetailPage) 또는 판매글 작성 페이지
 
 ## 폰트 정리 <!-- 2026-05-08 -->
+
 - [done] `tailwind.config.ts` mono — JetBrains Mono / Fira Code 제거, ui-monospace만 유지
 - [done] CLAUDE.md — "폰트 사용 규칙" 섹션 추가 (4종 허용 폰트 표, 절대 금지, 추가 절차)
 - [done] memory.md 폰트 항목 교정
@@ -406,17 +448,17 @@ report / notification
 
 ### 구현된 페이지 목록
 
-| 페이지 | 경로 | 파일 |
-|---|---|---|
-| 판매글 상세 | `/listing/:id` | `src/pages/listing/ListingDetailPage.tsx` |
-| 판매글 작성 | `/listing/new` | `src/pages/listing/ListingCreatePage.tsx` |
-| 검색 결과 | `/search` | `src/pages/search/SearchPage.tsx` |
-| 마이페이지 | `/mypage` | `src/pages/mypage/MyPage.tsx` |
-| 채팅 | `/chat` | `src/pages/chat/ChatPage.tsx` |
-| 커뮤니티 | `/community` | `src/pages/community/CommunityPage.tsx` |
-| 결제 | `/payment/:id` | `src/pages/payment/PaymentPage.tsx` |
-| 구매 확정 | `/trade/:id/confirm` | `src/pages/trade/TradeConfirmPage.tsx` |
-| 매너 평가 | `/trade/:id/review` | `src/pages/trade/ReviewPage.tsx` |
+| 페이지    | 경로                   | 파일                                        |
+|--------|----------------------|-------------------------------------------|
+| 판매글 상세 | `/listing/:id`       | `src/pages/listing/ListingDetailPage.tsx` |
+| 판매글 작성 | `/listing/new`       | `src/pages/listing/ListingCreatePage.tsx` |
+| 검색 결과  | `/search`            | `src/pages/search/SearchPage.tsx`         |
+| 마이페이지  | `/mypage`            | `src/pages/mypage/MyPage.tsx`             |
+| 채팅     | `/chat`              | `src/pages/chat/ChatPage.tsx`             |
+| 커뮤니티   | `/community`         | `src/pages/community/CommunityPage.tsx`   |
+| 결제     | `/payment/:id`       | `src/pages/payment/PaymentPage.tsx`       |
+| 구매 확정  | `/trade/:id/confirm` | `src/pages/trade/TradeConfirmPage.tsx`    |
+| 매너 평가  | `/trade/:id/review`  | `src/pages/trade/ReviewPage.tsx`          |
 
 - [done] `src/router.tsx` — 9개 페이지 import 연결 완료
 - [done] tsc --noEmit 통과 (에러 0)
@@ -429,6 +471,7 @@ report / notification
 - `/admin` 계열 3개 — 관리자 대시보드 (Placeholder)
 
 ## 다음 할 일 <!-- 2026-05-09 -->
+
 - [ ] 백엔드 API 연동 (useQuery 교체) 시작
 - [ ] 판매글 수정 페이지 (`/listing/:id/edit`)
 - [ ] 관리자 대시보드 (`/admin`)
@@ -446,36 +489,45 @@ report / notification
 - [done] design-system/README.md — Type 문단 3-Tier 규칙으로 업데이트
 
 ### 폰트 3-Tier 핵심 규칙 요약
+
 - **Tier 1 (최우선)**: 영문·숫자만 → IAMAPLAYER (`font-player`)
 - **Tier 2 (기본)**: 본문·한글 → Pretendard (`font-sans`, 기본값)
 - **Tier 3 (강조)**: 두꺼운/잘 보여야 할 텍스트 → Giants (`font-display`)
 
 ### CSS 자동 처리 (클래스 불필요)
+
 - h1~h6 → Giants (CSS @layer base)
 - button → Giants (CSS @layer base)
 - 일반 div/p/span → Pretendard (html 기본값)
 
 ### font-display 명시가 필요한 비-heading 요소
+
 - 섹션 타이틀 (`<p>`, `<div>`, `<span>` 중 굵은 한글 제목)
 - 내비게이션 레이블 (Link, span)
 - Empty state 타이틀
 - 중요 UI 패널 헤더 (드로어 헤더, 모달 헤더 등)
 
 <!-- 2026-05-09 -->
+
 ## Task 6 완료: 금액 포맷 통일
+
 - `src/utils/format.ts` 신규 생성: `formatPrice(n)` → `₩` + `toLocaleString('ko-KR')`
-- formatPrice 적용: HomePage, SearchPage, ChatPage, ListingDetailPage, MyPage, PaymentPage, TradeConfirmPage, ListingCreatePage
+- formatPrice 적용: HomePage, SearchPage, ChatPage, ListingDetailPage, MyPage, PaymentPage, TradeConfirmPage,
+  ListingCreatePage
 - 가격 span에 `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` 추가
 - 한글 배지(등급/상태)에 `fontFamily: "'Giants','Pretendard',sans-serif"` 추가 (SearchPage, ListingDetailPage, MyPage)
 
 ## Task 7 완료: 다크모드 Navy Dark Theme (A안)
+
 - `src/index.css` @media + .dark 블록 양쪽 수정
 - `--color-primary: #002147` (고정, 다크모드 불변)
 - `--color-primary-hover: #1A3051`
-- `--color-bg: #010F1C` / `--color-surface: #001930` / `--color-surface-raised: #00244A` / `--color-surface-sunken: #000C15`
+- `--color-bg: #010F1C` / `--color-surface: #001930` / `--color-surface-raised: #00244A` /
+  `--color-surface-sunken: #000C15`
 - 파일 잘림 버그 발생 → Python으로 끝부분 복구
 
 ## Task 8 완료: 경매 코드 전면 제거
+
 - `src/pages/HomePage.tsx`: MOCK_AUCTIONS, AuctionCard 컴포넌트, 경매 섹션 JSX, padTime 함수 모두 제거
 - `src/types/listing.ts`: AuctionItem 인터페이스 제거
 - AuctionItem import 제거
@@ -483,48 +535,52 @@ report / notification
 ## 스타일 일관성 작업 <!-- 2026-05-09 -->
 
 ### 수정 내용
+
 - [done] `HomePage.tsx` — ProductCard 등급배지(S/A/B/C) + 가격에 IAMAPLAYER 폰트 추가
-  - `gradeStyle()` return에 `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` 추가
-  - 가격 `<p>` style에 동일 fontFamily 추가
+    - `gradeStyle()` return에 `fontFamily: "'IAMAPLAYER',Giants,sans-serif"` 추가
+    - 가격 `<p>` style에 동일 fontFamily 추가
 - [done] `WelcomePage.tsx` — mannerScore 버그 수정
-  - fallback `36.5` → `3.65` (0~5 스케일로 통일, 신규 가입자 ★★★★ 수준)
-  - Star fill 로직에 `Math.min(5, Math.max(0, ...))` 클램핑 추가
+    - fallback `36.5` → `3.65` (0~5 스케일로 통일, 신규 가입자 ★★★★ 수준)
+    - Star fill 로직에 `Math.min(5, Math.max(0, ...))` 클램핑 추가
 - [done] `LoginPage.tsx` — 소셜 버튼 인라인 스타일 일관성
-  - 카카오: `border: 'none'` → Tailwind `border-0`, style에 브랜드 hex만 + 주석
-  - 구글: className 들여쓰기 정리, border 색 `--color-border` 로 수정
+    - 카카오: `border: 'none'` → Tailwind `border-0`, style에 브랜드 hex만 + 주석
+    - 구글: className 들여쓰기 정리, border 색 `--color-border` 로 수정
 
 ### ESLint 안전장치 추가 <!-- 2026-05-09 -->
+
 - [done] `eslint.config.js` — `no-restricted-syntax` warn 룰 추가
-  - `style={{}}` 안에 CSS 변수(`var(--color-*)`)를 값으로 쓰면 경고
-  - 메시지: "Tailwind className의 bg-[var(--color-*)] 형식으로 대체하라"
-  - warn 수준 (빌드 통과, 코드 리뷰에서 확인 용도)
-  - 허용: 동적 값(computed), 브랜드 전용 hex(카카오 #FEE500 등)
+    - `style={{}}` 안에 CSS 변수(`var(--color-*)`)를 값으로 쓰면 경고
+    - 메시지: "Tailwind className의 bg-[var(--color-*)] 형식으로 대체하라"
+    - warn 수준 (빌드 통과, 코드 리뷰에서 확인 용도)
+    - 허용: 동적 값(computed), 브랜드 전용 hex(카카오 #FEE500 등)
 
 ### 인라인 스타일 원칙 (확립)
-| 상황 | 방법 |
-|---|---|
-| CSS 변수 색상 | Tailwind `bg-[var(--color-*)]`, `text-[var(--color-*)]` |
-| 브랜드 전용 hex (Kakao, Google) | `style={{}}` 허용, 반드시 주석 |
-| 동적 값 (teamColor, computed) | `style={{}}` 허용 |
-| 복잡한 인라인 (그라디언트 등) | `style={{}}` 허용, 라이트/다크 양쪽 명시 |
+
+| 상황                         | 방법                                                      |
+|----------------------------|---------------------------------------------------------|
+| CSS 변수 색상                  | Tailwind `bg-[var(--color-*)]`, `text-[var(--color-*)]` |
+| 브랜드 전용 hex (Kakao, Google) | `style={{}}` 허용, 반드시 주석                                 |
+| 동적 값 (teamColor, computed) | `style={{}}` 허용                                         |
+| 복잡한 인라인 (그라디언트 등)          | `style={{}}` 허용, 라이트/다크 양쪽 명시                           |
 
 ## 전체 페이지 구현 완료 <!-- 2026-05-10 -->
 
 ### 이번 세션에서 추가된 페이지 (5개)
 
-| 페이지 | 경로 | 파일 | 줄 수 |
-|---|---|---|---|
-| 판매글 수정 | `/listing/:id/edit` | `ListingEditPage.tsx` | 715 |
-| 관리자 대시보드 | `/admin` | `AdminDashboardPage.tsx` | 527 |
-| 회원 관리 상세 | `/admin/members/:id` | `AdminMemberDetailPage.tsx` | 579 |
+| 페이지      | 경로                    | 파일                           | 줄 수 |
+|----------|-----------------------|------------------------------|-----|
+| 판매글 수정   | `/listing/:id/edit`   | `ListingEditPage.tsx`        | 715 |
+| 관리자 대시보드 | `/admin`              | `AdminDashboardPage.tsx`     | 527 |
+| 회원 관리 상세 | `/admin/members/:id`  | `AdminMemberDetailPage.tsx`  | 579 |
 | 분쟁 처리 상세 | `/admin/disputes/:id` | `AdminDisputeDetailPage.tsx` | 440 |
-| 신고 처리 상세 | `/admin/reports/:id` | `AdminReportDetailPage.tsx` | 459 |
+| 신고 처리 상세 | `/admin/reports/:id`  | `AdminReportDetailPage.tsx`  | 459 |
 
 - [done] `src/router.tsx` — 모든 Placeholder 제거, 실제 컴포넌트 연결
 - [done] `tsc --noEmit` ALL PASS (에러 0)
 - Placeholder 컴포넌트 정의만 남아있음 (사용되는 라우트 없음, 추후 제거 가능)
 
 ### 총 구현 현황: 19개 페이지 전체 완료
+
 Auth: Login / Register / Onboarding / Welcome (4)
 Main: Home / Search (2)
 Listing: Detail / Create / Edit (3)
@@ -536,6 +592,7 @@ MyPage: MyPage (1)
 Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 다음 할 일
+
 - [ ] 백엔드 API 연동 (useQuery 교체)
 - [ ] GNB 알림 드롭다운 구현
 - [ ] MSW(Mock Service Worker) 도입 여부 결정
@@ -545,47 +602,50 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 백엔드 머지 후 프론트 반영 항목 (5종)
 
-| # | 항목 | 상태 |
-|---|---|---|
-| 1 | `TradeStatus.RECEIVED` 타입 누락 수정 | [done] |
+| # | 항목                                                  | 상태     |
+|---|-----------------------------------------------------|--------|
+| 1 | `TradeStatus.RECEIVED` 타입 누락 수정                     | [done] |
 | 2 | 결제 API 연동 (Toss Payments SDK + init/confirm/cancel) | [done] |
-| 3 | STOMP WebSocket 채팅 연동 | [done] |
-| 4 | 커뮤니티 게시글 상세 페이지 + 대댓글 UI 구현 | [done] |
-| 5 | 결제 취소/환불 UI (PaymentFailPage) | [done] |
+| 3 | STOMP WebSocket 채팅 연동                               | [done] |
+| 4 | 커뮤니티 게시글 상세 페이지 + 대댓글 UI 구현                         | [done] |
+| 5 | 결제 취소/환불 UI (PaymentFailPage)                       | [done] |
 
 ### 신규 생성 파일
 
-| 파일 | 설명 |
-|---|---|
-| `src/features/payment/api/paymentApi.ts` | 결제 API 함수 (init/confirm/cancel) |
-| `src/features/payment/hooks/usePayment.ts` | 결제 React Query 훅 |
-| `src/features/chat/api/chatApi.ts` | 채팅 REST API 함수 |
-| `src/features/chat/hooks/useStompChat.ts` | STOMP WebSocket 훅 |
-| `src/features/community/api/communityApi.ts` | 커뮤니티 REST API 함수 |
-| `src/pages/payment/PaymentSuccessPage.tsx` | 결제 성공 콜백 페이지 |
-| `src/pages/payment/PaymentFailPage.tsx` | 결제 실패 콜백 페이지 |
-| `src/pages/community/CommunityDetailPage.tsx` | 커뮤니티 상세 + 대댓글 UI |
+| 파일                                            | 설명                              |
+|-----------------------------------------------|---------------------------------|
+| `src/features/payment/api/paymentApi.ts`      | 결제 API 함수 (init/confirm/cancel) |
+| `src/features/payment/hooks/usePayment.ts`    | 결제 React Query 훅                |
+| `src/features/chat/api/chatApi.ts`            | 채팅 REST API 함수                  |
+| `src/features/chat/hooks/useStompChat.ts`     | STOMP WebSocket 훅               |
+| `src/features/community/api/communityApi.ts`  | 커뮤니티 REST API 함수                |
+| `src/pages/payment/PaymentSuccessPage.tsx`    | 결제 성공 콜백 페이지                    |
+| `src/pages/payment/PaymentFailPage.tsx`       | 결제 실패 콜백 페이지                    |
+| `src/pages/community/CommunityDetailPage.tsx` | 커뮤니티 상세 + 대댓글 UI                |
 
 ### 주요 변경 파일
 
-| 파일 | 변경 내용 |
-|---|---|
-| `src/pages/payment/PaymentPage.tsx` | Toss Widget SDK 연동, init→confirm 플로우 구현 |
-| `src/pages/chat/ChatPage.tsx` | STOMP WebSocket 실시간 채팅 연동, RECEIVED 상태 대응 |
-| `src/pages/community/CommunityPage.tsx` | 게시글 클릭 시 /community/:id 상세 이동 |
-| `src/types/listing.ts` | TradeStatus에 RECEIVED 추가 |
-| `src/router.tsx` | /payment/success, /payment/fail, /community/:id 라우트 추가 |
+| 파일                                      | 변경 내용                                                  |
+|-----------------------------------------|--------------------------------------------------------|
+| `src/pages/payment/PaymentPage.tsx`     | Toss Widget SDK 연동, init→confirm 플로우 구현                |
+| `src/pages/chat/ChatPage.tsx`           | STOMP WebSocket 실시간 채팅 연동, RECEIVED 상태 대응              |
+| `src/pages/community/CommunityPage.tsx` | 게시글 클릭 시 /community/:id 상세 이동                          |
+| `src/types/listing.ts`                  | TradeStatus에 RECEIVED 추가                               |
+| `src/router.tsx`                        | /payment/success, /payment/fail, /community/:id 라우트 추가 |
 
 ### 패키지 추가
+
 - `@tosspayments/payment-widget-sdk` — Toss Payments 결제 위젯 SDK
 - `@stomp/stompjs` — STOMP WebSocket 클라이언트
 
 ### STOMP 백엔드 엔드포인트
+
 - WebSocket 연결: `ws://{server}/stomp/chat`
 - 발행: `/pub/chat`
 - 구독: `/sub/chat/{chatId}`
 
 ### Toss 결제 플로우
+
 1. `POST /api/payments/init` → tossOrderId 발급
 2. `loadPaymentWidget().requestPayment({orderId: tossOrderId, successUrl, failUrl})`
 3. 성공 redirect → `/payment/success?paymentKey&orderId&amount`
@@ -593,10 +653,12 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 5. 실패/취소 redirect → `/payment/fail?code&message`
 
 ### 환경변수 (추후 .env에 추가 필요)
+
 - `VITE_TOSS_CLIENT_KEY` — Toss 클라이언트 키 (현재 테스트 키 하드코딩)
 - `VITE_WS_BASE_URL` — WebSocket 서버 URL (현재 ws://localhost:8080 하드코딩)
 
 ## 다음 할 일 <!-- 2026-05-10 업데이트 -->
+
 - [ ] .env 파일 생성 (VITE_TOSS_CLIENT_KEY, VITE_WS_BASE_URL, VITE_API_BASE_URL)
 - [ ] 백엔드 API 연동 (useQuery 교체) — listing/trade/member Controller 구현 대기
 - [ ] GNB 알림 드롭다운 구현 (NotificationType: TRADE/CHAT/PRICE_DROP/REVIEW/SYSTEM)
@@ -604,17 +666,21 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - [ ] 채팅방 REST API 백엔드 구현 대기 (/api/chats)
 
 <!-- 2026-05-11 session 3 -->
+
 ## Task 8 — ReportModal 구현 [done]
+
 - `src/components/ui/ReportModal.tsx` 신규 (3-step: select→detail→done)
 - `ListingDetailPage` — reportMenuOpen/reportModalOpen 분리, ReportModal 연결 (targetType="POST")
 - `CommunityDetailPage` — Flag 아이콘 + 신고 버튼, ReportModal 연결 (targetType="COMMUNITY_POST")
 
 ## Task 9 — MyPage PointWallet pending 추가 [done]
+
 - `MyPage.tsx` MOCK_USER에 `pendingPoints: 37000` 추가
 - PointsTab 그리드에 "정산 대기" 카드 추가 (col-span-2, warning 색상, Clock 아이콘)
 - 백엔드 PointWalletVO.pending 필드 반영
 
 ## Task 10 — ListingDetailPage 채팅하기 API 연동 [done]
+
 - `SellerCard`에 `listingId: number` prop 추가
 - `handleChatClick`: `createChatRoom({ postId: listingId })` 호출 → `/chat/{chatId}` navigate
 - 로딩 스피너 + "채팅방 연결 중..." 텍스트 표시
@@ -624,19 +690,19 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 연동 범위
 
-| 레이어 | 파일 | 상태 |
-|---|---|---|
-| 공통 타입 | `src/types/api.ts` | ApiResponse / PageResponse 타입 정의 [done] |
-| Axios 인터셉터 | `src/lib/axios.ts` | X-Member-Id 헤더 + ApiResponse 자동 언래핑 [done] |
-| 인증 스토어 | `src/store/authStore.ts` | refreshToken + memberId localStorage 저장 [done] |
-| 인증 API | `src/features/auth/api/authApi.ts` | 백엔드 DTO 불일치 수정 (register/checkNickname/saveInterestSetting) [done] |
-| 판매글 API | `src/features/listing/api/listingApi.ts` | PostController 전 엔드포인트 [done] (신규) |
-| 거래 API | `src/features/trade/api/tradeApi.ts` | TradeController 전 엔드포인트 [done] (신규) |
-| 마이페이지 API | `src/features/mypage/api/memberApi.ts` | MemberController 전 엔드포인트 [done] (신규) |
-| 알림 API | `src/features/notification/api/notificationApi.ts` | NotificationController [done] (신규) |
-| 포인트 API | `src/features/payment/api/pointApi.ts` | PointController [done] (신규) |
-| 커뮤니티 타입 | `src/types/community.ts` | 백엔드 DTO 필드명 정합성 수정 [done] |
-| 커뮤니티 API | `src/features/community/api/communityApi.ts` | 타입 정합성 수정 [done] |
+| 레이어        | 파일                                                 | 상태                                                                 |
+|------------|----------------------------------------------------|--------------------------------------------------------------------|
+| 공통 타입      | `src/types/api.ts`                                 | ApiResponse / PageResponse 타입 정의 [done]                            |
+| Axios 인터셉터 | `src/lib/axios.ts`                                 | X-Member-Id 헤더 + ApiResponse 자동 언래핑 [done]                         |
+| 인증 스토어     | `src/store/authStore.ts`                           | refreshToken + memberId localStorage 저장 [done]                     |
+| 인증 API     | `src/features/auth/api/authApi.ts`                 | 백엔드 DTO 불일치 수정 (register/checkNickname/saveInterestSetting) [done] |
+| 판매글 API    | `src/features/listing/api/listingApi.ts`           | PostController 전 엔드포인트 [done] (신규)                                 |
+| 거래 API     | `src/features/trade/api/tradeApi.ts`               | TradeController 전 엔드포인트 [done] (신규)                                |
+| 마이페이지 API  | `src/features/mypage/api/memberApi.ts`             | MemberController 전 엔드포인트 [done] (신규)                               |
+| 알림 API     | `src/features/notification/api/notificationApi.ts` | NotificationController [done] (신규)                                 |
+| 포인트 API    | `src/features/payment/api/pointApi.ts`             | PointController [done] (신규)                                        |
+| 커뮤니티 타입    | `src/types/community.ts`                           | 백엔드 DTO 필드명 정합성 수정 [done]                                          |
+| 커뮤니티 API   | `src/features/community/api/communityApi.ts`       | 타입 정합성 수정 [done]                                                   |
 
 ### 핵심 변경 사항
 
@@ -662,11 +728,13 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ## UI/UX 개선 작업 완료 <!-- 2026-05-11 session 4 -->
 
 ### SearchPage 버그 수정 [done]
+
 - `FilterContent` 컴포넌트 line 184: `${border}` (정의되지 않은 변수) ReferenceError
 - 해결: `className="border-b"` + `style={{ borderColor: "var(--color-border)" }}` 로 교체
 - 중복 className 병합 (Python으로 수정)
 
 ### GNB 개선 [done]
+
 - 장식용 검색 div → `<form>` + `<input>` (submit 시 `/search?q={keyword}` 이동)
 - 이후 방향 전환: 검색창 전체 제거, 더 유용한 페이지 링크로 교체
 - NAV_ITEMS 5개: 홈/마켓/커뮤니티/채팅/마이페이지
@@ -674,10 +742,12 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `getActiveId()` 함수 추가 (chat/mypage 경로 정확히 매핑)
 
 ### 전역 폰트 크기 18px 설정 [done]
+
 - `src/index.css` line 308: `html { font-size: 16px }` → `html { font-size: 18px }`
 - 모든 Tailwind rem 기반 폰트 크기 비례 확대 (개별 컴포넌트 수정 없음)
 
 ### ChatPage PC 레이아웃 전면 재작성 [done]
+
 - `src/pages/chat/ChatPage.tsx` 450줄 → 616줄 (완전 재작성)
 - `SidebarPanel` (360px 데스크탑): 검색 입력 + 읽지않음 뱃지 + 거래상태 칩 + 방 수 표시
 - `RoomItem`: 거래상태 컬러 뱃지, ShoppingBag 아이콘 + 상품명, 큰 아바타(w-11)
@@ -689,30 +759,33 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `MainLayout.tsx`: `<main className="flex-1 flex flex-col pb-16 md:pb-0">` (flex-col 추가)
 - tsc --noEmit 통과 (에러 0)
 
-
 ## 백엔드 업데이트 반영 완료 <!-- 2026-05-14 -->
 
 ### 인증 방식 전환 (가장 중요)
+
 - [done] `axios.ts` — X-Member-Id 헤더 완전 제거, Authorization Bearer 전용
-  - 401 시 refreshToken으로 accessToken 자동 재발급 인터셉터 추가
-  - 403 시 clearAuthAndRedirect (토큰 위조/만료/불일치)
-  - 대기 중인 요청 큐(pendingRequests) 처리
+    - 401 시 refreshToken으로 accessToken 자동 재발급 인터셉터 추가
+    - 403 시 clearAuthAndRedirect (토큰 위조/만료/불일치)
+    - 대기 중인 요청 큐(pendingRequests) 처리
 - [done] `authStore.ts` — memberId localStorage 제거, setAccessToken() 메서드 추가
 
 ### 로그인 2단계 인증 (2FA)
+
 - [done] `authApi.ts` — loginStep1(challenge), loginStep2(verify), 완전 재작성
-  - logout / refreshAccessToken / resetPassword / handleSocialCallback 추가
-  - 소셜 로그인 hash fragment 콜백 핸들러 (window.location.hash → 토큰 추출)
+    - logout / refreshAccessToken / resetPassword / handleSocialCallback 추가
+    - 소셜 로그인 hash fragment 콜백 핸들러 (window.location.hash → 토큰 추출)
 - [done] `useLogin.ts` — step1/step2 mutate 분리 + challenge 상태 관리
 - [done] `LoginPage.tsx` — Step 1(이메일+비밀번호) → Step 2(6자리 코드 입력) 2단계 UI
 
 ### 판매글 API (listingApi.ts)
+
 - [done] 작성/수정 multipart → JSON + imageUrls[] 방식으로 변경 (PATCH 사용)
 - [done] POST /api/listings/images — 이미지 사전 업로드 API 추가
 - [done] POST /api/listings/{id}/like — 찜 토글 (isLiked, likeCount 반환)
 - [done] minPrice / maxPrice 필터 파라미터 추가
 
 ### 거래 API (tradeApi.ts)
+
 - [done] PATCH /api/trades/{id}/accept — 거래 수락 (판매자)
 - [done] PATCH /api/trades/{id}/shipping — 배송 정보 입력 (택배사+송장번호)
 - [done] GET /api/trades/{id}/tracking — 배송 추적 조회
@@ -720,6 +793,7 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - [done] courierCode / trackingNumber 필드 TradeResponse에 추가
 
 ### 커뮤니티 API (communityApi.ts)
+
 - [done] 게시글 수정(PUT) / 삭제(DELETE) 추가
 - [done] 댓글 좋아요 경로 수정: /community/{commId}/replies/{id}/like → /community/replies/{id}/like
 - [done] 댓글 삭제 경로 수정: /community/{commId}/replies/{id} → /community/replies/{id}
@@ -728,18 +802,21 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - [done] 인기글 조회 GET /api/community/posts/popular 추가
 
 ### 회원 API (memberApi.ts)
+
 - [done] updateMyProfile multipart → JSON + profileImageUrl 방식으로 변경
 - [done] POST /api/users/me/profile-image — 프로필 이미지 사전 업로드 API 추가
 
 ### 신규 파일 생성
+
 - [done] `src/features/delivery/api/deliveryApi.ts`
-  - GET /api/delivery/tracking/couriers — 택배사 목록
-  - POST /api/delivery/tracking/trace — 송장번호 배송 추적
+    - GET /api/delivery/tracking/couriers — 택배사 목록
+    - POST /api/delivery/tracking/trace — 송장번호 배송 추적
 - [done] `src/features/draft/api/draftApi.ts`
-  - PATCH/GET/DELETE /api/drafts/posts — 게시글 임시저장
-  - PATCH/GET/DELETE /api/drafts/replies — 댓글 임시저장
+    - PATCH/GET/DELETE /api/drafts/posts — 게시글 임시저장
+    - PATCH/GET/DELETE /api/drafts/replies — 댓글 임시저장
 
 ### 소셜 로그인 경로 확정
+
 - 진입: GET /api/auth/oauth2/kakao, /api/auth/oauth2/google
 - 콜백: Spring Security /login/oauth2/code/{provider} (백엔드 자동 처리)
 - 프론트 수신: window.location.hash에서 #accessToken=...&refreshToken=... 추출
@@ -748,17 +825,18 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 연동된 페이지 목록
 
-| 페이지 | 변경 내용 |
-|---|---|
-| `ListingCreatePage.tsx` | uploadListingImages + createListing JSON 방식 연동 |
-| `ListingEditPage.tsx` | getListingDetail 프리필 + 이미지 수정 + updateListing PATCH |
-| `ListingDetailPage.tsx` | getListingDetail + toggleWish 낙관적 UI |
-| `HomePage.tsx` | getListings (필터/정렬) + toggleWish 낙관적 UI |
-| `CommunityPage.tsx` | getCommunityPosts(sport 탭) + getPopularPosts + createCommunityPost + togglePostLike |
+| 페이지                       | 변경 내용                                                                                              |
+|---------------------------|----------------------------------------------------------------------------------------------------|
+| `ListingCreatePage.tsx`   | uploadListingImages + createListing JSON 방식 연동                                                     |
+| `ListingEditPage.tsx`     | getListingDetail 프리필 + 이미지 수정 + updateListing PATCH                                                |
+| `ListingDetailPage.tsx`   | getListingDetail + toggleWish 낙관적 UI                                                               |
+| `HomePage.tsx`            | getListings (필터/정렬) + toggleWish 낙관적 UI                                                            |
+| `CommunityPage.tsx`       | getCommunityPosts(sport 탭) + getPopularPosts + createCommunityPost + togglePostLike                |
 | `CommunityDetailPage.tsx` | getCommunityPostDetail + getReplies + createReply + deleteReply + togglePostLike + toggleReplyLike |
-| `ChatPage.tsx` | getChatRooms + getChatRoomDetail + getMessages + useStompChat 완전 연동 |
+| `ChatPage.tsx`            | getChatRooms + getChatRoomDetail + getMessages + useStompChat 완전 연동                                |
 
 ### ChatPage 핵심 설계
+
 - `RoomItem` → `ChatRoomSummary` 기반 (partner, lastMessage, unreadCount, post)
 - `SidebarPanel` → `ChatRoomSummary[]` + isLoading 스피너
 - `ChatRoomPanel` (래퍼) → `getChatRoomDetail` + `getMessages` 페치 후 Inner 마운트
@@ -770,6 +848,7 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - tsc --noEmit ALL PASS (에러 0)
 
 ### 카테고리 설계 변경 (CommunityPage)
+
 - 기존 mock: free/info/question/review 카테고리
 - 실제 백엔드: sport 필드 기반 필터 (all/SOCCER/BASEBALL/BASKETBALL/VOLLEYBALL/ESPORTS)
 - 인기글 사이드바: getPopularPosts(5) API 연동
@@ -777,36 +856,39 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ## 결제·홈 UI 개선 완료 <!-- 2026-05-14 -->
 
 ### 결제 페이지 API 실연동 [done]
+
 - `paymentApi.ts` URL prefix 버그 수정 (`/api/payments/` -> `/payments/`, baseURL 중복 제거)
 - `PaymentPage.tsx` 재작성: MOCK_ORDER 제거, useQuery(getTrade) 실연동
-  - OrderSummaryCard: TradeResponse 기반, thumbnailUrl 우선/폴백 색상
-  - customerName: authStore.user.nickname (미로그인시 ANONYMOUS)
-  - 로딩/에러 상태 컴포넌트 추가, 뒤로가기 = /listing/{post.postId}
+    - OrderSummaryCard: TradeResponse 기반, thumbnailUrl 우선/폴백 색상
+    - customerName: authStore.user.nickname (미로그인시 ANONYMOUS)
+    - 로딩/에러 상태 컴포넌트 추가, 뒤로가기 = /listing/{post.postId}
 
 ### 홈 종목탭 사이드바 통합 [done]
+
 - SportFilterBar (GNB 아래 sticky 가로탭) 제거
 - FilterSidebar 상단에 종목 수직 탭 리스트 추가
 
 ### 홈/마켓 통합 [done]
+
 - GNB NAV_ITEMS: home(/) 제거, market(/search) -> market(/) 변경
 - getActiveId: pathname==='/' -> 'market'
 - /search 는 키워드 검색 전용
 
 ### 코드 주석 규칙 [done]
-- 코드 주석에 유스케이스 번호(UC-*, REQ-*) 기재 불필요
 
+- 코드 주석에 유스케이스 번호(UC-*, REQ-*) 기재 불필요
 
 ## 결제 플로우 연동 완료 <!-- 2026-05-15 -->
 
 ### 변경된 파일
 
-| 파일 | 변경 내용 |
-|---|---|
-| `ListingDetailPage.tsx` | TradeStartModal 추가 (deliveryType 선택 + createTrade 연동), /trade/:tradeId/confirm 이동 |
-| `TradeConfirmPage.tsx` | 전면 재작성 — mock 제거, getTrade useQuery 연동, 구매자/판매자 분기 |
-| `ReviewPage.tsx` | mock 제거, getTrade + createReview useMutation 연동 |
-| `PaymentSuccessPage.tsx` | 결제 성공 후 /trade/:tradeId/confirm 링크 추가 |
-| `ChatPage.tsx` | ?roomId=xxx 쿼리파라미터로 초기 채팅방 자동 오픈 지원 |
+| 파일                       | 변경 내용                                                                             |
+|--------------------------|-----------------------------------------------------------------------------------|
+| `ListingDetailPage.tsx`  | TradeStartModal 추가 (deliveryType 선택 + createTrade 연동), /trade/:tradeId/confirm 이동 |
+| `TradeConfirmPage.tsx`   | 전면 재작성 — mock 제거, getTrade useQuery 연동, 구매자/판매자 분기                                |
+| `ReviewPage.tsx`         | mock 제거, getTrade + createReview useMutation 연동                                   |
+| `PaymentSuccessPage.tsx` | 결제 성공 후 /trade/:tradeId/confirm 링크 추가                                             |
+| `ChatPage.tsx`           | ?roomId=xxx 쿼리파라미터로 초기 채팅방 자동 오픈 지원                                               |
 
 ### 결제 플로우 전체 연결 현황
 
@@ -827,25 +909,31 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ```
 
 ### TradeConfirmPage 역할 분리 로직
+
 - `user?.id === trade.buyer.memberId` 로 구매자/판매자 판별
 - `isBuyer` 기반 ActionPanel 분기 렌더링
 - 판매자 배송 입력: `getCouriers()` API로 택배사 목록 로드 (실패 시 주요 5개사 하드코딩 폴백)
 
 ### 채팅 라우팅
+
 - SellerCard navigate: `/chat/${chatId}` → `/chat?roomId=${chatId}` 변경
 - ChatPage: `useSearchParams()`로 roomId 읽어 초기 방 선택
 
 ## 다음 할 일 <!-- 2026-05-14 -->
+
 - [ ] .env 파일 생성 (VITE_TOSS_CLIENT_KEY, VITE_WS_BASE_URL, VITE_API_BASE_URL)
 - [ ] 소셜 로그인 콜백 페이지 구현 (hash fragment 토큰 수신 -> authStore.login())
 - [ ] TradeConfirmPage 배송 추적 UI (getTradeTracking + DeliveryTimeline)
 - [ ] MyPage 프로필 이미지 업로드 연동 (uploadProfileImage)
 - [ ] 관리자 라우트 인증 가드 (Role.ADMIN 체크)
+
 ## 리그 코드 전면 제거 + ESLint 에러 수정 완료 <!-- 2026-05-14 -->
 
 ### 리그 제거 범위
+
 - `src/types/listing.ts` — `ListingItem.league`, `HomeFilter.league` 제거
-- `src/pages/auth/OnboardingPage.tsx` — LEAGUES_BY_SPORT, TEAMS_BY_LEAGUE → TEAMS_BY_SPORT 구조 변경, LeagueChip 컴포넌트 제거, selectedLeagues 상태 제거
+- `src/pages/auth/OnboardingPage.tsx` — LEAGUES_BY_SPORT, TEAMS_BY_LEAGUE → TEAMS_BY_SPORT 구조 변경, LeagueChip 컴포넌트 제거,
+  selectedLeagues 상태 제거
 - `src/pages/auth/WelcomePage.tsx` — leagues 필드 제거
 - `src/pages/HomePage.tsx` — LEAGUES 상수·필터 칩 제거, HomeFilter.league 제거
 - `src/pages/search/SearchPage.tsx` — LEAGUE_OPTIONS, league 필터 상태 전체 제거
@@ -856,33 +944,39 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - `src/pages/admin/AdminDashboardPage.tsx` — kleague 관련 닉네임 교체
 
 ### ESLint 에러 수정 (0 에러 달성)
+
 - NUL 바이트 제거: authApi.ts / communityApi.ts / axios.ts / AdminDisputeDetailPage.tsx / authStore.ts / OnboardingPage.tsx
-- 파일 잘림 복원: AdminDashboardPage.tsx (git 복구), ChatPage.tsx (git + 수동 복원), CommunityDetailPage.tsx (수동 복원), WelcomePage.tsx (git 복구)
-- 미사용 import 제거: useMemo (ListingEditPage), PostDetail (ListingDetailPage), Clock (AdminDashboardPage), User (AdminDisputeDetailPage)
+- 파일 잘림 복원: AdminDashboardPage.tsx (git 복구), ChatPage.tsx (git + 수동 복원), CommunityDetailPage.tsx (수동 복원),
+  WelcomePage.tsx (git 복구)
+- 미사용 import 제거: useMemo (ListingEditPage), PostDetail (ListingDetailPage), Clock (AdminDashboardPage), User (
+  AdminDisputeDetailPage)
 - 미사용 컴포넌트 제거: Placeholder (router.tsx)
 - setState in effect 수정:
-  - `ListingDetailPage.tsx` — useEffect + setLiked/setLikedCount 제거 → 파생 상태(`localLiked ?? listing?.isWished`)로 전환
-  - `PaymentSuccessPage.tsx` — useState lazy initializer로 파라미터 검증 → useEffect 내 setState 제거
-  - `ChatPage.tsx` — useEffect + setActiveRoomId 제거 → `selectedRoomId ?? rooms[0]?.chatId` 파생 상태로 전환
+    - `ListingDetailPage.tsx` — useEffect + setLiked/setLikedCount 제거 → 파생 상태(`localLiked ?? listing?.isWished`)로 전환
+    - `PaymentSuccessPage.tsx` — useState lazy initializer로 파라미터 검증 → useEffect 내 setState 제거
+    - `ChatPage.tsx` — useEffect + setActiveRoomId 제거 → `selectedRoomId ?? rooms[0]?.chatId` 파생 상태로 전환
 - SearchPage.tsx 두 if문 합쳐진 것 줄바꿈 분리 (Parsing error 수정)
 
 ### 최종 검증 결과
+
 - `npx eslint src/` → **0 errors** (1026 warnings — no-restricted-syntax 스타일 경고만)
 - `npx tsc --noEmit` → **0 errors**
 
 ### CLAUDE.md 갱신
+
 - WebStorm 빨간줄 방지 규칙 6개 + ESLint 레벨 표 추가
 
 ## 로그아웃 기능 추가 완료 <!-- 2026-05-15 -->
 
 ### 변경 파일
 
-| 파일 | 변경 내용 |
-|---|---|
+| 파일                              | 변경 내용                                                  |
+|---------------------------------|--------------------------------------------------------|
 | `src/components/layout/GNB.tsx` | UserAvatarButton + UserMenuDropdown 추가 (로그인 시 드롭다운 메뉴) |
-| `src/pages/mypage/MyPage.tsx` | SettingsTab handleLogout 연결 (기존 버튼에 onClick 없었음) |
+| `src/pages/mypage/MyPage.tsx`   | SettingsTab handleLogout 연결 (기존 버튼에 onClick 없었음)       |
 
 ### GNB 로그아웃 드롭다운
+
 - 로그인 상태: 기존 "로그인" 링크 대신 UserAvatarButton 렌더링
 - UserAvatarButton: 프로필이미지(있으면)/이니셜(없으면) 원형 버튼, 클릭 시 드롭다운 토글
 - UserMenuDropdown: 닉네임+이메일 표시, "마이페이지" 링크, "로그아웃" 버튼
@@ -890,43 +984,50 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 - 로그아웃 흐름: `logoutApi(refreshToken)` → `authStore.logout()` → `navigate('/login')`
 
 ### MyPage 로그아웃 수정
+
 - SettingsTab 기존 로그아웃 버튼에 onClick 핸들러 없었음 → handleLogout 연결
 - disabled 상태(isLoggingOut) 추가
 
 ### 최종 검증
+
 - `npx tsc --noEmit` → **EXIT:0**
 - `npx eslint` → **EXIT:0** (warnings만, 0 errors)
 
 ## 로그인 직후 인증 풀림 버그 수정 <!-- 2026-05-15 -->
 
 ### 증상
+
 로그인 성공 후 홈(/) 이동 시 몇 초 뒤 자동으로 /login으로 리다이렉트됨
 
 ### 원인 1 — axios.ts 403 즉시 로그아웃 (핵심 버그)
+
 - 기존: 403 수신 시 무조건 `clearAuthAndRedirect()` 호출
 - 문제: Spring Security 표준에서 403은 "인가 실패(권한 없음)"이며 토큰 문제가 아님
 - `getListings` 등 홈 화면 API가 403 반환 시 즉시 로그아웃 트리거됨
 - 수정: 403은 `Promise.reject(error)`만 하여 컴포넌트가 에러 처리하도록 위임
 
 ### 원인 2 — axios.ts refresh 실패 시 무조건 로그아웃
+
 - 기존: refresh 엔드포인트 404/500/네트워크 오류도 `clearAuthAndRedirect()` 호출
 - 문제: refresh 미구현 상태에서 임의 401 → refresh 404 → 로그아웃
 - 수정: refresh가 401/403 반환 시에만 로그아웃 (명시적 토큰 거부), 나머지는 원요청만 실패 처리
 
 ### 원인 3 — authStore restore() 타이밍 버그
+
 - 기존: `App.tsx` useEffect에서 restore() 호출 → 첫 렌더 시 isAuthenticated=false
 - 문제: 첫 렌더 중 isAuthenticated를 보는 컴포넌트가 미인증 상태로 동작
 - 수정: `create()` 콜백 내부에서 즉시 localStorage 동기 읽어 초기 상태 설정
 
 ### 변경 파일
 
-| 파일 | 변경 내용 |
-|---|---|
-| `src/lib/axios.ts` | 403 로그아웃 제거, refresh 실패 조건 정교화 (401/403만 로그아웃) |
+| 파일                       | 변경 내용                                           |
+|--------------------------|-------------------------------------------------|
+| `src/lib/axios.ts`       | 403 로그아웃 제거, refresh 실패 조건 정교화 (401/403만 로그아웃)  |
 | `src/store/authStore.ts` | create() 시점 동기 복원 도입, restore()는 no-op 유지(하위호환) |
-| `src/App.tsx` | restore() useEffect 제거 (불필요해짐) |
+| `src/App.tsx`            | restore() useEffect 제거 (불필요해짐)                  |
 
 ### 최종 검증
+
 - `npx tsc --noEmit` → **EXIT:0**
 - `npx eslint src/lib/axios.ts src/store/authStore.ts src/App.tsx` → **0 errors**
 
@@ -934,16 +1035,18 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 수정 내용 (게시글 등록 + 목록 조회)
 
-| 파일 | 수정 내용 |
-|---|---|
-| `src/types/community.ts` | `AuthorBrief.memberId: number` → `number | null` (백엔드 실제 null 반환) |
-| `src/features/community/api/communityApi.ts` | `createCommunityPost`: `sport` → `Sport`(대문자) 변환 (Java Record 필드명 이슈) |
-| `src/features/community/api/communityApi.ts` | `getCommunityPosts`: page 0-indexed → 1-based 자동 변환 (+1) |
+| 파일                                           | 수정 내용                                                                             |
+|----------------------------------------------|-----------------------------------------------------------------------------------|
+| `src/types/community.ts`                     | `AuthorBrief.memberId: number` → `number                                          | null` (백엔드 실제 null 반환) |
+| `src/features/community/api/communityApi.ts` | `createCommunityPost`: `sport` → `Sport`(대문자) 변환 (Java Record 필드명 이슈)             |
+| `src/features/community/api/communityApi.ts` | `getCommunityPosts`: page 0-indexed → 1-based 자동 변환 (+1)                          |
 | `src/features/community/api/communityApi.ts` | `CommunityPostUpdateRequest` 필드명 수정: `title`→`commTitle`, `content`→`commContent` |
-| `src/pages/community/CommunityPage.tsx` | `avatarColor(memberId)` null-safe 처리 (`memberId ?? 0`) |
+| `src/pages/community/CommunityPage.tsx`      | `avatarColor(memberId)` null-safe 처리 (`memberId ?? 0`)                            |
 
 ### 핵심 버그 원인
-1. **게시글 등록 실패**: 백엔드 `CommunityPostCreateRequestDTO`가 Java Record로 선언되어 있고 필드명이 `Sport Sport` (대문자 S). Jackson은 명시적 naming strategy 없으면 accessor명 그대로 사용 → JSON 키 `"Sport"`. 프론트가 `"sport"` (소문자) 전송 → 백엔드에서 null 처리됨.
+
+1. **게시글 등록 실패**: 백엔드 `CommunityPostCreateRequestDTO`가 Java Record로 선언되어 있고 필드명이 `Sport Sport` (대문자 S). Jackson은 명시적
+   naming strategy 없으면 accessor명 그대로 사용 → JSON 키 `"Sport"`. 프론트가 `"sport"` (소문자) 전송 → 백엔드에서 null 처리됨.
 2. **목록 조회 실패**: 백엔드 페이지네이션이 1-based (`page=1~n`)인데 프론트가 `page=0` 전송 → 빈 결과.
 3. **tsc/eslint**: 0 errors 유지 확인
 
@@ -951,23 +1054,24 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 원인: 요청 필드명 불일치 (프론트 ↔ 백엔드)
 
-| 프론트 전송 필드 | 백엔드 기대 필드 | 비고 |
-|---|---|---|
-| `content` | `description` | `@NotBlank` → null 취급 → 400 에러 |
-| `grade` | `condition` | `@NotNull` → null 취급 → 400 에러 |
-| `deliveryType` | `tradeType` | `@NotNull` → null 취급 → 400 에러 |
-| `uniformName` | (없음) | 백엔드가 title로 자동 채움, 전송 불필요 |
+| 프론트 전송 필드      | 백엔드 기대 필드     | 비고                             |
+|----------------|---------------|--------------------------------|
+| `content`      | `description` | `@NotBlank` → null 취급 → 400 에러 |
+| `grade`        | `condition`   | `@NotNull` → null 취급 → 400 에러  |
+| `deliveryType` | `tradeType`   | `@NotNull` → null 취급 → 400 에러  |
+| `uniformName`  | (없음)          | 백엔드가 title로 자동 채움, 전송 불필요      |
 
 ### 수정 파일
 
-| 파일 | 변경 내용 |
-|---|---|
-| `listingApi.ts` | `ListingCreateRequest`: content→description, grade→condition, deliveryType→tradeType, uniformName 제거 |
-| `listingApi.ts` | `ListingUpdateRequest`: content→description, grade→condition, deliveryType→tradeType |
-| `ListingCreatePage.tsx` | handleSubmit 호출부 필드명 수정 |
-| `ListingEditPage.tsx` | updateListing 호출부 필드명 수정 |
+| 파일                      | 변경 내용                                                                                                |
+|-------------------------|------------------------------------------------------------------------------------------------------|
+| `listingApi.ts`         | `ListingCreateRequest`: content→description, grade→condition, deliveryType→tradeType, uniformName 제거 |
+| `listingApi.ts`         | `ListingUpdateRequest`: content→description, grade→condition, deliveryType→tradeType                 |
+| `ListingCreatePage.tsx` | handleSubmit 호출부 필드명 수정                                                                              |
+| `ListingEditPage.tsx`   | updateListing 호출부 필드명 수정                                                                             |
 
 ### 주의: 응답 필드명은 다름 (읽기 전용)
+
 - `PostDetailDTO` 응답: `content` (description X), `grade` (condition X), `deliveryType` (tradeType X)
 - 이는 백엔드 설계 불일치 — 요청(input)과 응답(output) 필드명이 다름
 - `PostDetail` 타입 (읽기용)은 수정하지 않음 (올바름)
@@ -976,30 +1080,32 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 
 ### 완료된 작업 목록
 
-| 작업 | 파일 | 내용 |
-|---|---|---|
-| adminApi 확장 | `src/features/admin/api/adminApi.ts` | 회원/게시글/신고/출금 CRUD 타입+함수 전체 추가 (67→313줄) |
-| Admin 페이지 연동 | `AdminDashboardPage.tsx` | 목 데이터 → useQuery/useMutation 실연동 |
-| Admin 페이지 연동 | `AdminMemberDetailPage.tsx` | getAdminMember + processAdminMember 연동, 로딩/에러 처리 |
-| Admin 페이지 연동 | `AdminReportDetailPage.tsx` | getAdminReports + 신고 처리 연동 |
-| Admin 페이지 연동 | `AdminDisputeDetailPage.tsx` | getTrade로 기본 정보 조회 연동 |
-| GNB 알림 | `GNB.tsx` | notificationApi 연동, 읽음/전체읽음 처리 |
-| AI 설명 추천 | `ListingCreatePage.tsx` | AiPanel → suggestListingFromImage 실API 연동, images prop |
-| riskLevel 배지 | `ListingDetailPage.tsx` | MID/HIGH riskLevel 배너 표시 (RISK_META 상수) |
-| Chat moderation | `ChatPage.tsx` | MessageBubble에 moderation 경고 배너 표시 |
-| Chat 읽음 처리 | `useStompChat.ts` | markRead 함수 + /pub/chat/read STOMP 발행 |
-| ChatMessage 타입 | `chatApi.ts` | RiskAnalysisResult + moderation 필드 추가 |
-| AI 업로드 함수 | `listingApi.ts` | suggestListingFromImage 함수 추가 |
-| MyPage 이미지업로드 | `MyPage.tsx` | ProfileHeader — 카메라 오버레이 + uploadProfileImage 연동 |
-| MyPage 관심설정 | `MyPage.tsx` | SettingsTab — 관심종목 인라인 편집 패널 (saveInterestSetting 연동) |
-| 환경변수 | `.env.example` | 템플릿 파일 생성 |
+| 작업              | 파일                                   | 내용                                                     |
+|-----------------|--------------------------------------|--------------------------------------------------------|
+| adminApi 확장     | `src/features/admin/api/adminApi.ts` | 회원/게시글/신고/출금 CRUD 타입+함수 전체 추가 (67→313줄)                |
+| Admin 페이지 연동    | `AdminDashboardPage.tsx`             | 목 데이터 → useQuery/useMutation 실연동                       |
+| Admin 페이지 연동    | `AdminMemberDetailPage.tsx`          | getAdminMember + processAdminMember 연동, 로딩/에러 처리       |
+| Admin 페이지 연동    | `AdminReportDetailPage.tsx`          | getAdminReports + 신고 처리 연동                             |
+| Admin 페이지 연동    | `AdminDisputeDetailPage.tsx`         | getTrade로 기본 정보 조회 연동                                  |
+| GNB 알림          | `GNB.tsx`                            | notificationApi 연동, 읽음/전체읽음 처리                         |
+| AI 설명 추천        | `ListingCreatePage.tsx`              | AiPanel → suggestListingFromImage 실API 연동, images prop |
+| riskLevel 배지    | `ListingDetailPage.tsx`              | MID/HIGH riskLevel 배너 표시 (RISK_META 상수)                |
+| Chat moderation | `ChatPage.tsx`                       | MessageBubble에 moderation 경고 배너 표시                     |
+| Chat 읽음 처리      | `useStompChat.ts`                    | markRead 함수 + /pub/chat/read STOMP 발행                  |
+| ChatMessage 타입  | `chatApi.ts`                         | RiskAnalysisResult + moderation 필드 추가                  |
+| AI 업로드 함수       | `listingApi.ts`                      | suggestListingFromImage 함수 추가                          |
+| MyPage 이미지업로드   | `MyPage.tsx`                         | ProfileHeader — 카메라 오버레이 + uploadProfileImage 연동       |
+| MyPage 관심설정     | `MyPage.tsx`                         | SettingsTab — 관심종목 인라인 편집 패널 (saveInterestSetting 연동)  |
+| 환경변수            | `.env.example`                       | 템플릿 파일 생성                                              |
 
 ### 현재 상태
+
 - `npx tsc --noEmit` → 0 errors
 - `npx eslint src/` → **0 errors**, 1176 warnings (style-only, 기존 누적분)
 - 경고는 CSS var를 style={{}} 대신 className에서 쓰라는 프로젝트 custom rule — 수정 불필요
 
 ### 미연동 항목 (백엔드 API 미제공)
+
 - 찜 목록 GET — `/api/users/me/wishlist` 없음 → MyPage MOCK_LIKED 유지
 - 관리자 거래 목록 — `/api/admin/trades` 없음 → AdminDashboard MOCK_TRADES 유지
 - 관리자 분쟁 단일 조회 — `/api/admin/disputes/:id` 없음 → getTrade로 대체
@@ -1008,55 +1114,121 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ## TradePage 구현 완료 <!-- 2026-05-16 -->
 
 ### 신규 파일
+
 - `src/pages/trade/TradePage.tsx` (1365줄) — `/trade/:id` 라우트
 
 ### 핵심 설계
+
 - 데스크탑 2컬럼: 왼쪽(거래정보+타임라인+액션) + 오른쪽(인라인 채팅 380px, sticky)
 - 모바일 탭: 거래현황 탭 / 채팅 탭 전환
 - 임베드 채팅: `getChatRooms()` → postId 매칭 → 없으면 `createChatRoom()` → `useStompChat`
 - 상태별 뱃지: STATUS_META 상수 (라벨+컬러+배경)
 - 모든 TradeStatus 처리 (DISPUTED 포함):
-  - REQUESTED: 판매자 수락 버튼 / 구매자 대기
-  - ACCEPTED: 구매자 결제하기 버튼 / 판매자 대기
-  - PAID: 판매자 배송입력 폼(택배사+송장) / 구매자 대기
-  - IN_PROGRESS/RECEIVED: 구매자 2-step 구매확정 / 판매자 대기
-  - CONFIRMED/COMPLETED: 리뷰 작성 링크
-  - CANCELED: 취소 안내
-  - DISPUTED: 분쟁 배너 + 에스크로 보관 안내
+    - REQUESTED: 판매자 수락 버튼 / 구매자 대기
+    - ACCEPTED: 구매자 결제하기 버튼 / 판매자 대기
+    - PAID: 판매자 배송입력 폼(택배사+송장) / 구매자 대기
+    - IN_PROGRESS/RECEIVED: 구매자 2-step 구매확정 / 판매자 대기
+    - CONFIRMED/COMPLETED: 리뷰 작성 링크
+    - CANCELED: 취소 안내
+    - DISPUTED: 분쟁 배너 + 에스크로 보관 안내
 
 ### 라우팅 변경
+
 - `router.tsx`: `/trade/:id` → TradePage 추가 (기존 `/trade/:id/confirm` 유지)
 - `ListingDetailPage.tsx`: createTrade 성공 후 `/trade/${tradeId}` 이동 (기존 /confirm 제거)
 - `PaymentSuccessPage.tsx`: `/trade/${tradeId}` 링크로 변경
 
 ### 버그 수정
+
 - `PaymentSuccessPage.tsx`: Edit 툴이 NUL 바이트 삽입 → Python으로 제거
 
 ### 최종 검증
+
 - `npx tsc --noEmit` → EXIT:0
 - `npx eslint src/` → 0 errors, 1300 warnings (CSS var 스타일 경고만)
 
 ## 관리자 페이지 + 보완 작업 완료 <!-- 2026-05-16 -->
 
 ### 신규 파일
+
 - `src/components/layout/AdminLayout.tsx` (224줄) — 역할 기반 라우트 가드 (USER→`/` 리다이렉트, 미인증→`/login`)
-  - 좌측 사이드바(데스크탑): navy 배경, 6개 nav (대시보드/회원/게시글/신고/분쟁/출금요청)
-  - 모바일 헤더: 현재 섹션명 표시
+    - 좌측 사이드바(데스크탑): navy 배경, 6개 nav (대시보드/회원/게시글/신고/분쟁/출금요청)
+    - 모바일 헤더: 현재 섹션명 표시
 - `src/pages/admin/AdminListingPage.tsx` (637줄) — `/admin/listings` 게시글 관리
-  - 키워드/종목/상태 필터 + 페이지네이션
-  - PostDetailModal: 이미지 썸네일, 정보 그리드, 숨김/삭제 사유 입력
-  - 빠른 숨김 버튼 인라인
+    - 키워드/종목/상태 필터 + 페이지네이션
+    - PostDetailModal: 이미지 썸네일, 정보 그리드, 숨김/삭제 사유 입력
+    - 빠른 숨김 버튼 인라인
 - `src/pages/NotFoundPage.tsx` (80줄) — `*` 라우트 404 페이지
-  - IAMAPLAYER "404" 대형 타이틀
-  - 이전 페이지 / 홈으로 버튼
+    - IAMAPLAYER "404" 대형 타이틀
+    - 이전 페이지 / 홈으로 버튼
 
 ### router.tsx 변경 (110→121줄)
+
 - `/admin/*` 전체 → AdminLayout 래핑 (역할 가드 적용)
 - `/admin/listings` → AdminListingPage 추가
 - `*` → NotFoundPage (MainLayout 내)
 - `/trade/:id` → TradePage (기존 `/trade/:id/confirm` 유지)
 
 ### 최종 검증 <!-- 2026-05-16 -->
+
 - `npx tsc --noEmit` → EXIT:0 (타입 에러 0)
 - `npx eslint src/` → **0 errors**, 1382 warnings (CSS var 스타일 경고만)
 - 수정 내역: AdminListingPage에서 미사용 타입 3개 제거 (AdminPostDetail, PostRow, AdminPostListItem)
+
+## 버그 수정 및 기능 보완 <!-- 2026-05-18 -->
+
+### 알림 클릭 404 수정
+
+- [done] 백엔드 `NotificationServiceImpl.java` linkUrl 수정
+    - PRICE_DROP: `/api/listings/{id}` → `/listing/{id}`
+    - CHAT: `/chat/{id}` → `/chat?roomId={id}`
+- [done] `GNB.tsx` → `normalizeLinkUrl()` 추가 (기존 DB 레코드 레거시 대응용)
+    - `/api/listings/{id}` → `/listing/{id}` 변환
+    - `/chat/{id}` → `/chat?roomId={id}` 변환
+
+### GNB 아바타 이미지 갱신 안 되는 버그 수정
+
+- [done] `GNB.tsx` → `UserAvatarButton` 내 `useQuery(['myProfile', user?.id])` 추가
+    - 프로필 이미지 변경 후 헤더 즉시 반영
+    - `imgError` 상태를 `avatarUrl` 변경 시 리셋
+
+### MyPage 캐시 충돌 버그 수정
+
+- [done] `queryKey: ['myProfile']` → `['myProfile', user?.id]` (user ID 스코프)
+    - 어드민 → 일반 계정 전환 시 이전 유저 정보 노출 문제 해결
+
+### MyPage 어드민 전용 UI 추가
+
+- [done] `ProfileHeader`: role === 'ADMIN' 배지 표시
+- [done] `MyPage`: 어드민 계정에만 "관리자 패널" `/admin` 링크 노출
+
+### 출금 요청 400 에러 수정
+
+- [done] `pointApi.ts`
+    - `WithdrawStatus` → `'CANCELED'` 추가
+    - `WithdrawItem.amount` → `requestAmount` (백엔드 필드명 일치)
+    - `WithdrawRequest`: `amount` → `requestAmount`, `bankCode`, `holderInfo` 필드 추가
+- [done] `MyPage.tsx` (PointsTab)
+    - `withdrawBankCode`, `withdrawHolderInfo` 상태 추가
+    - 폼에 은행코드/계좌주 생년월일 입력 필드 추가
+    - `requestWithdraw` 호출 시 정확한 필드명으로 전송
+
+### 관리자 사이드바 404 페이지 해결
+
+- [done] `router.tsx` 관리자 라우트 4개 추가 + AdminLayout 래핑
+- [done] `AdminMembersPage.tsx` 신규 — 키워드/상태 필터, 페이지네이션, 회원 목록
+- [done] `AdminReportsPage.tsx` 신규 — 상태 필터 탭, 인라인 처리 버튼, 신고 목록
+- [done] `AdminDisputesPage.tsx` 신규 — 분쟁 목록 API 미구현 안내 플레이스홀더
+- [done] `AdminWithdrawalsPage.tsx` 신규 — 출금 요청 목록, PENDING/처리완료 섹션, 승인/반려 인라인 처리
+
+### 포인트 정산 버그 수정 (백엔드)
+
+- [done] `TradeServiceImpl.java` → `confirmTrade()` 에 판매자 포인트 정산 로직 추가
+    - 기존: `trade.confirm()` + `post.changeStatus(SOLD)` 만 있었음
+    - 추가: `sellerWallet.confirm(tradePrice, tradePrice)` + `pointWalletRepository.save()` + `PointHistory(EARN)` 저장
+    - 효과: 구매자 확정 시 pending → withdrawable 이동 정상 작동
+- 추가된 의존성: `PointWalletRepository`, `PointHistoryRepository` (필드 주입)
+
+### 현재 미구현 (향후 과제)
+
+- [ ] 백엔드 `GET /api/admin/disputes` → AdminDisputesPage 연동 (현재 placeholder)

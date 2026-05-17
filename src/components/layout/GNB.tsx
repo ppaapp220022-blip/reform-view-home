@@ -13,6 +13,7 @@
 import {useEffect, useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {getNotifications, readAllNotifications, readNotification} from '../../features/notification/api/notificationApi'
+import {getMyProfile} from '../../features/mypage/api/memberApi'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
 import {Bell, Info, LogOut, MessageSquare, Search, ShoppingBag, Star, Tag, User, X,} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
@@ -27,10 +28,11 @@ type NotificationType = 'TRADE' | 'CHAT' | 'PRICE_DROP' | 'REVIEW' | 'SYSTEM'
 interface NotificationItem {
   notiId: number
   type: NotificationType
-  content: string       // 알림 메시지 (백엔드 content 필드)
-  linkUrl?: string      // 클릭 시 이동 경로
+  content: string          // 알림 메시지 (백엔드 content 필드)
+  subMessage?: string      // 부가 메시지 (선택)
+  linkUrl: string | null   // 클릭 시 이동 경로 (null = 이동 없음)
   isRead: boolean
-  createdAt: string     // ISO 8601
+  createdAt: string        // ISO 8601
 }
 
 // 알림 데이터는 useQuery로 조회 (MOCK 제거됨)
@@ -120,9 +122,26 @@ function UserMenuDropdown({onClose}: { onClose: () => void }) {
 
 function UserAvatarButton() {
   const [open, setOpen] = useState(false)
-  const [imgError, setImgError] = useState(false)  // 프로필 이미지 로드 실패 추적
+  const [failedUrl, setFailedUrl] = useState<string | null | undefined>(undefined)
   const ref = useRef<HTMLDivElement>(null)
   const {user} = useAuthStore()
+  
+  /**
+   * authStore의 user.profileImageUrl은 로그인 시점 스냅샷이라 프로필 수정 후 반영 안됨.
+   * myProfile 쿼리(MyPage에서 이미 캐시됨)를 구독해서 최신 이미지 URL 사용.
+   * enabled: !!user 로 로그인 상태에서만 실행, staleTime 공유해 추가 네트워크 비용 없음.
+   */
+  const {data: profile} = useQuery({
+    queryKey: ['myProfile', user?.id],
+    queryFn: getMyProfile,
+    staleTime: 60_000,
+    enabled: !!user,
+  })
+  // 서버 프로필 우선, 없으면 authStore 폴백
+  const avatarUrl = profile?.profileImageUrl ?? user?.profileImageUrl
+  const nickname = profile?.nickname ?? user?.nickname
+  // avatarUrl이 달라지면 자동으로 false — Effect 없이 렌더 중에 파생 계산
+  const imgError = failedUrl === avatarUrl
   
   useEffect(() => {
     if (!open) return
@@ -143,19 +162,19 @@ function UserAvatarButton() {
         onClick={() => setOpen(p => !p)}
         className="w-8 h-8 rounded-full ml-1 shrink-0 border-2 flex items-center justify-center text-white text-xs font-bold overflow-hidden transition-all hover:opacity-80"
         style={{
-          background: user?.profileImageUrl && !imgError ? 'transparent' : 'linear-gradient(135deg, #FF2E4D, #002147)',
+          background: avatarUrl && !imgError ? 'transparent' : 'linear-gradient(135deg, #FF2E4D, #002147)',
           borderColor: open ? 'var(--color-accent)' : 'var(--color-border)',
           fontFamily: "'IAMAPLAYER',Giants,sans-serif",
         }}
         aria-label="내 메뉴"
       >
-        {user?.profileImageUrl && !imgError ? (
-          /* 이미지 로드 실패(ERR_NAME_NOT_RESOLVED 등) 시 이니셜로 폴백 */
+        {avatarUrl && !imgError ? (
+          /* 이미지 로드 실패 시 이니셜로 폴백 */
           <img
-            src={user.profileImageUrl}
-            alt={user.nickname}
+            src={avatarUrl}
+            alt={nickname ?? ''}
             className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
+            onError={() => setFailedUrl(avatarUrl)}
           />
         ) : (
           user?.nickname?.slice(0, 2).toUpperCase() ?? 'ME'

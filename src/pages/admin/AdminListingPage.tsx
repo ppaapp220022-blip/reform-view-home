@@ -23,9 +23,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import type {PostStatus,} from '../../features/admin/api/adminApi'
+import type {PostStatus, Sport} from '../../features/admin/api/adminApi'
 import {getAdminPost, getAdminPosts, processAdminPost,} from '../../features/admin/api/adminApi'
-import type {Sport} from '../../features/auth/api/authApi'
 import {formatPrice} from '../../utils/format'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────

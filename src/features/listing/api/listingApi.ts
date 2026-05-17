@@ -72,6 +72,7 @@ export interface PostDetail {
   wishCount: number
   isWished: boolean
   imageUrls: string[]
+  timeAgo: string            // 서버에서 계산된 "3시간 전" 형식 문자열
   createdAt: string
   updatedAt: string
   seller: SellerBrief
@@ -222,6 +223,16 @@ export async function deleteListing(postId: number): Promise<void> {
  */
 export async function toggleWish(postId: number): Promise<WishToggleResponse> {
   const {data} = await apiClient.post<WishToggleResponse>(`/listings/${postId}/like`)
+  return data
+}
+
+/**
+ * 내 찜 목록 조회
+ * GET /api/listings/my/likes
+ * 로그인 사용자가 찜한 판매글을 최신순으로 반환 (삭제·숨김 글 제외)
+ */
+export async function getMyWishes(): Promise<PostCard[]> {
+  const {data} = await apiClient.get<PostCard[]>('/listings/my/likes')
   return data
 }
 

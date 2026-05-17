@@ -566,7 +566,7 @@ export default function SearchPage() {
   
   /* 활성 필터 수 */
   const activeFilterCount = [
-    sport !== 'all' !== '전체', grade !== 'all',
+    sport !== 'all', grade !== 'all',
     size !== '전체', delivery !== 'all', maxPrice < 300,
   ].filter(Boolean).length
   

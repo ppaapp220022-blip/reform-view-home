@@ -50,10 +50,14 @@ import ReviewPage from './pages/trade/ReviewPage'
 
 // ── 관리자 ───────────────────────────────────────────────────────────────────
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminMembersPage from './pages/admin/AdminMembersPage'
 import AdminMemberDetailPage from './pages/admin/AdminMemberDetailPage'
-import AdminDisputeDetailPage from './pages/admin/AdminDisputeDetailPage'
+import AdminReportsPage from './pages/admin/AdminReportsPage'
 import AdminReportDetailPage from './pages/admin/AdminReportDetailPage'
+import AdminDisputesPage from './pages/admin/AdminDisputesPage'
+import AdminDisputeDetailPage from './pages/admin/AdminDisputeDetailPage'
 import AdminListingPage from './pages/admin/AdminListingPage'
+import AdminWithdrawalsPage from './pages/admin/AdminWithdrawalsPage'
 
 const router = createBrowserRouter([
   // ── 인증 레이아웃 (GNB 없음) ──────────────────────────────────────────────
@@ -110,10 +114,14 @@ const router = createBrowserRouter([
     element: <AdminLayout/>,
     children: [
       {path: '/admin', element: <AdminDashboardPage/>},
+      {path: '/admin/members', element: <AdminMembersPage/>},
       {path: '/admin/members/:id', element: <AdminMemberDetailPage/>},
       {path: '/admin/listings', element: <AdminListingPage/>},
+      {path: '/admin/reports', element: <AdminReportsPage/>},
       {path: '/admin/reports/:id', element: <AdminReportDetailPage/>},
+      {path: '/admin/disputes', element: <AdminDisputesPage/>},
       {path: '/admin/disputes/:id', element: <AdminDisputeDetailPage/>},
+      {path: '/admin/withdrawals', element: <AdminWithdrawalsPage/>},
     ],
   },
 ])

@@ -639,7 +639,7 @@ export default function ListingDetailPage() {
     const prevCount = likedCount
     /* 낙관적 업데이트 */
     setLiked(!prevLiked)
-    setLikedCount(c => c + (prevLiked ? -1 : 1))
+    setLikedCount(c => (c ?? 0) + (prevLiked ? -1 : 1))
     try {
       const res = await toggleWish(postId)
       setLiked(res.isLiked)

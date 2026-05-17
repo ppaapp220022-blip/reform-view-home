@@ -252,7 +252,19 @@ function TopReplyItem({
         <p className="text-sm italic" style={{color: 'var(--color-text-hint)'}}>삭제된 댓글입니다.</p>
         {/* 삭제된 댓글의 대댓글은 그대로 표시 */}
         {reply.children.map(child => (
-          <ChildReplyItem key={child.replyId} reply={child} onLike={onLike}/>
+          <ChildReplyItem
+            key={child.replyId}
+            reply={child}
+            onLike={onLike}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            myMemberId={myMemberId}
+            editingReplyId={editingReplyId}
+            editingText={editingText}
+            onEditTextChange={onEditTextChange}
+            onEditSubmit={onEditSubmit}
+            onEditCancel={onEditCancel}
+          />
         ))}
       </div>
     )
@@ -765,7 +777,7 @@ export default function CommunityDetailPage() {
             )}
             
             <div className="flex items-end gap-2">
-              <Avatar author={{memberId: myMemberId ?? 0, nickname: '나'}} size={30}/>
+              <Avatar author={{memberId: myMemberId ?? 0, nickname: '나', profileImageUrl: null}} size={30}/>
               <textarea
                 ref={inputRef}
                 value={replyText}

@@ -12,7 +12,7 @@
  */
 import {formatPrice} from '../../utils/format'
 import {resolveImageUrl} from '../../utils/image'
-import {useRef, useState} from 'react'
+import {useMemo, useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Link, useNavigate} from 'react-router-dom'
 import type {WithdrawItem} from '../../features/payment/api/pointApi'
@@ -26,7 +26,6 @@ import {
 import {
   AlertCircle,
   ArrowDownToLine,
-  Award,
   BarChart2,
   Bell,
   Camera,
@@ -45,7 +44,7 @@ import {
   Star,
   TrendingUp,
 } from 'lucide-react'
-import type {Grade, ListingItem, TradeStatus} from '../../types/listing'
+import type {Grade, TradeStatus} from '../../types/listing'
 import type {ReportItem} from '../../features/report/api/reportApi'
 import {getMyReports, REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
 import type {SportType} from '../../features/mypage/api/memberApi'
@@ -58,10 +57,9 @@ import {
 } from '../../features/mypage/api/memberApi'
 import useAuthStore from '../../store/authStore'
 import {logout as logoutApi} from '../../features/auth/api/authApi'
-import type {TradeResponse} from '../../features/trade/api/tradeApi'
 import {getMyTrades} from '../../features/trade/api/tradeApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
-import {getListings} from '../../features/listing/api/listingApi'
+import {getListings, getMyWishes} from '../../features/listing/api/listingApi'
 
 // ── 공용 상수 ─────────────────────────────────────────────────────────────────
 
@@ -76,61 +74,6 @@ const SPORT_OPTIONS: { key: SportType; label: string }[] = [
 ]
 
 // ── 목 데이터 ─────────────────────────────────────────────────────────────────
-const MOCK_LIKED: ListingItem[] = [
-  {
-    id: 2,
-    title: '리버풀 FC 07/08 어웨이 레플리카',
-    team: '리버풀 FC',
-    price: 55000,
-    grade: 'A',
-    size: 'L',
-    deliveryType: 'BOTH',
-    jerseyColor: '#C8102E',
-    jerseyNumber: '10',
-    likedCount: 18,
-    isLiked: true,
-    sport: 'SOCCER',
-    timeAgo: '5시간 전'
-  },
-  {
-    id: 6,
-    title: '바르셀로나 22/23 어웨이 레플리카',
-    team: 'FC 바르셀로나',
-    price: 48000,
-    grade: 'A',
-    size: 'M',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#A50044',
-    jerseyNumber: '10',
-    likedCount: 33,
-    isLiked: true,
-    sport: 'SOCCER',
-    timeAgo: '4시간 전'
-  },
-]
-
-const MOCK_USER = {
-  nickname: 'uniform_king',
-  email: 'polarprince333@gmail.com',
-  mannerScore: 92,
-  activityPoints: 3400,
-  settlementPoints: 124000,
-  pendingPoints: 37000,       // 정산 대기 중인 금액 (출금 불가, 구매 확정 대기)
-  tradeCount: 47,
-  reviewCount: 39,
-  joinedAt: '2023년 3월',
-  avatarColor: '#1A3051',
-  sports: ['야구', '축구'],
-}
-
-const POINT_HISTORY = [
-  {id: 1, label: '구매 확정 적립', points: +500, date: '2026.05.01', type: 'earn' as const},
-  {id: 2, label: '거래 후기 작성', points: +200, date: '2026.04.28', type: 'earn' as const},
-  {id: 3, label: '이벤트 보너스', points: +1000, date: '2026.04.15', type: 'earn' as const},
-  {id: 4, label: '포인트 사용 (결제)', points: -300, date: '2026.04.10', type: 'use' as const},
-  {id: 5, label: '판매 정산', points: +66000, date: '2026.04.10', type: 'settle' as const},
-]
-
 // ── 상수/유틸 ─────────────────────────────────────────────────────────────────
 
 const GRADE_META: Record<Grade, { label: string; bg: string; text: string; border: string }> = {
@@ -165,11 +108,14 @@ function ProfileHeader() {
   const qc = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [imgUploading, setImgUploading] = useState(false)
+  // user.id를 queryKey에 포함 → 다른 계정으로 재로그인 시 캐시 충돌 방지
+  const {user} = useAuthStore()
   
   const {data: profile, isLoading} = useQuery({
-    queryKey: ['myProfile'],
+    queryKey: ['myProfile', user?.id],   // ← user.id 없으면 이전 유저 캐시 히트 버그
     queryFn: getMyProfile,
     staleTime: 60_000,
+    enabled: !!user,  // 로그인 상태에서만 조회
   })
   
   /**
@@ -271,6 +217,20 @@ function ProfileHeader() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <h2 className="font-bold text-lg truncate" style={{color: 'var(--color-text-main)'}}>{profile.nickname}</h2>
+            {/* ADMIN 뱃지 — role이 ADMIN일 때만 표시 */}
+            {profile.role === 'ADMIN' && (
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold flex-shrink-0"
+                style={{
+                  background: 'rgba(255,46,77,.12)',
+                  color: 'var(--color-accent)',
+                  border: '1px solid rgba(255,46,77,.25)'
+                }}
+              >
+                <Shield size={10}/>
+                ADMIN
+              </span>
+            )}
             <button aria-label="프로필 수정">
               <Edit3 size={15} color="var(--color-text-hint)"/>
             </button>
@@ -313,22 +273,54 @@ function ProfileHeader() {
   )
 }
 
-/** 거래 내역 탭 — 실제 API 연동 */
+/** 거래 내역 탭 — 실제 API 연동
+ * 초기 'all': 구매+판매 전체를 한꺼번에 표시 (buyer/seller 두 쿼리 병합, createdAt 내림차순)
+ * 'buyer' / 'seller' 버튼 클릭 시 해당 역할 거래만 필터링
+ * 백엔드는 buyer|seller 중 하나만 허용하므로 전체 뷰는 클라이언트 측 병합으로 처리
+ */
 function TradeHistoryTab() {
-  const [role, setRole] = useState<'buyer' | 'seller'>('buyer')
+  // 'all': 전체 / 'buyer': 구매만 / 'seller': 판매만
+  const [role, setRole] = useState<'all' | 'buyer' | 'seller'>('all')
   
-  const {data, isLoading} = useQuery({
-    queryKey: ['myTrades', role],
-    queryFn: () => getMyTrades({role, page: 0, size: 20}),
+  // 구매 거래 목록
+  const {data: buyerData, isLoading: buyerLoading} = useQuery({
+    queryKey: ['myTrades', 'buyer'],
+    queryFn: () => getMyTrades({role: 'buyer', page: 0, size: 50}),
     staleTime: 30_000,
   })
-  const trades = data?.content ?? []
+  
+  // 판매 거래 목록
+  const {data: sellerData, isLoading: sellerLoading} = useQuery({
+    queryKey: ['myTrades', 'seller'],
+    queryFn: () => getMyTrades({role: 'seller', page: 0, size: 50}),
+    staleTime: 30_000,
+  })
+  
+  const isLoading = buyerLoading || sellerLoading
+  
+  // 구매+판매 병합 후 createdAt 내림차순 정렬, 각 항목에 myRole 태그 부착
+  const allTrades = useMemo(() => {
+    const buyer = (buyerData?.content ?? []).map(t => ({...t, myRole: 'buyer' as const}))
+    const seller = (sellerData?.content ?? []).map(t => ({...t, myRole: 'seller' as const}))
+    return [...buyer, ...seller].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )
+  }, [buyerData, sellerData])
+  
+  // 선택된 role에 따라 필터링 (all이면 전체 반환)
+  const trades = role === 'all'
+    ? allTrades
+    : allTrades.filter(t => t.myRole === role)
   
   return (
     <div>
-      {/* 탭 필터: 구매/판매 */}
+      {/* 필터 탭: 전체 / 구매 내역 / 판매 내역 */}
       <div className="flex gap-2 mb-4">
-        {([['buyer', '구매 내역'], ['seller', '판매 내역']] as const).map(([k, l]) => (
+        {([
+          ['all', '전체'],
+          ['buyer', '구매 내역'],
+          ['seller', '판매 내역'],
+        ] as const).map(([k, l]) => (
           <button
             key={k}
             onClick={() => setRole(k)}
@@ -354,17 +346,18 @@ function TradeHistoryTab() {
         <div className="py-12 text-center">
           <Package size={32} color="var(--color-border)" className="mx-auto mb-3" strokeWidth={1.5}/>
           <p className="text-sm font-display font-bold" style={{color: 'var(--color-text-main)'}}>
-            {role === 'buyer' ? '구매 내역이 없습니다' : '판매 내역이 없습니다'}
+            {role === 'all' ? '거래 내역이 없습니다' : role === 'buyer' ? '구매 내역이 없습니다' : '판매 내역이 없습니다'}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {trades.map((t: TradeResponse) => {
+          {trades.map((t) => {
             const sm = TRADE_STATUS_META[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
-            const counterpart = role === 'buyer' ? t.seller : t.buyer
+            // 상대방 정보: 내가 구매자면 판매자, 내가 판매자면 구매자
+            const counterpart = t.myRole === 'buyer' ? t.seller : t.buyer
             return (
               <Link
-                key={t.tradeId}
+                key={`${t.myRole}-${t.tradeId}`}
                 to={`/trade/${t.tradeId}`}
                 className="flex gap-3 p-4 rounded-xl transition-colors"
                 style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
@@ -392,13 +385,14 @@ function TradeHistoryTab() {
                 {/* 정보 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    {/* 구매/판매 역할 뱃지 */}
                     <span className="text-[12px] font-bold px-1.5 py-0.5 rounded"
                           style={{
-                            background: role === 'buyer' ? 'rgba(14,165,233,.1)' : 'rgba(0,179,110,.1)',
-                            color: role === 'buyer' ? 'var(--color-info)' : 'var(--color-success)',
+                            background: t.myRole === 'buyer' ? 'rgba(14,165,233,.1)' : 'rgba(0,179,110,.1)',
+                            color: t.myRole === 'buyer' ? 'var(--color-info)' : 'var(--color-success)',
                             fontFamily: "'Giants','Pretendard',sans-serif"
                           }}>
-                      {role === 'buyer' ? '구매' : '판매'}
+                      {t.myRole === 'buyer' ? '구매' : '판매'}
                     </span>
                     <span className="text-[12px] font-semibold"
                           style={{color: sm.color, fontFamily: "'Giants','Pretendard',sans-serif"}}>
@@ -543,23 +537,52 @@ function MyListingsTab() {
   )
 }
 
-/** 찜 목록 탭 */
+/** 찜 목록 탭 — 실제 API 연동 (GET /api/listings/my/likes) */
 function LikesTab() {
-  const [likes, setLikes] = useState(MOCK_LIKED)
+  const {data: wishList, isLoading} = useQuery({
+    queryKey: ['myWishes'],
+    queryFn: getMyWishes,
+    staleTime: 30_000,
+  })
   
-  function unlike(id: number) {
-    setLikes(prev => prev.filter(l => l.id !== id))
+  // 찜 토글 후 목록 갱신을 위한 queryClient
+  const qc = useQueryClient()
+  
+  // 낙관적 찜 해제: UI 즉시 반영 후 서버 반영 (추후 toggleWish API 연동 가능)
+  function handleUnlike(postId: number) {
+    qc.setQueryData<PostCard[]>(['myWishes'], prev =>
+      (prev ?? []).filter(item => item.postId !== postId)
+    )
   }
   
-  if (likes.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="rounded-xl animate-pulse overflow-hidden"
+               style={{border: '1px solid var(--color-border)'}}>
+            <div style={{aspectRatio: '4/5', background: 'var(--color-surface-raised)'}}/>
+            <div className="p-3 flex flex-col gap-2">
+              <div className="h-3 rounded" style={{background: 'var(--color-surface-raised)'}}/>
+              <div className="h-4 rounded w-2/3" style={{background: 'var(--color-surface-raised)'}}/>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  
+  const items = wishList ?? []
+  
+  if (items.length === 0) {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
-        <Heart size={40} color="var(--color-border)"/>
+        <Heart size={40} color="var(--color-border)" strokeWidth={1.5}/>
         <div className="text-center">
           <p className="font-display font-bold" style={{color: 'var(--color-text-main)'}}>찜한 상품이 없어요</p>
           <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>마음에 드는 유니폼을 찜해두세요.</p>
         </div>
-        <Link to="/" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+        <Link to="/" className="px-5 py-2.5 rounded-xl text-sm font-bold text-white hover:text-white"
               style={{background: 'var(--color-primary)'}}>
           홈 피드 보기
         </Link>
@@ -569,45 +592,57 @@ function LikesTab() {
   
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {likes.map(item => {
+      {items.map(item => {
         const m = GRADE_META[item.grade]
         return (
-          <div key={item.id} className="relative">
+          <div key={item.postId} className="relative">
             <Link
-              to={`/listing/${item.id}`}
+              to={`/listing/${item.postId}`}
               className="rounded-xl overflow-hidden block"
               style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
             >
-              <div className="relative" style={{aspectRatio: '4/5', background: item.jerseyColor}}>
-                <div className="absolute inset-0"
-                     style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>
-                <span className="absolute inset-0 flex items-center justify-center select-none" style={{
-                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-                  fontSize: 72,
-                  color: 'rgba(255,255,255,.14)'
-                }}>
-                  {item.jerseyNumber}
-                </span>
-                <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{
-                  background: m.bg,
-                  color: m.text,
-                  border: `1px solid ${m.border}`,
-                  fontFamily: "'Giants','Pretendard',sans-serif"
-                }}>
+              <div className="relative" style={{aspectRatio: '4/5', background: 'var(--color-surface-raised)'}}>
+                {resolveImageUrl(item.thumbnailUrl) ? (
+                  <img
+                    src={resolveImageUrl(item.thumbnailUrl)!}
+                    alt={item.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Package size={28} color="var(--color-border)" strokeWidth={1.5}/>
+                  </div>
+                )}
+                {/* 등급 뱃지 */}
+                <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded"
+                      style={{
+                        background: m.bg,
+                        color: m.text,
+                        border: `1px solid ${m.border}`,
+                        fontFamily: "'Giants','Pretendard',sans-serif"
+                      }}>
                   {m.label}
                 </span>
               </div>
               <div className="p-3">
                 <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>{item.title}</p>
-                <p className="text-sm font-bold mt-1"
-                   style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
-                  {formatPrice(item.price)}
-                </p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-sm font-bold"
+                        style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                    {formatPrice(item.price)}
+                  </span>
+                  <span className="text-[12px] flex items-center gap-0.5" style={{color: 'var(--color-text-hint)'}}>
+                    <Heart size={10}/> {item.wishCount}
+                  </span>
+                </div>
               </div>
             </Link>
             {/* 찜 해제 버튼 */}
             <button
-              onClick={() => unlike(item.id)}
+              onClick={() => handleUnlike(item.postId)}
               className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
               style={{background: 'rgba(255,255,255,.9)'}}
               aria-label="찜 해제"
@@ -627,6 +662,8 @@ function PointsTab() {
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawBank, setWithdrawBank] = useState('')
   const [withdrawAccount, setWithdrawAccount] = useState('')
+  const [withdrawBankCode, setWithdrawBankCode] = useState('')   // 은행 코드 (예: "090")
+  const [withdrawHolderInfo, setWithdrawHolderInfo] = useState('') // 계좌주 생년월일 6자리
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
   
   // 포인트 지갑 조회
@@ -635,9 +672,8 @@ function PointsTab() {
     queryFn: getPointWallet,
   })
   
-  // 포인트 내역 조회 (추후 UI 연동 예정)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const {data: _history} = useQuery({
+  // 포인트 내역 조회 — 실제 API 데이터 사용
+  const {data: history} = useQuery({
     queryKey: ['pointHistory'],
     queryFn: getPointHistory,
   })
@@ -655,6 +691,8 @@ function PointsTab() {
       setWithdrawAmount('')
       setWithdrawBank('')
       setWithdrawAccount('')
+      setWithdrawBankCode('')
+      setWithdrawHolderInfo('')
       setWithdrawError(null)
       // 지갑 + 출금 목록 갱신
       void qc.invalidateQueries({queryKey: ['pointWallet']})
@@ -673,25 +711,40 @@ function PointsTab() {
   })
   
   function handleWithdraw() {
-    const amount = Number(withdrawAmount)
-    if (amount < 1000) {
-      setWithdrawError('최소 1,000원 이상 입력해주세요.');
+    const requestAmount = Number(withdrawAmount)
+    if (requestAmount < 1000) {
+      setWithdrawError('최소 1,000원 이상 입력해주세요.')
       return
     }
-    if (!wallet || amount > wallet.withdrawable) {
-      setWithdrawError('출금 가능 금액을 초과했습니다.');
+    if (!wallet || requestAmount > wallet.withdrawable) {
+      setWithdrawError('출금 가능 금액을 초과했습니다.')
       return
     }
     if (!withdrawBank.trim()) {
-      setWithdrawError('은행명을 입력해주세요.');
+      setWithdrawError('은행명을 입력해주세요.')
       return
     }
     if (!withdrawAccount.trim()) {
-      setWithdrawError('계좌번호를 입력해주세요.');
+      setWithdrawError('계좌번호를 입력해주세요.')
+      return
+    }
+    if (!withdrawBankCode.trim()) {
+      setWithdrawError('은행 코드를 입력해주세요. (예: 카카오뱅크 090)')
+      return
+    }
+    if (!/^\d{6}$/.test(withdrawHolderInfo)) {
+      setWithdrawError('계좌주 생년월일 6자리를 입력해주세요. (예: 990101)')
       return
     }
     setWithdrawError(null)
-    withdrawMutation.mutate({amount, bankName: withdrawBank, accountNumber: withdrawAccount})
+    // requestAmount: 백엔드 필드명 (amount 아님), bankCode·holderInfo: 계좌 실명인증 필수값
+    withdrawMutation.mutate({
+      requestAmount,
+      bankName: withdrawBank,
+      accountNumber: withdrawAccount,
+      bankCode: withdrawBankCode,
+      holderInfo: withdrawHolderInfo,
+    })
   }
   
   const withdrawable = wallet?.withdrawable ?? 0
@@ -701,19 +754,8 @@ function PointsTab() {
     <div className="flex flex-col gap-4">
       {/* 포인트 카드 */}
       <div className="grid grid-cols-2 gap-3">
-        {/* 활동 포인트 — 백엔드 미지원, MOCK 유지 */}
-        <div className="rounded-2xl p-4" style={{background: 'var(--color-primary)', color: '#fff'}}>
-          <div className="flex items-center gap-2 mb-3">
-            <Award size={16}/>
-            <span className="text-xs font-semibold opacity-80">활동 포인트</span>
-          </div>
-          <p className="text-2xl font-bold" style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
-            {MOCK_USER.activityPoints.toLocaleString('ko-KR')}<span className="text-sm ml-1 opacity-70">P</span>
-          </p>
-          <p className="text-[12px] mt-2 opacity-60">쇼핑·후기·이벤트 적립</p>
-        </div>
-        {/* 정산 포인트 (출금 가능) */}
-        <div className="rounded-2xl p-4"
+        {/* 정산 포인트 (출금 가능) — col-span-2로 전체 너비 표시 */}
+        <div className="col-span-2 rounded-2xl p-4"
              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={16} color="var(--color-success)"/>
@@ -806,12 +848,25 @@ function PointsTab() {
             }}
           />
           {/* 계좌번호 */}
+          <input
+            type="text"
+            value={withdrawAccount}
+            onChange={e => setWithdrawAccount(e.target.value)}
+            placeholder="계좌번호 (- 없이)"
+            className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
+            style={{
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-main)'
+            }}
+          />
+          {/* 은행 코드 + 생년월일 — 계좌 실명인증 필수값 (2026-05-15 추가) */}
           <div className="flex gap-2">
             <input
               type="text"
-              value={withdrawAccount}
-              onChange={e => setWithdrawAccount(e.target.value)}
-              placeholder="계좌번호 (- 없이)"
+              value={withdrawBankCode}
+              onChange={e => setWithdrawBankCode(e.target.value)}
+              placeholder="은행 코드 (예: 카카오 090)"
               className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
               style={{
                 border: '1px solid var(--color-border)',
@@ -819,15 +874,29 @@ function PointsTab() {
                 color: 'var(--color-text-main)'
               }}
             />
-            <button
-              onClick={handleWithdraw}
-              disabled={withdrawMutation.isPending}
-              className="px-4 py-2.5 rounded-xl text-sm font-bold text-white flex-shrink-0 disabled:opacity-50"
-              style={{background: 'var(--color-success)'}}
-            >
-              {withdrawMutation.isPending ? '처리 중...' : '출금 신청'}
-            </button>
+            <input
+              type="text"
+              value={withdrawHolderInfo}
+              onChange={e => setWithdrawHolderInfo(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="생년월일 6자리 (990101)"
+              maxLength={6}
+              className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
+              style={{
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface-raised)',
+                color: 'var(--color-text-main)'
+              }}
+            />
           </div>
+          {/* 출금 신청 버튼 */}
+          <button
+            onClick={handleWithdraw}
+            disabled={withdrawMutation.isPending}
+            className="w-full px-4 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
+            style={{background: 'var(--color-success)'}}
+          >
+            {withdrawMutation.isPending ? '처리 중...' : '출금 신청'}
+          </button>
         </div>
         {/* 에러 메시지 */}
         {withdrawError && (
@@ -860,7 +929,7 @@ function PointsTab() {
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-bold"
                      style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
-                    {'₩'}{item.amount.toLocaleString('ko-KR')}
+                    {'₩'}{item.requestAmount.toLocaleString('ko-KR')}
                   </p>
                   {item.status === 'PENDING' ? (
                     <button
@@ -872,14 +941,23 @@ function PointsTab() {
                       취소
                     </button>
                   ) : (
+                    // APPROVED(승인) / REJECTED(반려) / CANCELED(취소됨) 상태 배지
                     <span
                       className="text-xs px-2 py-1 rounded-lg font-semibold"
                       style={{
-                        background: item.status === 'APPROVED' ? 'rgba(0,179,110,.1)' : 'rgba(255,149,0,.1)',
-                        color: item.status === 'APPROVED' ? 'var(--color-success)' : 'var(--color-warning)',
+                        background:
+                          item.status === 'APPROVED' ? 'rgba(0,179,110,.1)'
+                            : item.status === 'REJECTED' ? 'rgba(255,149,0,.1)'
+                              : 'rgba(0,0,0,.06)',
+                        color:
+                          item.status === 'APPROVED' ? 'var(--color-success)'
+                            : item.status === 'REJECTED' ? 'var(--color-warning)'
+                              : 'var(--color-text-hint)',
                       }}
                     >
-                      {item.status === 'APPROVED' ? '승인' : '반려'}
+                      {item.status === 'APPROVED' ? '승인'
+                        : item.status === 'REJECTED' ? '반려'
+                          : '취소됨'}
                     </span>
                   )}
                 </div>
@@ -889,45 +967,55 @@ function PointsTab() {
         </div>
       )}
       
-      {/* 포인트 내역 */}
+      {/* 포인트 내역 — 실제 API 데이터 (GET /api/users/me/points/history) */}
       <div>
         <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>포인트 내역</h3>
-        <div className="flex flex-col gap-2">
-          {POINT_HISTORY.map(h => (
-            <div
-              key={h.id}
-              className="flex items-center justify-between px-4 py-3 rounded-xl"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{background: h.type === 'earn' ? 'rgba(0,179,110,.12)' : h.type === 'settle' ? 'rgba(255,184,0,.12)' : 'rgba(255,149,0,.12)'}}
-                >
-                  {h.type === 'settle'
-                    ? <ArrowDownToLine size={14} color="var(--color-gold)"/>
-                    : h.type === 'earn'
-                      ? <TrendingUp size={14} color="var(--color-success)"/>
-                      : <Coins size={14} color="var(--color-warning)"/>
-                  }
-                </div>
-                <div>
-                  <p className="text-sm" style={{color: 'var(--color-text-main)'}}>{h.label}</p>
-                  <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>{h.date}</p>
-                </div>
-              </div>
-              <span
-                className="font-bold text-sm"
-                style={{
-                  color: h.points > 0 ? (h.type === 'settle' ? 'var(--color-success)' : 'var(--color-info)') : 'var(--color-warning)',
-                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-                }}
+        {(!history || history.length === 0) ? (
+          <div className="py-8 text-center">
+            <Coins size={28} color="var(--color-border)" className="mx-auto mb-2" strokeWidth={1.5}/>
+            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>포인트 내역이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {history.map(h => (
+              <div
+                key={h.pointId}
+                className="flex items-center justify-between px-4 py-3 rounded-xl"
+                style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
               >
-                {h.points > 0 ? '+' : ''}{h.points > 1000 ? `₩${h.points.toLocaleString('ko-KR')}` : `${h.points}P`}
-              </span>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center gap-3">
+                  {/* 타입별 아이콘: EARN(적립) / WITHDRAW(출금) */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{background: h.type === 'EARN' ? 'rgba(0,179,110,.12)' : 'rgba(255,184,0,.12)'}}
+                  >
+                    {h.type === 'EARN'
+                      ? <TrendingUp size={14} color="var(--color-success)"/>
+                      : <ArrowDownToLine size={14} color="var(--color-gold)"/>
+                    }
+                  </div>
+                  <div>
+                    <p className="text-sm" style={{color: 'var(--color-text-main)'}}>
+                      {h.type === 'EARN' ? '판매 정산 적립' : '포인트 출금'}
+                    </p>
+                    <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+                      {new Date(h.createdAt).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className="font-bold text-sm"
+                  style={{
+                    color: h.changeAmount > 0 ? 'var(--color-success)' : 'var(--color-warning)',
+                    fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                  }}
+                >
+                  {h.changeAmount > 0 ? '+' : ''}{'₩'}{Math.abs(h.changeAmount).toLocaleString('ko-KR')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1241,6 +1329,9 @@ const TABS = [
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('trades')
+  // authStore에서 role 확인 — ADMIN이면 관리자 패널 링크 표시
+  const {user} = useAuthStore()
+  const isAdmin = user?.role === 'ADMIN'
   
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
@@ -1281,6 +1372,22 @@ export default function MyPage() {
                 </button>
               ))}
             </div>
+            
+            {/* 관리자 패널 진입 버튼 — ADMIN 계정에만 표시 */}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl mt-3 w-full text-left text-sm font-semibold no-underline transition-all hover:text-white"
+                style={{
+                  background: 'rgba(255,46,77,.08)',
+                  color: 'var(--color-accent)',
+                  border: '1px solid rgba(255,46,77,.2)',
+                }}
+              >
+                <Shield size={16}/>
+                관리자 패널
+              </Link>
+            )}
           </div>
           
           {/* 우: 탭 콘텐츠 */}

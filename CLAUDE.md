@@ -24,64 +24,79 @@
 ### 파일 잘림 버그 — 원인과 대응 전략
 
 이 프로젝트의 파일들은 Windows↔Linux 마운트를 통해 접근되며, 파일 쓰기 도구들이 대용량 파일을 잘라먹는 고질적 버그가 있음.
+**실제로 발생한 사례**: GNB.tsx(~20KB) 수정 중 Python write로 파일이 491줄에서 잘려 JSX 후반부가 통째로 소실됨.
 
 #### 도구별 버그 수준
 
-| 도구               | 버그 수준                     | 대응                     |
-|------------------|---------------------------|------------------------|
-| Edit 툴           | ~20KB 이상에서 뒷부분 truncation | **사용 금지** (소형 파일 제외)   |
-| Write 툴          | 마운트 경계에서 truncation       | **사용 금지**              |
-| Python `open(w)` | 마운트 경계에서 가끔 truncation    | 사용 가능하나 **반드시 검증 필수**  |
-| `sed -i`         | 타깃 라인만 수정, 재작성 없음         | **가장 안전** (단순 교체 시 우선) |
+| 도구               | 버그 수준                      | 대응                      |
+|------------------|----------------------------|-------------------------|
+| Edit 툴           | ~20KB 이상에서 뒷부분 truncation  | **절대 사용 금지**            |
+| Write 툴          | 마운트 경계에서 truncation        | **절대 사용 금지**            |
+| Python `open(w)` | 마운트 경계에서 가끔 truncation     | 사용 가능하나 **반드시 검증 필수**   |
+| `sed -i`         | 타깃 라인만 수정, 파일 전체 재작성 없음    | **항상 1순위** (단순 교체 시)    |
 
-#### 필수 수정 프로토콜 (매번 반드시 따를 것)
+#### 수정 방식 우선순위 (이 순서 절대 준수)
 
-```bash
-# 1. 수정 전: 원본 줄 수 기록
-BEFORE=$(wc -l < 파일경로)
+1. **`sed -i`** — 단순 문자열 교체. 파일을 재작성하지 않으므로 잘림 없음. **항상 이걸 먼저 시도.**
+2. **Python read→modify→write** — 다중 위치 변경 등 복잡한 경우만. 아래 템플릿 필수 사용.
+3. **Edit / Write 툴** — 5KB 미만 소형 파일에서만. 그 외는 사용 금지.
 
-# 2. 수정 (Python 또는 sed)
-
-# 3. 수정 후: 줄 수 + 파일 끝 즉시 검증
-AFTER=$(wc -l < 파일경로)
-echo "전: $BEFORE줄 → 후: $AFTER줄"
-tail -5 파일경로
-```
-
-- 줄 수가 대폭 감소했으면 → 즉시 git checkout으로 복구 후 재시도
-- 파일 끝이 `}` 또는 `}
-` 으로 끝나지 않으면 → 잘린 것
-
-#### 수정 방식 우선순위
-
-1. **`sed -i`** — 단순 문자열 교체 (가장 안전, 파일 전체 재작성 없음)
-2. **Python read→modify→write** — 복잡한 변환 시 사용, 반드시 검증 포함
-3. Edit / Write 툴 — 소형 파일(< 5KB)에서만 허용
-
-#### Python 쓰기 템플릿 (검증 내장)
+#### Python 쓰기 필수 템플릿 (검증 3단계 내장)
 
 ```python
 import subprocess
 
-path = '파일경로'
+path = '/sessions/.../mnt/re-form_view/파일경로'  # bash 절대경로 사용
+
+# [검증 1] 수정 전 줄 수 기록
 before = int(subprocess.check_output(['wc', '-l', path]).split()[0])
-with open(path, 'r') as f:
+
+with open(path, 'r', encoding='utf-8') as f:
     c = f.read()
-# ... 수정 ...
-with open(path, 'w') as f:
+
+# ... 수정 작업 ...
+
+with open(path, 'w', encoding='utf-8') as f:
     f.write(c)
+
+# [검증 2] 줄 수 비교 — 10% 이상 감소 시 즉시 중단
 after = int(subprocess.check_output(['wc', '-l', path]).split()[0])
-assert after >= before * 0.9, f"파일 잘림 의심! {before}→{after}줄"
+assert after >= before * 0.9, f"파일 잘림! {before}→{after}줄"
 print(f"OK: {before}→{after}줄")
+
+# [검증 3] 파일 끝 확인 — 반드시 닫는 괄호로 끝나야 함
+tail = subprocess.check_output(['tail', '-3', path]).decode()
+print("파일 끝:", tail)
+
+# [검증 4] NUL 바이트 확인
+nul = open(path, 'rb').read().count(b'\x00')
+assert nul == 0, f"NUL 바이트 {nul}개 발견!"
 ```
 
-## 마운트 파일시스템 주의사항
+#### 잘림 감지 즉시 복구 절차
 
-**Write 툴이 Windows↔Linux 마운트 경계에서 파일을 잘라먹는 버그가 있음.**
+```bash
+# 1. git show로 원본 내용 확인
+git show HEAD:src/경로/파일.tsx | wc -l
 
-- `src/index.css` 같은 CSS 파일을 쓸 때는 Write 툴 대신 bash `cat > file << 'EOF'` 방식을 우선 사용할 것
-- 파일 작성 후 `wc -l` 로 라인 수가 정상인지 반드시 검증할 것
-- `package.json` 이 손상됐을 경우 bash로 직접 덮어쓸 것
+# 2. Python으로 git 원본을 직접 꺼내 쓰기 (git checkout은 마운트에서 실패함)
+python3 -c "
+import subprocess
+content = subprocess.check_output(['git', 'show', 'HEAD:src/경로/파일.tsx'], cwd='/sessions/.../mnt/re-form_view').decode()
+open('/sessions/.../mnt/re-form_view/src/경로/파일.tsx', 'w').write(content)
+print('복구 완료:', content.count(chr(10)), '줄')
+"
+
+# 3. 복구 후 재작업
+```
+
+#### 체크리스트 (Python write 후 매번)
+
+- [ ] 줄 수 감소 없음 (assert로 확인)
+- [ ] `tail -3` 으로 파일 끝이 `}` 또는 `}
+` 인지 확인
+- [ ] NUL 바이트 0개 확인
+- [ ] ESLint 파싱 에러 없음 (`npx eslint 파일경로 2>&1 | grep "Parsing"`)
 
 ## 메모리 파일 운용 지침
 
