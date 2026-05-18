@@ -62,9 +62,10 @@ export async function getCouriers(): Promise<DeliveryCourierListResponse> {
   const {data} = await apiClient.get<RawDeliveryCourierListResponse>(
     '/delivery/tracking/couriers',
   )
-  // 백엔드 응답의 data.couriers 배열을 { code, name } 형태로 매핑하고 국내(kr.) 택배사만 필터링
+  // 백엔드 응답의 data.couriers 배열을 { code, name } 형태로 매핑
+  // deliveryapi.co.kr은 국내 택배사만 지원하므로 별도 필터 불필요
+  // 실제 코드 형식: "lotte", "cj", "hanjin" — "kr." prefix 없음
   const couriers: Courier[] = (data?.data?.couriers ?? [])
-    .filter(c => c.trackingApiCode.startsWith('kr.'))
     .map(c => ({
       code: c.trackingApiCode,
       name: c.displayName,

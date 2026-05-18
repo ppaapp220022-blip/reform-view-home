@@ -99,7 +99,8 @@ export interface DeliveryUpdateRequest {
  * 판매자가 택배사와 송장번호를 입력해 배송을 시작할 때 사용
  */
 export interface ShippingRequest {
-  courierCode: string    // 택배사 코드 (deliveryApi couriers 목록에서 선택)
+  courierCode: string    // 택배사 코드 (deliveryapi.co.kr 코드: "cj", "lotte" 등)
+  courierName: string    // 택배사 이름 — 백엔드가 외부 API를 재호출하지 않도록 프론트에서 전달
   trackingNumber: string // 송장번호
 }
 

@@ -17,7 +17,7 @@
 import {useEffect, useRef, useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
 import {useQuery} from '@tanstack/react-query'
-import {loadPaymentWidget, type PaymentWidgetInstance} from '@tosspayments/payment-widget-sdk'
+import {ANONYMOUS, loadPaymentWidget, type PaymentWidgetInstance} from '@tosspayments/payment-widget-sdk'
 import {AlertCircle, ChevronLeft, Loader2, Lock, Shield, User} from 'lucide-react'
 import {useInitPayment} from '../../features/payment/hooks/usePayment'
 import {getTrade, type TradeResponse} from '../../features/trade/api/tradeApi'
@@ -26,8 +26,8 @@ import {resolveImageUrl} from '../../utils/image'
 import useAuthStore from '../../store/authStore'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
-// Toss 테스트 키 — 실서비스 전환 시 VITE_TOSS_CLIENT_KEY 환경변수로 교체
-const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY ?? 'test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm'
+// Toss 클라이언트 키 — 프론트 .env의 VITE_TOSS_CLIENT_KEY 에서 로드
+const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY as string
 
 // 폴백 유니폼 색상 (썸네일 없을 때 사용)
 const JERSEY_COLORS = [
@@ -227,7 +227,8 @@ export default function PaymentPage() {
   const {mutate: initPayment, isPending: isInitPending} = useInitPayment()
   
   // Toss customerKey: 로그인한 회원이면 memberId 사용, 아니면 ANONYMOUS
-  const customerKey = user?.id ? `member_${user.id}` : 'ANONYMOUS'
+  // ANONYMOUS 는 Toss SDK 상수 ("@@ANONYMOUS") — 일반 문자열 'ANONYMOUS' 사용 시 customerKey 검증 실패
+  const customerKey = user?.id ? `member_${user.id}` : ANONYMOUS
   
   // ── Toss Widget 초기화 ──────────────────────────────────────────────────────
   // trade 데이터 로드 완료 후 위젯 초기화 (total이 확정돼야 위젯 렌더링 가능)
@@ -281,17 +282,27 @@ export default function PaymentPage() {
     initPayment(
       {tradeId: trade.tradeId, payMethod: 'Card'},
       {
-        onSuccess(data) {
-          // 2) Toss Widget으로 결제 요청
+        async onSuccess(data) {
+          // 2) Toss Widget으로 결제 요청 (Promise → await 필수)
           //    성공 → successUrl, 실패 → failUrl로 리다이렉트
-          widgetRef.current?.requestPayment({
-            orderId: data.tossOrderId,
-            orderName: data.orderName,
-            // authStore에서 닉네임 가져오기 (없으면 기본값)
-            customerName: user?.nickname ?? 'RE:FORM 구매자',
-            successUrl: `${window.location.origin}/payment/success`,
-            failUrl: `${window.location.origin}/payment/fail`,
-          })
+          try {
+            await widgetRef.current?.requestPayment({
+              orderId: data.tossOrderId,
+              orderName: data.orderName,
+              // authStore에서 닉네임 가져오기 (없으면 기본값)
+              customerName: user?.nickname ?? 'RE:FORM 구매자',
+              successUrl: `${window.location.origin}/payment/success`,
+              failUrl: `${window.location.origin}/payment/fail`,
+            })
+          } catch (err) {
+            // Toss 결제창 오픈/진행 중 에러 (위젯 미렌더링, 사용자 취소 등)
+            const msg = err instanceof Error ? err.message : String(err)
+            console.error('Toss 결제창 에러:', msg)
+            // 사용자가 직접 닫은 경우(취소) 는 에러로 표시하지 않음
+            if (!msg.includes('사용자가')) {
+              setWidgetError('결제창을 열 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.')
+            }
+          }
         },
         onError(error) {
           console.error('결제 초기화 실패:', error)

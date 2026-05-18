@@ -383,13 +383,14 @@ function ShippingInputForm({
   const queryClient = useQueryClient()
   const [couriers, setCouriers] = useState<Courier[]>([])
   const [courierCode, setCourierCode] = useState('')
+  const [courierName, setCourierName] = useState('') // 선택된 택배사 이름 — 백엔드 외부API 호출 대신 프론트에서 전달
   const [trackingNumber, setTrackingNumber] = useState('')
   const [loadingCouriers, setLoadingCouriers] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   const {mutate: submitShipping, isPending} = useMutation({
-    mutationFn: () => startShipping(tradeId, {courierCode, trackingNumber}),
+    mutationFn: () => startShipping(tradeId, {courierCode, courierName, trackingNumber}),
     onSuccess() {
       queryClient.invalidateQueries({queryKey: ['trade', String(tradeId)]})
       onSuccess()
@@ -407,12 +408,14 @@ function ShippingInputForm({
       setCouriers(res.couriers)
     } catch {
       // API 실패 시 주요 택배사 하드코딩 폴백
+      // deliveryapi.co.kr 실제 코드: kr. prefix 없음
       setCouriers([
-        {code: 'kr.cjlogistics', name: 'CJ대한통운'},
-        {code: 'kr.hanjin', name: '한진택배'},
-        {code: 'kr.logen', name: '로젠택배'},
-        {code: 'kr.epost', name: '우체국택배'},
-        {code: 'kr.lotte', name: '롯데택배'},
+        {code: 'cj', name: 'CJ대한통운'},
+        {code: 'hanjin', name: '한진택배'},
+        {code: 'logen', name: '로젠택배'},
+        {code: 'post', name: '우체국택배'},
+        {code: 'lotte', name: '롯데택배'},
+        {code: 'kyungdong', name: '경동택배'},
       ])
     } finally {
       setLoadingCouriers(false)
@@ -454,7 +457,12 @@ function ShippingInputForm({
             </label>
             <select
               value={courierCode}
-              onChange={e => setCourierCode(e.target.value)}
+              onChange={e => {
+                setCourierCode(e.target.value)
+                // 선택된 택배사 이름을 state에 저장해 startShipping 요청에 포함
+                const selected = couriers.find(c => c.code === e.target.value)
+                setCourierName(selected?.name ?? e.target.value)
+              }}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
               style={{
                 background: 'var(--color-surface-raised)',
