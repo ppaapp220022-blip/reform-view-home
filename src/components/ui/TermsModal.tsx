@@ -172,14 +172,12 @@ export default function TermsModal({type, onClose}: TermsModalProps) {
     >
       {/* 모달 패널 — 클릭 버블 차단 */}
       <div
-        className="w-full max-w-[560px] max-h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-modal"
-        style={{background: 'var(--color-surface)'}}
+        className="w-full max-w-[560px] max-h-[80vh] flex flex-col rounded-2xl overflow-hidden shadow-modal bg-surface"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{borderBottom: '1px solid var(--color-border)'}}
+          className="flex items-center justify-between px-6 py-4 flex-shrink-0 border-b border-border"
         >
           <h2 className="text-[15px] font-semibold text-[var(--color-text-main)]">
             {title}
@@ -197,8 +195,7 @@ export default function TermsModal({type, onClose}: TermsModalProps) {
         {/* 본문 — 스크롤 영역 */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <pre
-            className="text-[14px] leading-relaxed whitespace-pre-wrap font-sans"
-            style={{color: 'var(--color-text-sub)'}}
+            className="text-[14px] leading-relaxed whitespace-pre-wrap font-sans text-text-sub"
           >
             {content}
           </pre>
@@ -206,14 +203,12 @@ export default function TermsModal({type, onClose}: TermsModalProps) {
         
         {/* 푸터 */}
         <div
-          className="px-6 py-4 flex-shrink-0"
-          style={{borderTop: '1px solid var(--color-border)'}}
+          className="px-6 py-4 flex-shrink-0 border-t border-border"
         >
           <button
             type="button"
             onClick={onClose}
-            className="w-full h-11 rounded-[8px] text-[14px] font-medium text-white transition-colors hover:opacity-90"
-            style={{background: 'var(--color-primary)'}}
+            className="w-full h-11 rounded-[8px] text-[14px] font-medium text-white transition-colors hover:opacity-90 bg-primary"
           >
             확인
           </button>

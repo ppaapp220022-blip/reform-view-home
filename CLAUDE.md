@@ -28,12 +28,12 @@
 
 #### 도구별 버그 수준
 
-| 도구               | 버그 수준                      | 대응                      |
-|------------------|----------------------------|-------------------------|
-| Edit 툴           | ~20KB 이상에서 뒷부분 truncation  | **절대 사용 금지**            |
-| Write 툴          | 마운트 경계에서 truncation        | **절대 사용 금지**            |
-| Python `open(w)` | 마운트 경계에서 가끔 truncation     | 사용 가능하나 **반드시 검증 필수**   |
-| `sed -i`         | 타깃 라인만 수정, 파일 전체 재작성 없음    | **항상 1순위** (단순 교체 시)    |
+| 도구               | 버그 수준                     | 대응                    |
+|------------------|---------------------------|-----------------------|
+| Edit 툴           | ~20KB 이상에서 뒷부분 truncation | **절대 사용 금지**          |
+| Write 툴          | 마운트 경계에서 truncation       | **절대 사용 금지**          |
+| Python `open(w)` | 마운트 경계에서 가끔 truncation    | 사용 가능하나 **반드시 검증 필수** |
+| `sed -i`         | 타깃 라인만 수정, 파일 전체 재작성 없음   | **항상 1순위** (단순 교체 시)  |
 
 #### 수정 방식 우선순위 (이 순서 절대 준수)
 
@@ -341,7 +341,7 @@ Link에 버튼 스타일을 입힐 때 hover 텍스트 색이 덮어씌워지므
 ```tsx
 // 올바른 예 — hover:text-white 명시
 <Link className="bg-[var(--color-accent)] text-white hover:text-white ...">
-
+  
   // 잘못된 예 — hover 시 전역 a:hover에 의해 텍스트가 빨개짐
   <Link className="bg-[var(--color-accent)] text-white ...">
 ```
@@ -435,3 +435,280 @@ const fn = useCallback(() => {
 | `no-restricted-syntax` (CSS var in style) | warn  | 노란줄         |
 | `Parsing error` (NUL 바이트 등)               | error | 빨간줄 + 파싱 불가 |
 | TypeScript 타입 불일치                         | error | 빨간줄         |
+
+---
+
+## Tailwind 우선 원칙 — 인라인 스타일 금지 !!! <!-- 2026-05-18 확립 -->
+
+### 왜 Tailwind인가
+
+- Tailwind는 빌드 타임에 사용된 클래스만 번들 → CSS 파일 최소화
+- 다크모드 자동 처리 (`dark:` prefix) — 인라인 style은 다크모드 대응이 번거로움
+- WebStorm no-restricted-syntax 워닝 유발 → 노란줄 증가
+- 코드 가독성: 한 줄 className vs 여러 줄 style={{...}}
+
+### 금지 — style={{}} 절대 사용 금지 케이스
+
+```tsx
+// ❌ 금지 — CSS 변수 색상을 인라인 style로
+<div style={{color: 'var(--color-text-main)'}}>...</div>
+<p style={{background: 'var(--color-surface)'}}>...</p>
+<span style={{border: '1px solid var(--color-border)'}}>...</span>
+
+// ✅ 대신 Tailwind arbitrary value 사용
+<div className="text-text-main">...</div>
+<p className="bg-surface">...</p>
+<span className="border border-border">...</span>
+
+// ✅ 또는 디자인 시스템 토큰 클래스 사용
+<div className="text-text-sub bg-surface-raised border-border-strong">...</div>
+```
+
+### 허용 — style={{}} 써도 되는 예외 케이스
+
+| 케이스              | 예시                                                            | 이유                         |
+|------------------|---------------------------------------------------------------|----------------------------|
+| 동적 계산값           | `style={{width: `${pct}%`}}`                                  | Tailwind arbitrary에서 동적 불가 |
+| 브랜드 외부 고정 hex    | `style={{background: '#FEE500'}}` (카카오)                       | 디자인 시스템 밖 서드파티             |
+| 복잡한 그라디언트        | `style={{backgroundImage: 'repeating-linear-gradient(...)'}}` | Tailwind로 표현 불가            |
+| CSS 변수 동적 조합     | `style={{color: statusMeta.color}}` where color는 런타임 결정       | Tailwind purge 우회 불가       |
+| `fontFamily` 인라인 | `style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}`      | 폰트 3-Tier 규칙 예외 (컴포넌트 내부만) |
+
+### Tailwind 토큰 → CSS 변수 매핑 치트시트
+
+```tsx
+// 텍스트 색상
+style = {
+{
+  color: 'var(--color-text-main)'
+}
+}   → className = "text-text-main"
+style = {
+{
+  color: 'var(--color-text-sub)'
+}
+}    → className = "text-text-sub"
+style = {
+{
+  color: 'var(--color-text-hint)'
+}
+}   → className = "text-text-hint"
+style = {
+{
+  color: 'var(--color-accent)'
+}
+}      → className = "text-accent"
+style = {
+{
+  color: 'var(--color-primary)'
+}
+}     → className = "text-primary"
+
+// 배경색
+style = {
+{
+  background: 'var(--color-bg)'
+}
+}             → className = "bg-bg"
+style = {
+{
+  background: 'var(--color-surface)'
+}
+}        → className = "bg-surface"
+style = {
+{
+  background: 'var(--color-surface-raised)'
+}
+} → className = "bg-surface-raised"
+style = {
+{
+  background: 'var(--color-surface-sunken)'
+}
+} → className = "bg-surface-sunken"
+style = {
+{
+  background: 'var(--color-primary)'
+}
+}        → className = "bg-primary"
+style = {
+{
+  background: 'var(--color-accent)'
+}
+}         → className = "bg-accent"
+
+// 보더
+style = {
+{
+  border: '1px solid var(--color-border)'
+}
+}        → className = "border border-border"
+style = {
+{
+  border: '1px solid var(--color-border-strong)'
+}
+} → className = "border border-border-strong"
+style = {
+{
+  border: '1px solid var(--color-primary)'
+}
+}       → className = "border border-primary"
+style = {
+{
+  border: '1px solid var(--color-accent)'
+}
+}        → className = "border border-accent"
+
+// 상태 색상
+style = {
+{
+  color: 'var(--color-success)'
+}
+}  → className = "text-success"
+style = {
+{
+  color: 'var(--color-error)'
+}
+}    → className = "text-error"
+style = {
+{
+  color: 'var(--color-warning)'
+}
+}  → className = "text-warning"
+style = {
+{
+  color: 'var(--color-info)'
+}
+}     → className = "text-info"
+```
+
+### 기존 코드 수정 시 우선순위
+
+1. 새 파일·컴포넌트 작성 시: **인라인 style 사용 금지** (예외 케이스 제외)
+2. 기존 파일 수정 시: **수정하는 줄 주변 인라인 style을 함께 Tailwind로 전환**
+3. 대규모 리팩토링 시: ESLint warning(`no-restricted-syntax`) 개수를 기준으로 진행도 측정
+
+### 컨디션 등급 뱃지 규칙 <!-- 2026-05-18 확립 -->
+
+**컨디션 등급은 반드시 `<ConditionBadge>` 컴포넌트를 사용할 것.**
+
+```tsx
+// ✅ 올바른 사용
+import ConditionBadge from '@/components/ui/ConditionBadge'
+
+<
+ConditionBadge
+grade = {listing.grade}
+/>         /
+/ 기본 (md)
+<ConditionBadge grade="S" size="sm"/>            // 소형 (카드 썸네일)
+<ConditionBadge grade="A" size="lg"/>            // 대형 (상세 헤더)
+
+// ❌ 금지 — 직접 색상/스타일 정의
+<span style={{background: 'rgba(255,184,0,.12)', color: '#B38000'}}>S급</span>
+<span className="..." style={{...gradeStyle(grade)}}>...</span>
+```
+
+**등급-메달 색상 체계 (CSS: .badge-grade-{s|a|b|c})**
+
+| 등급 | 메달 | 라이트 배경                     | 다크 배경           |
+|----|----|----------------------------|-----------------|
+| S  | 금  | `#FFB800` 그라디언트            | `#CC9400` 그라디언트 |
+| A  | 은  | `#C8D0DA` 그라디언트            | `#637280` 그라디언트 |
+| B  | 동  | `#CD8B3A` 그라디언트            | `#9A5A20` 그라디언트 |
+| C  | -  | `var(--color-accent)` 아웃라인 | 동일 (투명도만 조정)    |
+
+### 버튼 폰트 규칙 <!-- 2026-05-18 변경 -->
+
+- `button` 기본 폰트: **Pretendard** (index.css `@layer base` 전역 적용)
+- 버튼 내 **영문·숫자 전용 콘텐츠** (예: `LIVE`, 가격)는 별도 `<span className="font-player">`로 감쌀 것
+- Giants는 버튼에 더 이상 기본 적용되지 않음 — 명시적으로 쓰려면 `className="font-display"` 추가
+
+## style={{}} → Tailwind 변환 시 절대 금지 패턴 !!! <!-- 2026-05-19 사고 후 확립 -->
+
+> 이 섹션은 2026-05-19에 pass script 남용으로 전체 TSX 파일에 이중 className·NUL 바이트·파싱 에러가 대거 발생한 사건에서 도출된 규칙이다.
+
+### 근본 원인 3가지
+
+1. **이중 className**: `style={{...}}` → `className="..."` 단순 치환 시, 같은 엘리먼트에 기존 `className`이 이미 있으면 두 개가 생김
+2. **멀티라인 regex 오염**: `[^?]+?` 같은 패턴이 `\n`을 포함해 여러 JSX 줄을 한 번에 삭제
+3. **NUL 바이트**: Python `open(w)` + Windows↔Linux 마운트 경계에서 가끔 발생
+
+### 변환 작업 전 체크리스트
+
+- [ ] **변환 전 줄 수 기록** — `wc -l` 으로 before 저장
+- [ ] **변환 대상 1개 파일만** — 스크립트가 `src.rglob('*.tsx')` 전체를 돌지 않는지 확인
+- [ ] **regex에 `\n` 절대 포함 금지** — `[^?]` 대신 반드시 `[^\?\n]` 사용
+- [ ] **변환 후 이중 className 즉시 검사**:
+  ```bash
+  python3 -c "
+  lines = open('파일경로').readlines()
+  d = [(i+1) for i in range(len(lines)-1)
+       if lines[i].strip().startswith('className=') and lines[i+1].strip().startswith('className=')]
+  print('이중:', len(d), '쌍', d)
+  "
+  ```
+- [ ] **NUL 바이트 검사**: `grep -c $'\x00' 파일경로` → 0 이어야 함
+- [ ] **ESLint Parsing error 검사**: `npx eslint 파일경로 2>&1 | grep Parsing`
+
+### 안전한 style→Tailwind 변환 방법
+
+**원칙: sed -i로 한 줄씩, exact literal match만**
+
+```bash
+# 1. 같은 줄에 className이 없을 때 — sed로 직접 교체 (가장 안전)
+sed -i "s|style={{color: 'var(--color-text-hint)'}}|className=\"text-text-hint\"|g" 파일경로
+
+# 2. 같은 줄에 className이 이미 있을 때 — Python exact string match + merge
+python3 << 'PYEOF'
+path = '파일경로'
+c = open(path).read()
+# className이 있는 줄: style 제거 + 기존 className에 클래스 추가
+c = c.replace(
+    'className="기존클래스" style={{color: \'var(--color-text-hint)\'}}',
+    'className="기존클래스 text-text-hint"'
+)
+open(path, 'w').write(c)
+PYEOF
+```
+
+**절대 금지 — 대량 자동화 pass script**
+
+```python
+# ❌ 이렇게 하지 말 것 — 전체 파일 순회 + regex
+for f in Path('src').rglob('*.tsx'):          # 전체 순회 금지
+    c = re.sub(r"style=\{\{[^\}]+\}\}", ...)  # 멀티라인 regex 금지
+    open(f, 'w').write(c)                     # 검증 없는 write 금지
+```
+
+### import alias 규칙
+
+- **`@/` 절대 사용 금지** — `tsconfig.app.json`에 `paths` 미설정, `vite.config.ts`에 `alias` 미설정
+- 항상 **상대경로** 사용: `'../../types/listing'`, `'../../../features/...'` 등
+- 위반 시 WebStorm 빨간줄 + 런타임 에러 모두 발생
+
+### 파싱 에러 발생 시 복구 절차
+
+```bash
+# 1. 손상 파일 확인
+npx eslint src/ 2>&1 | grep -B1 "Parsing error" | grep "\.tsx"
+
+# 2. git HEAD로 복구 (의도적으로 수정한 파일 제외)
+python3 -c "
+import subprocess
+files = ['src/pages/...손상된파일...']
+for f in files:
+    content = subprocess.check_output(['git', 'show', f'HEAD:{f}']).decode()
+    open(f, 'w', encoding='utf-8').write(content)
+    print('복구:', f)
+"
+
+# 3. 이중 className 전체 검사
+python3 -c "
+from pathlib import Path
+for f in Path('src').rglob('*.tsx'):
+    lines = f.read_text(encoding='utf-8', errors='ignore').splitlines()
+    for i in range(len(lines)-1):
+        if lines[i].strip().startswith('className=') and lines[i+1].strip().startswith('className='):
+            print(f'{f}:{i+1}')
+"
+```

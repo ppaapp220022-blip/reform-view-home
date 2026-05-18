@@ -28,9 +28,13 @@
 
 ## 폰트
 
-- Display: `Bebas Neue` (Google Fonts) — h1, 로고
-- Body: `DM Sans` (Google Fonts) + `Pretendard` (로컬 fallback, Korean)
-- Mono: ui-monospace (시스템 기본값, @font-face 선언 없음)
+- Tier 1 (영문·숫자): `IAMAPLAYER` (로컬 woff2) — `font-player`
+- Tier 2 (본문·기본): `Pretendard` (로컬 woff2, 5 weights) — `font-sans` (기본)
+- Tier 3 (강조·헤딩): `Giants` Regular/Bold (로컬 woff2) — `font-display`
+- 장식: `Giants-Inline` (히어로 전용) — `font-inline`
+- Mono: ui-monospace (시스템 기본, @font-face 없음)
+- **버튼 폰트: Pretendard** (2026-05-18 변경, 기존 Giants에서 교체)
+- Bebas Neue / DM Sans: 제거됨 (사용 금지)
 
 ## 파일 구조 (주요)
 
@@ -1232,3 +1236,84 @@ Admin: Dashboard / MemberDetail / DisputeDetail / ReportDetail (4)
 ### 현재 미구현 (향후 과제)
 
 - [ ] 백엔드 `GET /api/admin/disputes` → AdminDisputesPage 연동 (현재 placeholder)
+
+## 2026-05-18 작업 내역
+
+- [done] 버튼 폰트 Giants → Pretendard 변경 (index.css @layer base)
+- [done] 컨디션 등급 뱃지 메달 시스템 구축
+    - S급=금메달(#FFB800 그라디언트) / A급=은(#C8D0DA) / B급=동(#CD8B3A) / C급=Accent 아웃라인
+    - index.css → `.badge-grade` + `.badge-grade-{s|a|b|c}` + 다크모드 보정
+    - tailwind.config.ts → `silver`, `bronze` 컬러 토큰 추가
+    - `src/components/ui/ConditionBadge.tsx` 공용 컴포넌트 생성
+- [done] 등급 뱃지 인라인 → ConditionBadge 교체 (HomePage / ListingDetailPage / ListingCreatePage / AdminDisputeDetailPage)
+    - GRADE_META 상수 제거됨, gradeStyle 함수 제거됨
+- [done] CLAUDE.md 갱신 — Tailwind 우선 원칙 + 인라인 스타일 금지 + 등급 뱃지 규칙 + 버튼 폰트 규칙 명문화
+- 잔여 경고: 전체 파일 no-restricted-syntax warning 1600+개 — 점진적 리팩토링 필요 (새 코드부터 적용)
+
+## 2026-05-19 작업 내역
+
+### 파일 손상 복구 (pass script 부작용)
+- [done] 이전 세션 style→Tailwind 변환 pass script들이 많은 파일에 이중 className + NUL 바이트 + 파싱 에러 유발
+- [done] 전략: git show HEAD로 손상 파일 복구 → 의도적 변경만 재적용
+
+### 기능 수정 (ListingDetailPage.tsx)
+- [done] 거래 시작하기 버튼 className 이중 → template literal 단일로 수정
+- [done] 게시글 삭제 기능 추가: `Trash2` + `deleteListing` import, `deleteConfirmOpen` state, `deleteMutate` mutation, 삭제 확인 모달
+- [done] 데스크탑/모바일 CTA: 수정 버튼 옆에 Trash2 삭제 버튼 추가
+
+### 기능 수정 (ListingEditPage.tsx)
+- [done] 수정 저장 후 `queryClient.invalidateQueries({queryKey: ['listingDetail', postId]})` 추가 → 수정 반영 안 되던 버그 해결 (staleTime: 30_000 캐시 문제)
+
+### 기능 수정 (TradeConfirmPage.tsx)
+- [done] `courierName` state 추가, `startShipping` 호출에 `courierName` 필드 포함
+- [done] 택배사 select onChange에서 `setCourierName(found?.name ?? '')` 추가
+
+### 파싱 에러 / NUL / 이중 className 전체 제거
+- [done] 전체 34개 파일 파싱 에러 → 0개 (git HEAD 복구 + 개별 수정)
+- [done] NUL 바이트 파일 0개, 이중 className 0쌍
+- [done] ConditionBadge.tsx 파일 끝 잘림 복구 (aria-label + </span> 완성)
+- [done] ESLint: 0 errors, 1282 warnings (style={{}} 잔재 — 점진적 리팩토링 대상)
+- [done] CommunityDetailPage.tsx: 53개 style→Tailwind 변환 + ternary 3개 className으로 변환
+- [done] ListingDetailPage.tsx: 53개 style→Tailwind 변환
+
+## 2026-05-19 사고 교훈 — 다시는 반복하지 말 것
+
+### 발생한 피해
+- pass script 남용으로 전체 TSX 파일에 이중 className·NUL 바이트·파싱 에러 대거 발생
+- 복구에 세션 전체 소요 (실제 기능 개발 시간 0)
+
+### 근본 원인
+| 원인 | 내용 |
+|------|------|
+| 이중 className | `style={{...}}` → `className="..."` 치환 시 기존 className과 merge 안 함 |
+| 멀티라인 regex | `[^?]+?`가 `\n` 포함 → 다른 줄까지 삭제 |
+| 전체 파일 순회 | 이미 변환된 파일에도 스크립트 재실행 |
+| 검증 부재 | write 후 이중 className / NUL / ESLint Parsing 체크 안 함 |
+
+### 앞으로의 규칙
+
+1. **style→Tailwind 변환은 파일 1개씩 + exact literal match만** — regex 금지
+2. **변환 후 즉시 3종 검사**: 이중 className / NUL 바이트 / ESLint Parsing
+3. **`@/` alias 사용 금지** — 상대경로만 (tsconfig에 paths 미설정)
+4. **대량 pass script 작성 전 반드시 MJ에게 확인** 요청
+5. **파싱 에러 발생 시**: git show HEAD로 복구 → 의도적 수정만 재적용
+
+### 즉시 실행 가능한 검사 명령
+
+```bash
+# 이중 className 전체 검사
+python3 -c "
+from pathlib import Path
+total=0
+for f in Path('src').rglob('*.tsx'):
+    lines=f.read_text(encoding='utf-8',errors='ignore').splitlines()
+    for i in range(len(lines)-1):
+        if lines[i].strip().startswith('className=') and lines[i+1].strip().startswith('className='):
+            total+=1; print(f'{f}:{i+1}')
+print('총',total,'쌍')
+"
+
+# NUL 바이트 + 파싱 에러 한 번에
+python3 -c "from pathlib import Path; [print(f,open(f,'rb').read().count(b'\x00')) for f in Path('src').rglob('*.tsx') if open(f,'rb').read().count(b'\x00')]"
+npx eslint src/ 2>&1 | grep -B1 "Parsing error" | grep "\.tsx"
+```

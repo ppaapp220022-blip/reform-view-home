@@ -199,13 +199,14 @@ function ShippingInputForm({
   const queryClient = useQueryClient()
   const [couriers, setCouriers] = useState<Courier[]>([])
   const [courierCode, setCourierCode] = useState('')
+  const [courierName, setCourierName] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
   const [loadingCouriers, setLoadingCouriers] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
   const {mutate: submitShipping, isPending} = useMutation({
-    mutationFn: () => startShipping(tradeId, {courierCode, trackingNumber}),
+    mutationFn: () => startShipping(tradeId, {courierCode, courierName, trackingNumber}),
     onSuccess() {
       queryClient.invalidateQueries({queryKey: ['trade', String(tradeId)]})
       onSuccess()
@@ -261,7 +262,11 @@ function ShippingInputForm({
             <label className="text-xs font-semibold block mb-1.5" style={{color: 'var(--color-text-hint)'}}>택배사</label>
             <select
               value={courierCode}
-              onChange={e => setCourierCode(e.target.value)}
+              onChange={e => {
+                setCourierCode(e.target.value)
+                const found = couriers.find(c => c.code === e.target.value)
+                setCourierName(found?.name ?? '')
+              }}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
               style={{
                 background: 'var(--color-surface-raised)',

@@ -11,7 +11,7 @@
 import {formatPrice} from '../../utils/format'
 import {useRef, useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
-import {useQuery} from '@tanstack/react-query'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {CheckCircle2, ChevronLeft, Info, Loader2, Lock, Trash2, Upload, X,} from 'lucide-react'
 import type {DeliveryType, Grade, Sport} from '../../types/listing'
 import {
@@ -86,18 +86,16 @@ function DeleteConfirmModal({onConfirm, onCancel}: { onConfirm: () => void; onCa
           className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
           style={{background: 'var(--color-accent-subtle)'}}
         >
-          <Trash2 size={22} style={{color: 'var(--color-accent)'}} strokeWidth={1.75}/>
+          <Trash2 size={22} className="text-accent" strokeWidth={1.75}/>
         </div>
         
         <h2
-          className="text-center text-[17px] font-bold mb-2"
-          style={{color: 'var(--color-text-main)'}}
+          className="text-center text-[17px] font-bold mb-2 text-text-main"
         >
           판매글을 삭제할까요?
         </h2>
         <p
-          className="text-center text-[14px] mb-6 leading-relaxed"
-          style={{color: 'var(--color-text-sub)'}}
+          className="text-center text-[14px] mb-6 leading-relaxed text-text-sub"
         >
           삭제된 판매글은 복구할 수 없습니다.
           <br/>
@@ -119,8 +117,7 @@ function DeleteConfirmModal({onConfirm, onCancel}: { onConfirm: () => void; onCa
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 h-[44px] rounded-[10px] text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
-            style={{background: 'var(--color-accent)'}}
+            className="flex-1 h-[44px] rounded-[10px] text-[14px] font-semibold text-white transition-opacity hover:opacity-90 bg-accent"
           >
             삭제하기
           </button>
@@ -135,6 +132,7 @@ function DeleteConfirmModal({onConfirm, onCancel}: { onConfirm: () => void; onCa
 export default function ListingEditPage() {
   const {id} = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const postId = Number(id)
   
   // ── 기존 판매글 데이터 로드 ───────────────────────────────────────────────
@@ -269,6 +267,8 @@ export default function ListingEditPage() {
       })
       
       setSubmitDone(true)
+      // 수정 완료 후 상세 페이지 캐시 무효화 — staleTime이 남아있어도 최신 데이터 표시
+      await queryClient.invalidateQueries({queryKey: ['listingDetail', postId]})
       setTimeout(() => navigate(`/listing/${id}`), 1200)
     } catch {
       /* 에러 시 submitting 해제 — 재시도 가능 */
@@ -290,7 +290,7 @@ export default function ListingEditPage() {
   if (detailLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+        <Loader2 size={32} className="animate-spin text-text-hint"/>
       </div>
     )
   }
@@ -309,9 +309,9 @@ export default function ListingEditPage() {
               bg-[var(--color-surface-raised)] border border-[var(--color-border)]
               hover:bg-[var(--color-surface-sunken)]"
           >
-            <ChevronLeft size={18} style={{color: 'var(--color-text-sub)'}} strokeWidth={2}/>
+            <ChevronLeft size={18} className="text-text-sub" strokeWidth={2}/>
           </Link>
-          <h1 className="text-[22px] font-bold" style={{color: 'var(--color-text-main)'}}>
+          <h1 className="text-[22px] font-bold text-text-main">
             판매글 수정
           </h1>
         </div>
@@ -338,12 +338,12 @@ export default function ListingEditPage() {
             border: '1px solid rgba(255,149,0,0.35)',
           }}
         >
-          <Lock size={16} style={{color: 'var(--color-warning)'}} strokeWidth={1.75} className="mt-0.5 flex-shrink-0"/>
+          <Lock size={16} className="text-warning mt-0.5 flex-shrink-0" strokeWidth={1.75}/>
           <div>
-            <p className="text-[14px] font-semibold" style={{color: 'var(--color-warning)'}}>
+            <p className="text-[14px] font-semibold text-warning">
               거래 진행 중 — 일부 항목 수정 불가
             </p>
-            <p className="text-[13px] mt-0.5" style={{color: 'var(--color-text-sub)'}}>
+            <p className="text-[13px] mt-0.5 text-text-sub">
               가격, 배송방식은 거래가 완료되거나 취소된 후 수정할 수 있습니다.
             </p>
           </div>
@@ -358,15 +358,13 @@ export default function ListingEditPage() {
             
             {/* 이미지 영역 — 기존 URL + 새 파일 미리보기 */}
             <section
-              className="rounded-[12px] p-5"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-5 bg-surface border border-border"
             >
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] font-semibold uppercase tracking-wide"
-                   style={{color: 'var(--color-text-hint)'}}>
+                <p className="text-[13px] font-semibold uppercase tracking-wide text-text-hint">
                   업로드된 이미지
                 </p>
-                <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+                <span className="text-[13px] text-text-hint">
                   {totalImages}/{MAX_IMAGES}
                 </span>
               </div>
@@ -377,8 +375,7 @@ export default function ListingEditPage() {
                     <img
                       src={url}
                       alt={`기존 이미지 ${i + 1}`}
-                      className="w-[80px] h-[80px] rounded-[8px] object-cover"
-                      style={{border: '1px solid var(--color-border)'}}
+                      className="w-[80px] h-[80px] rounded-[8px] object-cover border border-border"
                     />
                     {/* 대표 이미지 뱃지 (첫 번째 이미지) */}
                     {i === 0 && (
@@ -392,8 +389,7 @@ export default function ListingEditPage() {
                     <button
                       type="button"
                       onClick={() => removeExistingUrl(i)}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                      style={{background: 'var(--color-accent)', color: '#fff'}}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-accent text-white"
                       aria-label="이미지 삭제"
                     >
                       <X size={10} strokeWidth={2.5}/>
@@ -417,8 +413,7 @@ export default function ListingEditPage() {
                       <button
                         type="button"
                         onClick={() => removeNewFile(i)}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                        style={{background: 'var(--color-accent)', color: '#fff'}}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-accent text-white"
                         aria-label="이미지 제거"
                       >
                         <X size={10} strokeWidth={2.5}/>
@@ -435,8 +430,8 @@ export default function ListingEditPage() {
                     className="w-[80px] h-[80px] rounded-[8px] flex flex-col items-center justify-center gap-1 transition-colors
                       border border-dashed border-[var(--color-border-strong)] hover:border-[var(--color-accent)]"
                   >
-                    <Upload size={18} style={{color: 'var(--color-text-hint)'}}/>
-                    <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>추가</span>
+                    <Upload size={18} className="text-text-hint"/>
+                    <span className="text-[12px] text-text-hint">추가</span>
                   </button>
                 )}
               </div>
@@ -449,7 +444,7 @@ export default function ListingEditPage() {
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <p className="text-[13px] mt-2" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px] mt-2 text-text-hint">
                 최대 8장 · 첫 번째 이미지가 대표 이미지로 사용됩니다.
                 새로 추가된 이미지는 점선 테두리로 표시됩니다.
               </p>
@@ -457,18 +452,16 @@ export default function ListingEditPage() {
             
             {/* 기본 정보 */}
             <section
-              className="rounded-[12px] p-5 flex flex-col gap-4"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-5 flex flex-col gap-4 bg-surface border border-border"
             >
-              <p className="text-[13px] font-semibold uppercase tracking-wide"
-                 style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-text-hint">
                 기본 정보
               </p>
               
               {/* 제목 */}
               <div>
-                <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
-                  제목 <span style={{color: 'var(--color-accent)'}}>*</span>
+                <label className="block text-[13px] font-medium mb-1.5 text-text-sub">
+                  제목 <span className="text-accent">*</span>
                 </label>
                 <input
                   type="text"
@@ -482,13 +475,13 @@ export default function ListingEditPage() {
                     focus:border-[var(--color-primary)]"
                 />
                 {errors.title && (
-                  <p className="mt-1 text-[13px]" style={{color: 'var(--color-error)'}}>{errors.title}</p>
+                  <p className="mt-1 text-[13px] text-error">{errors.title}</p>
                 )}
               </div>
               
               {/* 종목 */}
               <div>
-                <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
+                <label className="block text-[13px] font-medium mb-1.5 text-text-sub">
                   종목
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -513,8 +506,8 @@ export default function ListingEditPage() {
               {/* 구단 */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
-                    구단명 <span style={{color: 'var(--color-accent)'}}>*</span>
+                  <label className="block text-[13px] font-medium mb-1.5 text-text-sub">
+                    구단명 <span className="text-accent">*</span>
                   </label>
                   <input
                     type="text"
@@ -527,15 +520,15 @@ export default function ListingEditPage() {
                       focus:border-[var(--color-primary)]"
                   />
                   {errors.team && (
-                    <p className="mt-1 text-[13px]" style={{color: 'var(--color-error)'}}>{errors.team}</p>
+                    <p className="mt-1 text-[13px] text-error">{errors.team}</p>
                   )}
                 </div>
               </div>
               
               {/* 유니폼명 */}
               <div>
-                <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
-                  유니폼명 <span style={{color: 'var(--color-accent)'}}>*</span>
+                <label className="block text-[13px] font-medium mb-1.5 text-text-sub">
+                  유니폼명 <span className="text-accent">*</span>
                 </label>
                 <input
                   type="text"
@@ -548,24 +541,22 @@ export default function ListingEditPage() {
                     focus:border-[var(--color-primary)]"
                 />
                 {errors.uniformName && (
-                  <p className="mt-1 text-[13px]" style={{color: 'var(--color-error)'}}>{errors.uniformName}</p>
+                  <p className="mt-1 text-[13px] text-error">{errors.uniformName}</p>
                 )}
               </div>
             </section>
             
             {/* 상태 & 사이즈 */}
             <section
-              className="rounded-[12px] p-5 flex flex-col gap-4"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-5 flex flex-col gap-4 bg-surface border border-border"
             >
-              <p className="text-[13px] font-semibold uppercase tracking-wide"
-                 style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-[13px] font-semibold uppercase tracking-wide text-text-hint">
                 상태 & 사이즈
               </p>
               
               {/* 등급 */}
               <div>
-                <label className="block text-[13px] font-medium mb-2" style={{color: 'var(--color-text-sub)'}}>
+                <label className="block text-[13px] font-medium mb-2 text-text-sub">
                   컨디션 등급
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -600,7 +591,7 @@ export default function ListingEditPage() {
               
               {/* 사이즈 */}
               <div>
-                <label className="block text-[13px] font-medium mb-2" style={{color: 'var(--color-text-sub)'}}>
+                <label className="block text-[13px] font-medium mb-2 text-text-sub">
                   사이즈
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -635,16 +626,15 @@ export default function ListingEditPage() {
               }}
             >
               <div className="flex items-center gap-2">
-                <p className="text-[13px] font-semibold uppercase tracking-wide"
-                   style={{color: 'var(--color-text-hint)'}}>
+                <p className="text-[13px] font-semibold uppercase tracking-wide text-text-hint">
                   거래 조건
                 </p>
-                {locked && <Lock size={12} style={{color: 'var(--color-warning)'}} strokeWidth={1.75}/>}
+                {locked && <Lock size={12} className="text-warning" strokeWidth={1.75}/>}
               </div>
               
               {/* 배송방식 */}
               <div>
-                <label className="block text-[13px] font-medium mb-2" style={{color: 'var(--color-text-sub)'}}>
+                <label className="block text-[13px] font-medium mb-2 text-text-sub">
                   배송방식
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -674,8 +664,8 @@ export default function ListingEditPage() {
               
               {/* 가격 */}
               <div>
-                <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
-                  판매 가격 <span style={{color: 'var(--color-accent)'}}>*</span>
+                <label className="block text-[13px] font-medium mb-1.5 text-text-sub">
+                  판매 가격 <span className="text-accent">*</span>
                 </label>
                 <div className="relative">
                   <span
@@ -701,24 +691,22 @@ export default function ListingEditPage() {
                   />
                 </div>
                 {form.price && !isNaN(Number(form.price)) && (
-                  <p className="mt-1 text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+                  <p className="mt-1 text-[13px] text-text-hint">
                     {formatPrice(Number(form.price))} (수수료 3.5% 제외 후 정산)
                   </p>
                 )}
                 {errors.price && (
-                  <p className="mt-1 text-[13px]" style={{color: 'var(--color-error)'}}>{errors.price}</p>
+                  <p className="mt-1 text-[13px] text-error">{errors.price}</p>
                 )}
               </div>
             </section>
             
             {/* 상품 설명 */}
             <section
-              className="rounded-[12px] p-5"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-5 bg-surface border border-border"
             >
-              <label className="block text-[13px] font-semibold uppercase tracking-wide mb-3"
-                     style={{color: 'var(--color-text-hint)'}}>
-                상품 설명 <span style={{color: 'var(--color-accent)'}}>*</span>
+              <label className="block text-[13px] font-semibold uppercase tracking-wide mb-3 text-text-hint">
+                상품 설명 <span className="text-accent">*</span>
               </label>
               <textarea
                 rows={7}
@@ -731,7 +719,7 @@ export default function ListingEditPage() {
                   focus:border-[var(--color-primary)]"
               />
               {errors.description && (
-                <p className="mt-1 text-[13px]" style={{color: 'var(--color-error)'}}>{errors.description}</p>
+                <p className="mt-1 text-[13px] text-error">{errors.description}</p>
               )}
             </section>
           </div>
@@ -740,12 +728,11 @@ export default function ListingEditPage() {
           <aside className="hidden md:flex flex-col gap-4">
             {/* 수정 안내 */}
             <div
-              className="rounded-[12px] p-4"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-4 bg-surface border border-border"
             >
               <div className="flex items-center gap-2 mb-3">
-                <Info size={14} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
-                <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
+                <Info size={14} className="text-primary" strokeWidth={1.75}/>
+                <p className="text-[13px] font-semibold text-text-main">
                   수정 안내
                 </p>
               </div>
@@ -759,7 +746,7 @@ export default function ListingEditPage() {
                   <li key={i} className="flex items-start gap-1.5">
                     <span className="mt-1 w-1 h-1 rounded-full flex-shrink-0"
                           style={{background: 'var(--color-text-hint)'}}/>
-                    <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>{t}</span>
+                    <span className="text-[13px] text-text-sub">{t}</span>
                   </li>
                 ))}
               </ul>
@@ -767,15 +754,13 @@ export default function ListingEditPage() {
             
             {/* 등급 가이드 */}
             <div
-              className="rounded-[12px] p-4"
-              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+              className="rounded-[12px] p-4 bg-surface border border-border"
             >
-              <p className="text-[13px] font-semibold mb-3" style={{color: 'var(--color-text-main)'}}>
+              <p className="text-[13px] font-semibold mb-3 text-text-main">
                 컨디션 등급 기준
               </p>
               {GRADES.map((g) => (
-                <div key={g.key} className="flex items-center gap-2 py-1.5 border-b last:border-0"
-                     style={{borderColor: 'var(--color-border)'}}>
+                <div key={g.key} className="flex items-center gap-2 py-1.5 border-b last:border-0 border-border">
                   <span
                     className="w-6 h-6 rounded-[4px] flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
                     style={{
@@ -790,7 +775,7 @@ export default function ListingEditPage() {
                   >
                     {g.key}
                   </span>
-                  <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>{g.desc}</span>
+                  <span className="text-[13px] text-text-sub">{g.desc}</span>
                 </div>
               ))}
             </div>
@@ -811,8 +796,7 @@ export default function ListingEditPage() {
             type="submit"
             disabled={isSubmitting || submitDone}
             className="px-8 h-[48px] rounded-[10px] text-[15px] font-semibold text-white transition-opacity
-              hover:opacity-90 disabled:opacity-60 flex items-center gap-2"
-            style={{background: 'var(--color-primary)'}}
+              hover:opacity-90 disabled:opacity-60 flex items-center gap-2 bg-primary"
           >
             {submitDone ? (
               <>

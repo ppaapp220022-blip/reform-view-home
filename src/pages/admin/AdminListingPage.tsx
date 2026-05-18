@@ -99,8 +99,7 @@ function PostDetailModal({
       }}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
-        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface border border-border"
       >
         {/* 모달 헤더 */}
         <div
@@ -111,12 +110,11 @@ function PostDetailModal({
           }}
         >
           <h2
-            className="text-base font-bold"
-            style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+            className="text-base font-bold text-text-main" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
           >
             게시글 상세
           </h2>
-          <button onClick={onClose} style={{color: 'var(--color-text-hint)'}}>
+          <button onClick={onClose} className="text-text-hint">
             <X size={20}/>
           </button>
         </div>
@@ -125,7 +123,7 @@ function PostDetailModal({
         <div className="px-6 py-5">
           {isLoading && (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={24} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
+              <Loader2 size={24} className="animate-spin text-accent"/>
             </div>
           )}
           
@@ -139,8 +137,7 @@ function PostDetailModal({
                       key={i}
                       src={url}
                       alt={`이미지 ${i + 1}`}
-                      className="w-24 h-24 object-cover rounded-xl flex-shrink-0"
-                      style={{border: '1px solid var(--color-border)'}}
+                      className="w-24 h-24 object-cover rounded-xl flex-shrink-0 border border-border"
                     />
                   ))}
                 </div>
@@ -161,10 +158,10 @@ function PostDetailModal({
                   ['찜수', `${post.wishCount}개`],
                 ].map(([label, value]) => (
                   <div key={label as string}>
-                    <span className="text-xs block mb-0.5" style={{color: 'var(--color-text-hint)'}}>
+                    <span className="text-xs block mb-0.5 text-text-hint">
                       {label}
                     </span>
-                    <span className="font-medium" style={{color: 'var(--color-text-main)'}}>
+                    <span className="font-medium text-text-main">
                       {value}
                     </span>
                   </div>
@@ -173,7 +170,7 @@ function PostDetailModal({
               
               {/* 본문 내용 */}
               <div>
-                <p className="text-xs mb-1.5" style={{color: 'var(--color-text-hint)'}}>게시글 내용</p>
+                <p className="text-xs mb-1.5 text-text-hint">게시글 내용</p>
                 <div
                   className="px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap"
                   style={{
@@ -200,8 +197,7 @@ function PostDetailModal({
                 </span>
                 {post.reportCount > 0 && (
                   <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
-                    style={{background: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}}
+                    className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 text-accent" style={{background: 'rgba(255,46,77,.1)'}}
                   >
                     <AlertTriangle size={11}/>
                     신고 {post.reportCount}건
@@ -212,12 +208,10 @@ function PostDetailModal({
               {/* 조치 영역 (DELETED가 아닐 때만) */}
               {post.status !== 'DELETED' && (
                 <div
-                  className="flex flex-col gap-3 p-4 rounded-2xl"
-                  style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+                  className="flex flex-col gap-3 p-4 rounded-2xl bg-surface-raised border border-border"
                 >
                   <p
-                    className="text-sm font-bold"
-                    style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                    className="text-sm font-bold text-text-main" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
                   >
                     게시글 조치
                   </p>
@@ -285,8 +279,7 @@ function PostDetailModal({
                 to={`/listing/${post.postId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium underline hover:text-[var(--color-accent)]"
-                style={{color: 'var(--color-text-sub)'}}
+                className="text-sm font-medium underline hover:text-[var(--color-accent)] text-text-sub"
               >
                 게시글 직접 보기
               </Link>
@@ -299,18 +292,16 @@ function PostDetailModal({
                 className="w-12 h-12 rounded-full flex items-center justify-center"
                 style={{background: 'rgba(0,179,110,.1)'}}
               >
-                <FileText size={22} style={{color: 'var(--color-success)'}}/>
+                <FileText size={22} className="text-success"/>
               </div>
               <p
-                className="font-bold"
-                style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                className="font-bold text-success" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
               >
                 조치 완료
               </p>
               <button
                 onClick={onClose}
-                className="mt-2 text-sm font-medium hover:text-[var(--color-accent)]"
-                style={{color: 'var(--color-text-sub)'}}
+                className="mt-2 text-sm font-medium hover:text-[var(--color-accent)] text-text-sub"
               >
                 닫기
               </button>
@@ -364,18 +355,17 @@ export default function AdminListingPage() {
   }
   
   return (
-    <div className="p-6 md:p-8" style={{minHeight: '100vh', background: 'var(--color-bg)'}}>
+    <div className="p-6 md:p-8 min-h-screen bg-bg">
       
       {/* 페이지 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1
-            className="text-xl font-bold"
-            style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+            className="text-xl font-bold text-text-main" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
           >
             게시글 관리
           </h1>
-          <p className="text-sm mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+          <p className="text-sm mt-0.5 text-text-hint">
             총 {data?.totalElements ?? 0}개 게시글
           </p>
         </div>
@@ -383,16 +373,14 @@ export default function AdminListingPage() {
       
       {/* 필터 바 */}
       <div
-        className="flex flex-wrap gap-3 mb-5 p-4 rounded-2xl"
-        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        className="flex flex-wrap gap-3 mb-5 p-4 rounded-2xl bg-surface border border-border"
       >
         {/* 키워드 검색 */}
         <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1" style={{minWidth: 200}}>
           <div className="relative flex-1">
             <Search
               size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              style={{color: 'var(--color-text-hint)'}}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-hint"
             />
             <input
               type="text"
@@ -409,8 +397,7 @@ export default function AdminListingPage() {
           </div>
           <button
             type="submit"
-            className="px-3 py-2 rounded-xl text-sm font-medium text-white flex-shrink-0"
-            style={{background: 'var(--color-primary)'}}
+            className="px-3 py-2 rounded-xl text-sm font-medium text-white flex-shrink-0 bg-primary"
           >
             검색
           </button>
@@ -464,8 +451,7 @@ export default function AdminListingPage() {
               setStatus('');
               setPage(0)
             }}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm"
-            style={{color: 'var(--color-accent)'}}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-accent"
           >
             <X size={13}/>
             초기화
@@ -475,33 +461,31 @@ export default function AdminListingPage() {
       
       {/* 테이블 */}
       <div
-        className="rounded-2xl overflow-hidden"
-        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        className="rounded-2xl overflow-hidden bg-surface border border-border"
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 size={24} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
+            <Loader2 size={24} className="animate-spin text-accent"/>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center gap-2 py-16">
-            <AlertCircle size={22} style={{color: 'var(--color-accent)'}}/>
-            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>게시글 목록을 불러오지 못했습니다.</p>
+            <AlertCircle size={22} className="text-accent"/>
+            <p className="text-sm text-text-hint">게시글 목록을 불러오지 못했습니다.</p>
           </div>
         ) : posts.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-16">
-            <FileText size={28} style={{color: 'var(--color-border)'}}/>
-            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>검색 결과가 없습니다.</p>
+            <FileText size={28} className="border-border"/>
+            <p className="text-sm text-text-hint">검색 결과가 없습니다.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{borderCollapse: 'collapse'}}>
               <thead>
-              <tr style={{borderBottom: '1px solid var(--color-border)', background: 'var(--color-surface-raised)'}}>
+              <tr className="border-b border-border bg-surface-raised">
                 {['ID', '제목·판매자', '가격', '상태', '신고', '등록일', ''].map(h => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-left text-xs font-semibold"
-                    style={{color: 'var(--color-text-hint)'}}
+                    className="px-4 py-3 text-left text-xs font-semibold text-text-hint"
                   >
                     {h}
                   </th>
@@ -512,26 +496,23 @@ export default function AdminListingPage() {
               {posts.map(post => (
                 <tr
                   key={post.postId}
-                  className="border-b transition-colors"
-                  style={{borderColor: 'var(--color-border)'}}
+                  className="border-b transition-colors border-border"
                 >
-                  <td className="px-4 py-3 text-xs" style={{color: 'var(--color-text-hint)'}}>
+                  <td className="px-4 py-3 text-xs text-text-hint">
                     <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>{post.postId}</span>
                   </td>
                   <td
                     className="px-4 py-3 cursor-pointer hover:opacity-70"
                     onClick={() => setSelectedPostId(post.postId)}
                   >
-                    <p className="text-sm font-medium line-clamp-1"
-                       style={{color: 'var(--color-text-main)', maxWidth: 260}}>
+                    <p className="text-sm font-medium line-clamp-1 text-text-main" style={{maxWidth: 260}}>
                       {post.title}
                     </p>
-                    <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+                    <p className="text-xs mt-0.5 text-text-hint">
                       {post.sellerNickname} · {post.sport}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-sm"
-                      style={{color: 'var(--color-text-sub)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                  <td className="px-4 py-3 text-sm text-text-sub" style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
                     {formatPrice(post.price)}
                   </td>
                   <td className="px-4 py-3">
@@ -548,17 +529,16 @@ export default function AdminListingPage() {
                   <td className="px-4 py-3">
                     {post.reportCount > 0 ? (
                       <span
-                        className="text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit"
-                        style={{background: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}}
+                        className="text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit text-accent" style={{background: 'rgba(255,46,77,.1)'}}
                       >
                           <AlertTriangle size={10}/>
                         {post.reportCount}
                         </span>
                     ) : (
-                      <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>0</span>
+                      <span className="text-xs text-text-hint">0</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs" style={{color: 'var(--color-text-hint)'}}>
+                  <td className="px-4 py-3 text-xs text-text-hint">
                     {post.createdAt.slice(0, 10)}
                   </td>
                   {/* 빠른 숨김 버튼 */}
@@ -570,8 +550,7 @@ export default function AdminListingPage() {
                           quickHide(post.postId)
                         }}
                         disabled={isHiding}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                        style={{background: 'rgba(255,149,0,.1)', color: 'var(--color-warning)'}}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-warning" style={{background: 'rgba(255,149,0,.1)'}}
                         title="즉시 숨김"
                       >
                         <EyeOff size={11}/>
@@ -584,8 +563,7 @@ export default function AdminListingPage() {
                           e.stopPropagation();
                           setSelectedPostId(post.postId)
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
-                        style={{background: 'rgba(0,0,0,.05)', color: 'var(--color-text-hint)'}}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-text-hint" style={{background: 'rgba(0,0,0,.05)'}}
                         title="상세 보기"
                       >
                         <Eye size={11}/>
@@ -607,10 +585,9 @@ export default function AdminListingPage() {
           <button
             onClick={() => setPage(p => Math.max(0, p - 1))}
             disabled={page === 0}
-            className="p-2 rounded-xl transition-all disabled:opacity-30"
-            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+            className="p-2 rounded-xl transition-all disabled:opacity-30 bg-surface border border-border"
           >
-            <ChevronLeft size={16} style={{color: 'var(--color-text-sub)'}}/>
+            <ChevronLeft size={16} className="text-text-sub"/>
           </button>
           {Array.from({length: Math.min(totalPages, 7)}, (_, i) => {
             const pageNum = Math.max(0, Math.min(page - 3, totalPages - 7)) + i
@@ -632,10 +609,9 @@ export default function AdminListingPage() {
           <button
             onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
             disabled={page >= totalPages - 1}
-            className="p-2 rounded-xl transition-all disabled:opacity-30"
-            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+            className="p-2 rounded-xl transition-all disabled:opacity-30 bg-surface border border-border"
           >
-            <ChevronRight size={16} style={{color: 'var(--color-text-sub)'}}/>
+            <ChevronRight size={16} className="text-text-sub"/>
           </button>
         </div>
       )}

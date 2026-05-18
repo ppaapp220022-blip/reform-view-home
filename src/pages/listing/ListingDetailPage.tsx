@@ -34,6 +34,7 @@ import {
   Pencil,
   Share2,
   Shield,
+  Trash2,
   Truck,
   X,
 } from 'lucide-react'
@@ -41,7 +42,7 @@ import type {Grade, PostStatus, RiskLevel} from '../../types/listing'
 import ReportModal from '../../components/ui/ReportModal'
 import {createChatRoom} from '../../features/chat/api/chatApi'
 import type {PostCard, SellerBrief} from '../../features/listing/api/listingApi'
-import {getListingDetail, getListings, toggleWish} from '../../features/listing/api/listingApi'
+import {deleteListing, getListingDetail, getListings, toggleWish} from '../../features/listing/api/listingApi'
 import type {TradeDeliveryType} from '../../features/trade/api/tradeApi'
 import {createTrade, getMyTrades} from '../../features/trade/api/tradeApi'
 import axios from 'axios'
@@ -151,8 +152,7 @@ function TradeStartModal({
         {/* 닫기 */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{background: 'var(--color-surface-raised)'}}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-surface-raised"
           aria-label="닫기"
         >
           <X size={16} color="var(--color-text-sub)"/>
@@ -164,18 +164,17 @@ function TradeStartModal({
         >
           거래 시작하기
         </h3>
-        <p className="text-xs mb-5" style={{color: 'var(--color-text-hint)'}}>
+        <p className="text-xs mb-5 text-text-hint" >
           거래 방식을 선택하면 판매자에게 구매 요청이 전달됩니다.
         </p>
         
         {/* 상품 요약 */}
         <div
-          className="flex items-center gap-3 p-3 rounded-xl mb-5"
-          style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+          className="flex items-center gap-3 p-3 rounded-xl mb-5 bg-surface-raised border border-border"
         >
           <Package size={18} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>{title}</p>
+            <p className="text-xs font-semibold truncate text-text-main" >{title}</p>
             <p
               className="text-sm font-bold mt-0.5"
               style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
@@ -188,7 +187,7 @@ function TradeStartModal({
         {/* 거래 방식 선택 (BOTH일 때만) */}
         {listingDeliveryType === 'BOTH' && (
           <div className="mb-5">
-            <p className="text-xs font-semibold mb-2" style={{color: 'var(--color-text-hint)'}}>거래 방식 선택</p>
+            <p className="text-xs font-semibold mb-2 text-text-hint" >거래 방식 선택</p>
             <div className="grid grid-cols-2 gap-2">
               {([
                 {type: 'DIRECT' as TradeDeliveryType, label: '직거래', icon: <MapPin size={16}/>},
@@ -215,13 +214,12 @@ function TradeStartModal({
         {/* 선택된 방식 표시 (DIRECT/DELIVERY 단일 방식) */}
         {listingDeliveryType !== 'BOTH' && (
           <div
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5"
-            style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+            className="flex items-center gap-2 px-3 py-2.5 rounded-xl mb-5 bg-surface-raised border border-border"
           >
             {listingDeliveryType === 'DELIVERY'
-              ? <Truck size={15} style={{color: 'var(--color-text-sub)'}}/>
-              : <MapPin size={15} style={{color: 'var(--color-text-sub)'}}/>}
-            <p className="text-sm font-semibold" style={{color: 'var(--color-text-sub)'}}>
+              ? <Truck size={15} className="text-text-sub"/>
+              : <MapPin size={15} className="text-text-sub"/>}
+            <p className="text-sm font-semibold text-text-sub" >
               {listingDeliveryType === 'DELIVERY' ? '택배 거래' : '직거래'}
             </p>
           </div>
@@ -233,7 +231,7 @@ function TradeStartModal({
           style={{background: 'rgba(0,33,71,.05)', border: '1px solid rgba(0,33,71,.12)'}}
         >
           <Shield size={13} style={{color: 'var(--color-primary)', flexShrink: 0, marginTop: 2}}/>
-          <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+          <p className="text-xs leading-relaxed text-text-sub" >
             RE:FORM 에스크로 — 판매자 수락 후 결제가 진행됩니다.
           </p>
         </div>
@@ -245,7 +243,7 @@ function TradeStartModal({
             style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
           >
             <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 2}}/>
-            <p className="text-xs" style={{color: 'var(--color-accent)'}}>{error}</p>
+            <p className="text-xs text-accent" >{error}</p>
           </div>
         )}
         
@@ -253,8 +251,7 @@ function TradeStartModal({
         <button
           onClick={() => startTrade()}
           disabled={isPending}
-          className="w-full py-3.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
-          style={{background: 'var(--color-accent)'}}
+          className="w-full py-3.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60 bg-accent"
         >
           {isPending
             ? <><Loader2 size={16} className="animate-spin"/>요청 중...</>
@@ -413,13 +410,12 @@ function GradeGuide({onClose}: { onClose: () => void }) {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center"
-          style={{background: 'var(--color-surface-raised)'}}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center bg-surface-raised"
           aria-label="닫기"
         >
           <X size={16} color="var(--color-text-sub)"/>
         </button>
-        <h3 className="text-base font-bold mb-4" style={{color: 'var(--color-text-main)'}}>컨디션 등급 기준</h3>
+        <h3 className="text-base font-bold mb-4 text-text-main" >컨디션 등급 기준</h3>
         <div className="flex flex-col gap-3">
           {grades.map(({key, desc}) => {
             const m = GRADE_META[key]
@@ -433,7 +429,7 @@ function GradeGuide({onClose}: { onClose: () => void }) {
                 }}>
                   {m.label}
                 </span>
-                <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-sub)'}}>{desc}</p>
+                <p className="text-sm leading-relaxed text-text-sub" >{desc}</p>
               </div>
             )
           })}
@@ -492,17 +488,17 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm mb-0.5 truncate"
-               style={{color: 'var(--color-text-main)'}}>{seller.nickname}</div>
-          <div className="text-xs" style={{color: 'var(--color-text-hint)'}}>판매자</div>
+               className="text-text-main">{seller.nickname}</div>
+          <div className="text-xs text-text-hint" >판매자</div>
         </div>
         {/* 매너점수 */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <span className="text-xs mb-0.5" style={{color: 'var(--color-text-hint)'}}>매너점수</span>
+          <span className="text-xs mb-0.5 text-text-hint" >매너점수</span>
           <span className="text-lg font-bold" style={{
             color: mc,
             fontFamily: "'IAMAPLAYER',Giants,sans-serif"
           }}>{Number(seller.mannerScore).toFixed(1)}</span>
-          <div className="w-12 h-1.5 rounded-full mt-1" style={{background: 'var(--color-border)'}}>
+          <div className="w-12 h-1.5 rounded-full mt-1 bg-border" >
             <div className="h-full rounded-full transition-all"
                  style={{width: `${Math.min(100, Number(seller.mannerScore) * 20)}%`, background: mc}}/>
           </div>
@@ -512,8 +508,7 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
       <button
         onClick={handleChatClick}
         disabled={isChatLoading}
-        className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
-        style={{background: 'var(--color-primary)', color: '#fff'}}
+        className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-colors disabled:opacity-60 bg-primary text-white"
       >
         {isChatLoading
           ? <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"/>
@@ -535,8 +530,7 @@ function RelatedCard({item}: { item: PostCard }) {
   return (
     <Link
       to={`/listing/${item.postId}`}
-      className="block rounded-xl overflow-hidden transition-shadow hover:shadow-md"
-      style={{border: '1px solid var(--color-border)'}}
+      className="block rounded-xl overflow-hidden transition-shadow hover:shadow-md border border-border"
     >
       <div className="relative" style={{aspectRatio: '4/5', background: '#1A3051'}}>
         {resolveImageUrl(item.thumbnailUrl) ? (
@@ -561,9 +555,9 @@ function RelatedCard({item}: { item: PostCard }) {
           {m.label}
         </span>
       </div>
-      <div className="p-2.5" style={{background: 'var(--color-surface)'}}>
+      <div className="p-2.5 bg-surface" >
         <p className="text-xs font-semibold leading-snug truncate"
-           style={{color: 'var(--color-text-main)'}}>{item.title}</p>
+           className="text-text-main">{item.title}</p>
         <p className="text-sm font-bold mt-1"
            style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
           {formatPrice(item.price)}
@@ -592,6 +586,7 @@ export default function ListingDetailPage() {
   const [tradeModalOpen, setTradeModalOpen] = useState(false)
   const [reportMenuOpen, setReportMenuOpen] = useState(false)
   const [reportModalOpen, setReportModalOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   
   /* 판매글 상세 조회 */
   const {data: listing, isLoading, isError} = useQuery({
@@ -601,6 +596,12 @@ export default function ListingDetailPage() {
     staleTime: 30_000,
   })
   
+  /** 게시글 삭제 mutation — 성공 시 홈으로 이동 */
+  const {mutate: deleteMutate, isPending: isDeleting} = useMutation({
+    mutationFn: () => deleteListing(postId),
+    onSuccess() { navigate('/') },
+  })
+
   // 파생값: 낙관적 업데이트 우선, 서버값 폴백 (listing 로드 후 계산해야 TDZ 에러 없음)
   const liked = localLiked ?? listing?.isWished ?? false
   const likedCount = localLikedCount ?? listing?.wishCount ?? 0
@@ -654,10 +655,10 @@ export default function ListingDetailPage() {
   /* 로딩 */
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--color-bg)'}}>
+      <div className="min-h-screen flex items-center justify-center bg-bg" >
         <div className="flex flex-col items-center gap-3">
-          <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
-          <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>상품 정보를 불러오는 중...</p>
+          <Loader2 size={32} className="animate-spin text-accent" />
+          <p className="text-sm text-text-hint" >상품 정보를 불러오는 중...</p>
         </div>
       </div>
     )
@@ -666,11 +667,11 @@ export default function ListingDetailPage() {
   /* 에러 / 404 */
   if (isError || !listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--color-bg)'}}>
+      <div className="min-h-screen flex items-center justify-center bg-bg" >
         <div className="flex flex-col items-center gap-3">
           <AlertCircle size={32} style={{color: 'var(--color-error)'}}/>
-          <p className="text-base font-display font-bold" style={{color: 'var(--color-text-main)'}}>상품을 찾을 수 없습니다</p>
-          <Link to="/" className="text-sm font-semibold" style={{color: 'var(--color-accent)'}}>홈으로 돌아가기</Link>
+          <p className="text-base font-display font-bold text-text-main" >상품을 찾을 수 없습니다</p>
+          <Link to="/" className="text-sm font-semibold text-accent" >홈으로 돌아가기</Link>
         </div>
       </div>
     )
@@ -683,8 +684,39 @@ export default function ListingDetailPage() {
   const visibleDesc = showMore ? listing.content : descLines.slice(0, 5).join('\n')
   
   return (
-    <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
+    <div className="min-h-screen bg-bg" >
       {showGradeGuide && <GradeGuide onClose={() => setShowGradeGuide(false)}/>}
+      {/* 게시글 삭제 확인 모달 */}
+      {deleteConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteConfirmOpen(false)}/>
+          <div className="relative rounded-2xl p-6 w-full max-w-sm bg-surface border border-border">
+            <div className="flex items-center gap-3 mb-3">
+              <Trash2 size={20} className="text-accent flex-shrink-0"/>
+              <h3 className="font-bold text-base text-text-main"
+                  style={{fontFamily: "'Giants','Pretendard',sans-serif"}}>게시글 삭제</h3>
+            </div>
+            <p className="text-sm text-text-sub mb-5 leading-relaxed">
+              이 판매글을 삭제하면 복구할 수 없습니다. 정말 삭제하시겠습니까?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteConfirmOpen(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-surface-raised text-text-sub"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => deleteMutate()}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-accent text-white disabled:opacity-60"
+              >
+                {isDeleting ? '삭제 중...' : '삭제하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {tradeModalOpen && listing && (
         <TradeStartModal
           postId={listing.postId}
@@ -708,8 +740,7 @@ export default function ListingDetailPage() {
         {/* 뒤로가기 */}
         <Link
           to="/"
-          className="inline-flex items-center gap-1.5 text-sm mb-6 transition-colors hover:text-[var(--color-accent)]"
-          style={{color: 'var(--color-text-sub)'}}
+          className="inline-flex items-center gap-1.5 text-sm mb-6 transition-colors hover:text-[var(--color-accent)] text-text-sub"
         >
           <ChevronLeft size={16}/>목록으로
         </Link>
@@ -737,27 +768,27 @@ export default function ListingDetailPage() {
                 >
                   {statusMeta.label}
                 </span>
-                <span className="text-xs flex items-center gap-1" style={{color: 'var(--color-text-hint)'}}>
+                <span className="text-xs flex items-center gap-1 text-text-hint" >
                   <Clock size={11}/>{listing.timeAgo} · 조회 {listing.viewCount.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center gap-1">
                 <button className="w-8 h-8 rounded-full flex items-center justify-center"
-                        style={{color: 'var(--color-text-sub)'}} aria-label="공유">
+                        className="text-text-sub" aria-label="공유">
                   <Share2 size={16}/>
                 </button>
                 <div className="relative">
                   <button className="w-8 h-8 rounded-full flex items-center justify-center"
-                          style={{color: 'var(--color-text-sub)'}} onClick={() => setReportMenuOpen(p => !p)}
+                          className="text-text-sub" onClick={() => setReportMenuOpen(p => !p)}
                           aria-label="더보기">
                     <MoreHorizontal size={16}/>
                   </button>
                   {reportMenuOpen && (
                     <div className="absolute right-0 top-10 z-50 rounded-xl py-1 w-32 shadow-lg"
-                         style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
+                         className="bg-surface border border-border">
                       <button
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)]"
-                        style={{color: 'var(--color-accent)'}} onClick={() => {
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] text-accent"
+                        onClick={() => {
                         setReportMenuOpen(false);
                         setReportModalOpen(true)
                       }}>
@@ -771,10 +802,10 @@ export default function ListingDetailPage() {
             
             {/* 제목 */}
             <div>
-              <p className="text-xs font-semibold mb-1" style={{color: 'var(--color-text-hint)'}}>
+              <p className="text-xs font-semibold mb-1 text-text-hint" >
                 {listing.sport} · {listing.team}
               </p>
-              <h1 className="text-xl md:text-2xl font-bold leading-snug" style={{color: 'var(--color-text-main)'}}>
+              <h1 className="text-xl md:text-2xl font-bold leading-snug text-text-main" >
                 {listing.title}
               </h1>
             </div>
@@ -811,9 +842,9 @@ export default function ListingDetailPage() {
             </div>
             
             {/* 메타 그리드 */}
-            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl" style={{background: 'var(--color-surface-raised)'}}>
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-surface-raised" >
               <div>
-                <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>컨디션</p>
+                <p className="text-xs mb-1 text-text-hint" >컨디션</p>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold px-2.5 py-0.5 rounded-full" style={{
                     background: gradeMeta.bg,
@@ -823,35 +854,35 @@ export default function ListingDetailPage() {
                   }}>
                     {gradeMeta.label}
                   </span>
-                  <button className="text-xs underline" style={{color: 'var(--color-text-hint)'}}
+                  <button className="text-xs underline text-text-hint"
                           onClick={() => setShowGradeGuide(true)}>
                     기준 보기
                   </button>
                 </div>
               </div>
               <div>
-                <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>사이즈</p>
+                <p className="text-xs mb-1 text-text-hint" >사이즈</p>
                 <p className="text-sm font-bold" style={{
                   color: 'var(--color-text-main)',
                   fontFamily: "'IAMAPLAYER',Giants,sans-serif"
                 }}>{listing.size}</p>
               </div>
               <div>
-                <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>거래방식</p>
+                <p className="text-xs mb-1 text-text-hint" >거래방식</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {listing.deliveryType !== 'DIRECT' && (
                     <span className="inline-flex items-center gap-1 text-xs"
-                          style={{color: 'var(--color-text-sub)'}}><Truck size={12}/>택배</span>
+                          className="text-text-sub"><Truck size={12}/>택배</span>
                   )}
                   {listing.deliveryType !== 'DELIVERY' && (
                     <span className="inline-flex items-center gap-1 text-xs"
-                          style={{color: 'var(--color-text-sub)'}}><MapPin size={12}/>직거래</span>
+                          className="text-text-sub"><MapPin size={12}/>직거래</span>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>거래지역</p>
-                <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>-</p>
+                <p className="text-xs mb-1 text-text-hint" >거래지역</p>
+                <p className="text-sm text-text-sub" >-</p>
               </div>
             </div>
             
@@ -859,7 +890,7 @@ export default function ListingDetailPage() {
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
                  style={{background: 'rgba(0,33,71,.06)', border: '1px solid rgba(0,33,71,.12)'}}>
               <Shield size={18} color="var(--color-primary)" className="flex-shrink-0"/>
-              <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+              <p className="text-xs leading-relaxed text-text-sub" >
                 RE:FORM 에스크로 안전결제로 보호됩니다. 결제금은 구매 확정 전까지 RE:FORM이 보관합니다.
               </p>
             </div>
@@ -885,28 +916,34 @@ export default function ListingDetailPage() {
                 activeTradeForPost ? (
                   <Link
                     to={`/trade/${activeTradeForPost.tradeId}`}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white"
-                    style={{background: 'var(--color-accent)'}}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white bg-accent"
                   >
                     <Package size={16}/>
                     거래 관리하기
                   </Link>
                 ) : (
-                  <Link
-                    to={`/listing/${listing.postId}/edit`}
-                    className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white"
-                    style={{background: 'var(--color-primary)'}}
-                  >
-                    <Pencil size={16}/>
-                    내 판매글 수정하기
-                  </Link>
+                  <div className="flex-1 flex items-center gap-2">
+                    <Link
+                      to={`/listing/${listing.postId}/edit`}
+                      className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors hover:text-white bg-primary"
+                    >
+                      <Pencil size={16}/>
+                      내 판매글 수정하기
+                    </Link>
+                    <button
+                      onClick={() => setDeleteConfirmOpen(true)}
+                      aria-label="게시글 삭제"
+                      className="p-3.5 rounded-xl flex items-center justify-center border border-border text-text-hint hover:text-accent hover:border-accent transition-colors"
+                    >
+                      <Trash2 size={16}/>
+                    </button>
+                  </div>
                 )
               ) : (
                 /* 타인 판매글 — 거래 시작 버튼 */
                 <button
                   onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors"
-                  style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm text-white transition-colors ${listing.status === 'ON_SALE' ? 'bg-accent' : 'bg-text-hint'}`}
                   disabled={listing.status !== 'ON_SALE'}
                 >
                   <Package size={16}/>
@@ -917,15 +954,14 @@ export default function ListingDetailPage() {
             
             {/* 상품 설명 */}
             <div className="rounded-2xl p-5"
-                 style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
-              <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>상품 설명</h3>
-              <p className="text-sm leading-relaxed whitespace-pre-line" style={{color: 'var(--color-text-sub)'}}>
+                 className="bg-surface border border-border">
+              <h3 className="font-bold text-sm mb-3 text-text-main" >상품 설명</h3>
+              <p className="text-sm leading-relaxed whitespace-pre-line text-text-sub" >
                 {visibleDesc}
               </p>
               {isLong && (
                 <button
-                  className="mt-3 flex items-center gap-1 text-xs font-semibold"
-                  style={{color: 'var(--color-accent)'}}
+                  className="mt-3 flex items-center gap-1 text-xs font-semibold text-accent"
                   onClick={() => setShowMore(p => !p)}
                 >
                   {showMore ? '접기' : '더보기'}
@@ -962,8 +998,7 @@ export default function ListingDetailPage() {
             </h2>
             <Link
               to={`/search?sport=${listing.sport}`}
-              className="text-xs font-semibold flex items-center gap-1 transition-colors hover:text-[var(--color-accent)]"
-              style={{color: 'var(--color-text-hint)'}}
+              className="text-xs font-semibold flex items-center gap-1 transition-colors hover:text-[var(--color-accent)] text-text-hint"
             >
               더보기 <ChevronRight size={14}/>
             </Link>
@@ -1001,29 +1036,35 @@ export default function ListingDetailPage() {
             activeTradeForPost ? (
               <Link
                 to={`/trade/${activeTradeForPost.tradeId}`}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white"
-                style={{background: 'var(--color-accent)'}}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white bg-accent"
               >
                 <Package size={16}/>
                 거래 관리하기
               </Link>
             ) : (
-              <Link
-                to={`/listing/${listing.postId}/edit`}
-                className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white"
-                style={{background: 'var(--color-primary)'}}
-              >
-                <Pencil size={16}/>
-                내 판매글 수정하기
-              </Link>
+              <div className="flex-1 flex items-center gap-2">
+                <Link
+                  to={`/listing/${listing.postId}/edit`}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:text-white bg-primary"
+                >
+                  <Pencil size={16}/>
+                  내 판매글 수정하기
+                </Link>
+                <button
+                  onClick={() => setDeleteConfirmOpen(true)}
+                  aria-label="게시글 삭제"
+                  className="p-3 rounded-xl border border-border text-text-hint hover:text-accent hover:border-accent transition-colors"
+                >
+                  <Trash2 size={16}/>
+                </button>
+              </div>
             )
           ) : (
             /* 타인 판매글 — 거래 시작 버튼 */
             <button
               onClick={() => listing.status === 'ON_SALE' && setTradeModalOpen(true)}
               disabled={listing.status !== 'ON_SALE'}
-              className="flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-60"
-              style={{background: listing.status === 'ON_SALE' ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+              className={`flex-1 py-3 rounded-xl font-bold text-sm text-white disabled:opacity-60 ${listing.status === 'ON_SALE' ? 'bg-accent' : 'bg-text-hint'}`}
             >
               {listing.status === 'SOLD' ? '판매 완료' : listing.status === 'RESERVED' ? '예약중' : '거래 시작하기'}
             </button>
