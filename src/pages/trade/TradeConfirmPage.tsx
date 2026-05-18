@@ -205,7 +205,10 @@ function ShippingInputForm({
   const [error, setError] = useState<string | null>(null)
   
   const {mutate: submitShipping, isPending} = useMutation({
-    mutationFn: () => startShipping(tradeId, {courierCode, trackingNumber}),
+    mutationFn: () => {
+      const courierName = couriers.find((courier) => courier.code === courierCode)?.name ?? ''
+      return startShipping(tradeId, {courierCode, courierName, trackingNumber})
+    },
     onSuccess() {
       queryClient.invalidateQueries({queryKey: ['trade', String(tradeId)]})
       onSuccess()

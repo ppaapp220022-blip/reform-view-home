@@ -126,6 +126,9 @@ export interface ListingCreateRequest {
 export interface ListingUpdateRequest {
   title?: string
   description?: string       // 백엔드: description
+  sport?: Sport
+  team?: string
+  uniformName?: string
   price?: number
   condition?: Grade          // 백엔드: condition
   size?: string

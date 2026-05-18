@@ -13,6 +13,7 @@
  * 응답은 ApiResponse<T> 래퍼 — axios 인터셉터에서 자동 언래핑
  */
 import apiClient from '../../../lib/axios'
+import type {DeliveryType, Grade, RiskLevel, Sport} from '../../../types/listing'
 
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 
@@ -24,6 +25,26 @@ import apiClient from '../../../lib/axios'
 export interface PostDraft {
   title: string | null
   content: string | null
+  sport: Sport | null
+  team: string | null
+  uniformNumber: string | null
+  condition: Grade | null
+  size: string | null
+  tradeType: DeliveryType | null
+  price: number | null
+  directTradeLocation: string | null
+  imageUrls: string[] | null
+}
+
+export interface DraftModeration {
+  riskLevel: RiskLevel
+  reason: string | null
+  suggestion: string | null
+}
+
+export interface PostDraftState {
+  draft: PostDraft
+  moderation: DraftModeration | null
 }
 
 /**
@@ -45,8 +66,9 @@ export interface ReplyDraft {
  * PATCH /api/drafts/posts
  * ListingCreatePage에서 디바운스 자동저장으로 호출
  */
-export async function savePostDraft(draft: PostDraft): Promise<void> {
-  await apiClient.patch('/drafts/posts', draft)
+export async function savePostDraft(draft: PostDraft): Promise<PostDraftState> {
+  const { data } = await apiClient.patch<PostDraftState>('/drafts/posts', draft)
+  return data
 }
 
 /**
@@ -54,8 +76,8 @@ export async function savePostDraft(draft: PostDraft): Promise<void> {
  * GET /api/drafts/posts
  * ListingCreatePage 마운트 시 불러오기에 사용
  */
-export async function getPostDraft(): Promise<PostDraft> {
-  const { data } = await apiClient.get<PostDraft>('/drafts/posts')
+export async function getPostDraft(): Promise<PostDraftState> {
+  const { data } = await apiClient.get<PostDraftState>('/drafts/posts')
   return data
 }
 
