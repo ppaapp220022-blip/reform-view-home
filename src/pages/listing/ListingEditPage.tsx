@@ -12,7 +12,7 @@ import {formatPrice} from '../../utils/format'
 import {useRef, useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
-import {CheckCircle2, ChevronLeft, Info, Loader2, Lock, Trash2, Upload, X,} from 'lucide-react'
+import {AlertCircle, CheckCircle2, ChevronLeft, Info, Loader2, Lock, Trash2, Upload, X,} from 'lucide-react'
 import type {DeliveryType, Grade, Sport} from '../../types/listing'
 import {
   deleteListing,
@@ -244,6 +244,7 @@ export default function ListingEditPage() {
   
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setSubmitError(null)
     if (!validate()) return
     setIsSubmitting(true)
     try {
@@ -270,9 +271,11 @@ export default function ListingEditPage() {
       // 수정 완료 후 상세 페이지 캐시 무효화 — staleTime이 남아있어도 최신 데이터 표시
       await queryClient.invalidateQueries({queryKey: ['listingDetail', postId]})
       setTimeout(() => navigate(`/listing/${id}`), 1200)
-    } catch {
-      /* 에러 시 submitting 해제 — 재시도 가능 */
+    } catch (err) {
+      /* 에러 시 submitting 해제 + 에러 메시지 표시 */
       setIsSubmitting(false)
+      const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
+      setSubmitError(msg.includes('Network') || !msg ? '서버와 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.' : '수정 저장에 실패했습니다. 다시 시도해 주세요.')
     }
   }
   
@@ -781,6 +784,21 @@ export default function ListingEditPage() {
             </div>
           </aside>
         </div>
+        
+        {/* ── API 에러 배너 ── */}
+        {submitError && (
+          <div
+            className="mt-4 flex items-center gap-2.5 px-4 py-3 rounded-[10px] text-sm"
+            style={{
+              background: 'rgba(255,46,77,.07)',
+              border: '1px solid rgba(255,46,77,.3)',
+              color: 'var(--color-accent)',
+            }}
+          >
+            <AlertCircle size={15} strokeWidth={1.75} className="flex-shrink-0"/>
+            {submitError}
+          </div>
+        )}
         
         {/* ── 하단 저장 버튼 ── */}
         <div className="mt-6 flex gap-3 justify-end">

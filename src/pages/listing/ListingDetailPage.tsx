@@ -47,17 +47,12 @@ import type {TradeDeliveryType} from '../../features/trade/api/tradeApi'
 import {createTrade, getMyTrades} from '../../features/trade/api/tradeApi'
 import axios from 'axios'
 import useAuthStore from '../../store/authStore'
+import ConditionBadge from '../../components/ui/ConditionBadge'
 
 // ── 상수/유틸 (목 데이터 없음 — 실제 API 사용) ────────────────────────────────
 
 // ── 상수/유틸 ─────────────────────────────────────────────────────────────────
 
-const GRADE_META: Record<Grade, { label: string; bg: string; text: string; border: string }> = {
-  S: {label: 'S급', bg: 'rgba(255,184,0,.12)', text: '#B38000', border: 'rgba(255,184,0,.35)'},
-  A: {label: 'A급', bg: 'rgba(0,33,71,.08)', text: '#002147', border: 'rgba(0,33,71,.25)'},
-  B: {label: 'B급', bg: 'rgba(90,106,122,.10)', text: '#5A6A7A', border: 'rgba(90,106,122,.3)'},
-  C: {label: 'C급', bg: 'rgba(255,149,0,.10)', text: '#CC7700', border: 'rgba(255,149,0,.3)'},
-}
 
 const STATUS_META: Record<PostStatus, { label: string; bg: string; text: string }> = {
   ON_SALE: {label: '판매중', bg: 'rgba(0,179,110,.10)', text: 'var(--color-success)'},
@@ -164,7 +159,7 @@ function TradeStartModal({
         >
           거래 시작하기
         </h3>
-        <p className="text-xs mb-5 text-text-hint" >
+        <p className="text-xs mb-5 text-text-hint">
           거래 방식을 선택하면 판매자에게 구매 요청이 전달됩니다.
         </p>
         
@@ -174,7 +169,7 @@ function TradeStartModal({
         >
           <Package size={18} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate text-text-main" >{title}</p>
+            <p className="text-xs font-semibold truncate text-text-main">{title}</p>
             <p
               className="text-sm font-bold mt-0.5"
               style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
@@ -187,7 +182,7 @@ function TradeStartModal({
         {/* 거래 방식 선택 (BOTH일 때만) */}
         {listingDeliveryType === 'BOTH' && (
           <div className="mb-5">
-            <p className="text-xs font-semibold mb-2 text-text-hint" >거래 방식 선택</p>
+            <p className="text-xs font-semibold mb-2 text-text-hint">거래 방식 선택</p>
             <div className="grid grid-cols-2 gap-2">
               {([
                 {type: 'DIRECT' as TradeDeliveryType, label: '직거래', icon: <MapPin size={16}/>},
@@ -219,7 +214,7 @@ function TradeStartModal({
             {listingDeliveryType === 'DELIVERY'
               ? <Truck size={15} className="text-text-sub"/>
               : <MapPin size={15} className="text-text-sub"/>}
-            <p className="text-sm font-semibold text-text-sub" >
+            <p className="text-sm font-semibold text-text-sub">
               {listingDeliveryType === 'DELIVERY' ? '택배 거래' : '직거래'}
             </p>
           </div>
@@ -231,7 +226,7 @@ function TradeStartModal({
           style={{background: 'rgba(0,33,71,.05)', border: '1px solid rgba(0,33,71,.12)'}}
         >
           <Shield size={13} style={{color: 'var(--color-primary)', flexShrink: 0, marginTop: 2}}/>
-          <p className="text-xs leading-relaxed text-text-sub" >
+          <p className="text-xs leading-relaxed text-text-sub">
             RE:FORM 에스크로 — 판매자 수락 후 결제가 진행됩니다.
           </p>
         </div>
@@ -243,7 +238,7 @@ function TradeStartModal({
             style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
           >
             <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 2}}/>
-            <p className="text-xs text-accent" >{error}</p>
+            <p className="text-xs text-accent">{error}</p>
           </div>
         )}
         
@@ -415,21 +410,13 @@ function GradeGuide({onClose}: { onClose: () => void }) {
         >
           <X size={16} color="var(--color-text-sub)"/>
         </button>
-        <h3 className="text-base font-bold mb-4 text-text-main" >컨디션 등급 기준</h3>
+        <h3 className="text-base font-bold mb-4 text-text-main">컨디션 등급 기준</h3>
         <div className="flex flex-col gap-3">
           {grades.map(({key, desc}) => {
-            const m = GRADE_META[key]
             return (
               <div key={key} className="flex gap-3 items-start">
-                <span className="flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                  background: m.bg,
-                  color: m.text,
-                  border: `1px solid ${m.border}`,
-                  fontFamily: "'Giants','Pretendard',sans-serif"
-                }}>
-                  {m.label}
-                </span>
-                <p className="text-sm leading-relaxed text-text-sub" >{desc}</p>
+                <ConditionBadge grade={key}/>
+                <p className="text-sm leading-relaxed text-text-sub">{desc}</p>
               </div>
             )
           })}
@@ -487,18 +474,17 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
           {seller.nickname.slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm mb-0.5 truncate"
-               className="text-text-main">{seller.nickname}</div>
-          <div className="text-xs text-text-hint" >판매자</div>
+          <div className="font-bold text-sm mb-0.5 truncate text-text-main">{seller.nickname}</div>
+          <div className="text-xs text-text-hint">판매자</div>
         </div>
         {/* 매너점수 */}
         <div className="flex flex-col items-center flex-shrink-0">
-          <span className="text-xs mb-0.5 text-text-hint" >매너점수</span>
+          <span className="text-xs mb-0.5 text-text-hint">매너점수</span>
           <span className="text-lg font-bold" style={{
             color: mc,
             fontFamily: "'IAMAPLAYER',Giants,sans-serif"
           }}>{Number(seller.mannerScore).toFixed(1)}</span>
-          <div className="w-12 h-1.5 rounded-full mt-1 bg-border" >
+          <div className="w-12 h-1.5 rounded-full mt-1 bg-border">
             <div className="h-full rounded-full transition-all"
                  style={{width: `${Math.min(100, Number(seller.mannerScore) * 20)}%`, background: mc}}/>
           </div>
@@ -526,7 +512,6 @@ function SellerCard({seller, listingId}: { seller: SellerBrief; listingId: numbe
 
 /** 관련 상품 카드 */
 function RelatedCard({item}: { item: PostCard }) {
-  const m = GRADE_META[item.grade]
   return (
     <Link
       to={`/listing/${item.postId}`}
@@ -546,18 +531,10 @@ function RelatedCard({item}: { item: PostCard }) {
           <div className="absolute inset-0"
                style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>
         )}
-        <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{
-          background: m.bg,
-          color: m.text,
-          border: `1px solid ${m.border}`,
-          fontFamily: "'Giants','Pretendard',sans-serif"
-        }}>
-          {m.label}
-        </span>
+        <ConditionBadge grade={item.grade} size="sm" className="absolute top-2 left-2"/>
       </div>
-      <div className="p-2.5 bg-surface" >
-        <p className="text-xs font-semibold leading-snug truncate"
-           className="text-text-main">{item.title}</p>
+      <div className="p-2.5 bg-surface">
+        <p className="text-xs font-semibold leading-snug truncate text-text-main">{item.title}</p>
         <p className="text-sm font-bold mt-1"
            style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
           {formatPrice(item.price)}
@@ -599,9 +576,11 @@ export default function ListingDetailPage() {
   /** 게시글 삭제 mutation — 성공 시 홈으로 이동 */
   const {mutate: deleteMutate, isPending: isDeleting} = useMutation({
     mutationFn: () => deleteListing(postId),
-    onSuccess() { navigate('/') },
+    onSuccess() {
+      navigate('/')
+    },
   })
-
+  
   // 파생값: 낙관적 업데이트 우선, 서버값 폴백 (listing 로드 후 계산해야 TDZ 에러 없음)
   const liked = localLiked ?? listing?.isWished ?? false
   const likedCount = localLikedCount ?? listing?.wishCount ?? 0
@@ -655,10 +634,10 @@ export default function ListingDetailPage() {
   /* 로딩 */
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg" >
+      <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 size={32} className="animate-spin text-accent" />
-          <p className="text-sm text-text-hint" >상품 정보를 불러오는 중...</p>
+          <Loader2 size={32} className="animate-spin text-accent"/>
+          <p className="text-sm text-text-hint">상품 정보를 불러오는 중...</p>
         </div>
       </div>
     )
@@ -667,24 +646,23 @@ export default function ListingDetailPage() {
   /* 에러 / 404 */
   if (isError || !listing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg" >
+      <div className="min-h-screen flex items-center justify-center bg-bg">
         <div className="flex flex-col items-center gap-3">
           <AlertCircle size={32} style={{color: 'var(--color-error)'}}/>
-          <p className="text-base font-display font-bold text-text-main" >상품을 찾을 수 없습니다</p>
-          <Link to="/" className="text-sm font-semibold text-accent" >홈으로 돌아가기</Link>
+          <p className="text-base font-display font-bold text-text-main">상품을 찾을 수 없습니다</p>
+          <Link to="/" className="text-sm font-semibold text-accent">홈으로 돌아가기</Link>
         </div>
       </div>
     )
   }
   
-  const gradeMeta = GRADE_META[listing.grade]
   const statusMeta = STATUS_META[listing.status]
   const descLines = (listing.content ?? '').split('\n')
   const isLong = descLines.length > 5
   const visibleDesc = showMore ? listing.content : descLines.slice(0, 5).join('\n')
   
   return (
-    <div className="min-h-screen bg-bg" >
+    <div className="min-h-screen bg-bg">
       {showGradeGuide && <GradeGuide onClose={() => setShowGradeGuide(false)}/>}
       {/* 게시글 삭제 확인 모달 */}
       {deleteConfirmOpen && (
@@ -768,30 +746,29 @@ export default function ListingDetailPage() {
                 >
                   {statusMeta.label}
                 </span>
-                <span className="text-xs flex items-center gap-1 text-text-hint" >
+                <span className="text-xs flex items-center gap-1 text-text-hint">
                   <Clock size={11}/>{listing.timeAgo} · 조회 {listing.viewCount.toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <button className="w-8 h-8 rounded-full flex items-center justify-center"
-                        className="text-text-sub" aria-label="공유">
+                <button className="w-8 h-8 rounded-full flex items-center justify-center text-text-sub" aria-label="공유">
                   <Share2 size={16}/>
                 </button>
                 <div className="relative">
-                  <button className="w-8 h-8 rounded-full flex items-center justify-center"
-                          className="text-text-sub" onClick={() => setReportMenuOpen(p => !p)}
+                  <button className="w-8 h-8 rounded-full flex items-center justify-center text-text-sub"
+                          onClick={() => setReportMenuOpen(p => !p)}
                           aria-label="더보기">
                     <MoreHorizontal size={16}/>
                   </button>
                   {reportMenuOpen && (
-                    <div className="absolute right-0 top-10 z-50 rounded-xl py-1 w-32 shadow-lg"
-                         className="bg-surface border border-border">
+                    <div
+                      className="absolute right-0 top-10 z-50 rounded-xl py-1 w-32 shadow-lg bg-surface border border-border">
                       <button
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] text-accent"
                         onClick={() => {
-                        setReportMenuOpen(false);
-                        setReportModalOpen(true)
-                      }}>
+                          setReportMenuOpen(false);
+                          setReportModalOpen(true)
+                        }}>
                         <Flag size={14}/>신고하기
                       </button>
                     </div>
@@ -802,10 +779,10 @@ export default function ListingDetailPage() {
             
             {/* 제목 */}
             <div>
-              <p className="text-xs font-semibold mb-1 text-text-hint" >
+              <p className="text-xs font-semibold mb-1 text-text-hint">
                 {listing.sport} · {listing.team}
               </p>
-              <h1 className="text-xl md:text-2xl font-bold leading-snug text-text-main" >
+              <h1 className="text-xl md:text-2xl font-bold leading-snug text-text-main">
                 {listing.title}
               </h1>
             </div>
@@ -842,18 +819,11 @@ export default function ListingDetailPage() {
             </div>
             
             {/* 메타 그리드 */}
-            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-surface-raised" >
+            <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-surface-raised">
               <div>
-                <p className="text-xs mb-1 text-text-hint" >컨디션</p>
+                <p className="text-xs mb-1 text-text-hint">컨디션</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold px-2.5 py-0.5 rounded-full" style={{
-                    background: gradeMeta.bg,
-                    color: gradeMeta.text,
-                    border: `1px solid ${gradeMeta.border}`,
-                    fontFamily: "'Giants','Pretendard',sans-serif"
-                  }}>
-                    {gradeMeta.label}
-                  </span>
+                  <ConditionBadge grade={listing.grade}/>
                   <button className="text-xs underline text-text-hint"
                           onClick={() => setShowGradeGuide(true)}>
                     기준 보기
@@ -861,28 +831,26 @@ export default function ListingDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-xs mb-1 text-text-hint" >사이즈</p>
+                <p className="text-xs mb-1 text-text-hint">사이즈</p>
                 <p className="text-sm font-bold" style={{
                   color: 'var(--color-text-main)',
                   fontFamily: "'IAMAPLAYER',Giants,sans-serif"
                 }}>{listing.size}</p>
               </div>
               <div>
-                <p className="text-xs mb-1 text-text-hint" >거래방식</p>
+                <p className="text-xs mb-1 text-text-hint">거래방식</p>
                 <div className="flex items-center gap-2 flex-wrap">
                   {listing.deliveryType !== 'DIRECT' && (
-                    <span className="inline-flex items-center gap-1 text-xs"
-                          className="text-text-sub"><Truck size={12}/>택배</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-text-sub"><Truck size={12}/>택배</span>
                   )}
                   {listing.deliveryType !== 'DELIVERY' && (
-                    <span className="inline-flex items-center gap-1 text-xs"
-                          className="text-text-sub"><MapPin size={12}/>직거래</span>
+                    <span className="inline-flex items-center gap-1 text-xs text-text-sub"><MapPin size={12}/>직거래</span>
                   )}
                 </div>
               </div>
               <div>
-                <p className="text-xs mb-1 text-text-hint" >거래지역</p>
-                <p className="text-sm text-text-sub" >-</p>
+                <p className="text-xs mb-1 text-text-hint">거래지역</p>
+                <p className="text-sm text-text-sub">-</p>
               </div>
             </div>
             
@@ -890,7 +858,7 @@ export default function ListingDetailPage() {
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
                  style={{background: 'rgba(0,33,71,.06)', border: '1px solid rgba(0,33,71,.12)'}}>
               <Shield size={18} color="var(--color-primary)" className="flex-shrink-0"/>
-              <p className="text-xs leading-relaxed text-text-sub" >
+              <p className="text-xs leading-relaxed text-text-sub">
                 RE:FORM 에스크로 안전결제로 보호됩니다. 결제금은 구매 확정 전까지 RE:FORM이 보관합니다.
               </p>
             </div>
@@ -953,10 +921,9 @@ export default function ListingDetailPage() {
             </div>
             
             {/* 상품 설명 */}
-            <div className="rounded-2xl p-5"
-                 className="bg-surface border border-border">
-              <h3 className="font-bold text-sm mb-3 text-text-main" >상품 설명</h3>
-              <p className="text-sm leading-relaxed whitespace-pre-line text-text-sub" >
+            <div className="rounded-2xl p-5 bg-surface border border-border">
+              <h3 className="font-bold text-sm mb-3 text-text-main">상품 설명</h3>
+              <p className="text-sm leading-relaxed whitespace-pre-line text-text-sub">
                 {visibleDesc}
               </p>
               {isLong && (

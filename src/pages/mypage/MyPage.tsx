@@ -1353,22 +1353,22 @@ export default function MyPage() {
           <div className="lg:w-72 flex-shrink-0">
             <ProfileHeader/>
             
-            {/* 탭 네비 (데스크탑: 세로, 모바일: 가로 스크롤) */}
-            <div
-              className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0"
-              style={{scrollbarWidth: 'none'}}
-            >
+            {/* 탭 네비
+                 모바일: 3열 그리드 → 6탭이 2행으로 스크롤 없이 전부 표시
+                 데스크탑(lg): flex-col 세로 목록 */}
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-1 mt-2 lg:mt-0">
               {TABS.map(t => (
                 <button
                   key={t.key}
                   onClick={() => setActiveTab(t.key)}
-                  className="flex items-center gap-2.5 px-4 py-3 rounded-xl whitespace-nowrap flex-shrink-0 lg:flex-shrink transition-all text-sm font-medium w-full text-left"
+                  className="flex flex-col lg:flex-row items-center lg:items-center gap-1 lg:gap-2.5 px-2 lg:px-4 py-2.5 lg:py-3 rounded-xl transition-all text-xs lg:text-sm font-medium w-full text-center lg:text-left"
                   style={{
                     background: activeTab === t.key ? 'var(--color-accent-subtle)' : 'transparent',
                     color: activeTab === t.key ? 'var(--color-accent)' : 'var(--color-text-sub)',
                   }}
                 >
-                  {t.icon}{t.label}
+                  {t.icon}
+                  <span className="leading-tight">{t.label}</span>
                 </button>
               ))}
             </div>

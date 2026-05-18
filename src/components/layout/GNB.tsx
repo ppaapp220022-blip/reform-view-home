@@ -433,6 +433,18 @@ export default function GNB() {
             <Search size={20}/>
           </button>
           <NotificationButton/>
+          {/* 모바일 로그인/아바타 — 로그아웃 접근 경로 */}
+          {isAuthenticated ? (
+            <UserAvatarButton/>
+          ) : (
+            <Link
+              to="/login"
+              className="text-xs font-semibold no-underline px-2.5 py-1.5 rounded-md transition-colors hover:text-white"
+              style={{background: 'var(--color-accent)', color: '#fff'}}
+            >
+              로그인
+            </Link>
+          )}
           <ThemeToggle/>
         </div>
       </div>

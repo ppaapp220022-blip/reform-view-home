@@ -519,14 +519,15 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0.15em 0.6em;
+        padding: 0.2em 0.55em;
         border-radius: 9999px;
         font-size: 0.75rem;
         font-weight: 700;
-        font-family: 'IAMAPLAYER', 'Giants', sans-serif;
+        font-family: 'Giants', 'Pretendard', sans-serif;
         line-height: 1;
-        letter-spacing: 0.03em;
+        letter-spacing: 0.02em;
         border: 1.5px solid transparent;
+        vertical-align: middle;
     }
 
     /* S급 — 금메달 */

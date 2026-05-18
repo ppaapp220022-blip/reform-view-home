@@ -96,6 +96,7 @@ const router = createBrowserRouter([
       
       // 채팅
       {path: '/chat', element: <ChatPage/>},
+      {path: '/chat/:chatId', element: <ChatPage/>},
       
       // 마이페이지
       {path: '/mypage', element: <MyPage/>},

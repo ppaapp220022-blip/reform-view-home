@@ -55,7 +55,7 @@ export async function savePostDraft(draft: PostDraft): Promise<void> {
  * ListingCreatePage 마운트 시 불러오기에 사용
  */
 export async function getPostDraft(): Promise<PostDraft> {
-  const { data } = await apiClient.get<PostDraft>('/drafts/posts')
+  const {data} = await apiClient.get<PostDraft>('/drafts/posts')
   return data
 }
 
@@ -83,8 +83,8 @@ export async function saveReplyDraft(draft: ReplyDraft): Promise<void> {
  * GET /api/drafts/replies?targetType={targetType}&targetId={targetId}
  */
 export async function getReplyDraft(targetType: string, targetId: number): Promise<ReplyDraft> {
-  const { data } = await apiClient.get<ReplyDraft>('/drafts/replies', {
-    params: { targetType, targetId },
+  const {data} = await apiClient.get<ReplyDraft>('/drafts/replies', {
+    params: {targetType, targetId},
   })
   return data
 }
@@ -95,6 +95,6 @@ export async function getReplyDraft(targetType: string, targetId: number): Promi
  */
 export async function deleteReplyDraft(targetType: string, targetId: number): Promise<void> {
   await apiClient.delete('/drafts/replies', {
-    params: { targetType, targetId },
+    params: {targetType, targetId},
   })
 }

@@ -28,16 +28,18 @@
 
 #### 도구별 버그 수준
 
-| 도구               | 버그 수준                     | 대응                    |
-|------------------|---------------------------|-----------------------|
-| Edit 툴           | ~20KB 이상에서 뒷부분 truncation | **절대 사용 금지**          |
-| Write 툴          | 마운트 경계에서 truncation       | **절대 사용 금지**          |
-| Python `open(w)` | 마운트 경계에서 가끔 truncation    | 사용 가능하나 **반드시 검증 필수** |
-| `sed -i`         | 타깃 라인만 수정, 파일 전체 재작성 없음   | **항상 1순위** (단순 교체 시)  |
+| 도구               | 버그 수준                     | 대응                                                      |
+|------------------|---------------------------|---------------------------------------------------------|
+| Edit 툴           | ~20KB 이상에서 뒷부분 truncation | **절대 사용 금지**                                            |
+| Write 툴          | 마운트 경계에서 truncation       | **절대 사용 금지**                                            |
+| Python `open(w)` | 마운트 경계에서 가끔 truncation    | 사용 가능하나 **반드시 검증 필수**                                   |
+| `sed -i`         | 타깃 라인만 수정, 파일 전체 재작성 없음   | **항상 1순위** (단순 교체 시) ⚠ replacement에 `\n` 절대 금지 → NUL 주입 |
 
 #### 수정 방식 우선순위 (이 순서 절대 준수)
 
 1. **`sed -i`** — 단순 문자열 교체. 파일을 재작성하지 않으므로 잘림 없음. **항상 이걸 먼저 시도.**
+    - ⚠ **`sed -i` replacement에 `\n`(개행) 포함 절대 금지** — NUL 바이트(`\x00`)가 파일에 주입돼 ESLint 파싱 에러 + 빌드 실패 발생
+    - 새 줄 삽입이 필요하면 반드시 **Python exact string replace** 방식 사용 (아래 2번 참조)
 2. **Python read→modify→write** — 다중 위치 변경 등 복잡한 경우만. 아래 템플릿 필수 사용.
 3. **Edit / Write 툴** — 5KB 미만 소형 파일에서만. 그 외는 사용 금지.
 
@@ -90,12 +92,45 @@ print('복구 완료:', content.count(chr(10)), '줄')
 # 3. 복구 후 재작업
 ```
 
+#### NUL 바이트 오염 — 근본 원인과 대량 복구 절차 <!-- 2026-05-19 사고 후 확립 -->
+
+> **2026-05-19 사고**: `sed -i "s|border: 1.5px solid transparent;|...|\n...|g"` 명령의 `\n` 때문에
+> index.css에 NUL 631개 주입. 같은 세션 내 다른 파일들도 오염돼 빌드 전체 실패.
+
+**NUL 오염 스캔 (Python 필수 — grep 사용 금지)**
+
+```python
+from pathlib import Path
+
+base = Path('/sessions/.../mnt/re-form_view')
+dirty = []
+for f in list(base.glob('src/**/*.tsx')) + list(base.glob('src/**/*.ts')) + list(base.glob('src/**/*.css')):
+    nul = f.read_bytes().count(b'\x00')
+    if nul > 0:
+        dirty.append((str(f.relative_to(base)), nul))
+print(f'오염 파일: {len(dirty)}개')
+for name, n in dirty: print(f'  {n}: {name}')
+```
+
+**git HEAD 일괄 복구**
+
+```python
+import subprocess
+
+base = '/sessions/.../mnt/re-form_view'
+for rel in dirty_file_list:  # 위 스캔 결과
+    content = subprocess.check_output(['git', 'show', f'HEAD:{rel}'], cwd=base).decode('utf-8')
+    open(f'{base}/{rel}', 'w', encoding='utf-8').write(content)
+# 복구 후 Python NUL 스캔으로 재확인 (grep 금지!)
+```
+
 #### 체크리스트 (Python write 후 매번)
 
 - [ ] 줄 수 감소 없음 (assert로 확인)
 - [ ] `tail -3` 으로 파일 끝이 `}` 또는 `}
 ` 인지 확인
-- [ ] NUL 바이트 0개 확인
+- [ ] NUL 바이트 0개 확인 — **반드시 Python으로**: `python3 -c "print(open('경로','rb').read().count(b'\\x00'))"` → 0 이어야 함
+    - ⚠ `grep -c $'\\x00' 파일` 은 이 환경에서 **오작동(항상 양수 반환)** — 절대 NUL 검증에 쓰지 말 것
 - [ ] ESLint 파싱 에러 없음 (`npx eslint 파일경로 2>&1 | grep "Parsing"`)
 
 ## 메모리 파일 운용 지침
@@ -376,9 +411,10 @@ import {CheckCircle2, ShieldCheck} from 'lucide-react'
 ### 규칙 2: NUL 바이트 절대 삽입 금지
 
 - 파일에 NUL(`\x00`) 바이트가 섞이면 ESLint가 `Parsing error: Invalid character` 에러 발생
-- bash heredoc / Python write 후 반드시 확인:
-  ```bash
-  grep -c $'\x00' 파일경로   # 0 이어야 정상
+- bash heredoc / Python write 후 반드시 확인 (**Python 사용, grep 금지**):
+  ```python
+  # grep -c $'\x00' 은 이 환경에서 오작동 → Python으로만 검증
+  print(open('파일경로', 'rb').read().count(b'\x00'))  # 0 이어야 정상
   ```
 - 발생 시 복구: `python3 -c "open('f','wb').write(open('f','rb').read().replace(b'\x00',b''))"`
 
@@ -647,7 +683,7 @@ grade = {listing.grade}
   print('이중:', len(d), '쌍', d)
   "
   ```
-- [ ] **NUL 바이트 검사**: `grep -c $'\x00' 파일경로` → 0 이어야 함
+- [ ] **NUL 바이트 검사**: `python3 -c "print(open('파일경로','rb').read().count(b'\x00'))"` → 0 이어야 함 (grep 사용 금지)
 - [ ] **ESLint Parsing error 검사**: `npx eslint 파일경로 2>&1 | grep Parsing`
 
 ### 안전한 style→Tailwind 변환 방법
@@ -675,9 +711,9 @@ PYEOF
 
 ```python
 # ❌ 이렇게 하지 말 것 — 전체 파일 순회 + regex
-for f in Path('src').rglob('*.tsx'):          # 전체 순회 금지
+for f in Path('src').rglob('*.tsx'):  # 전체 순회 금지
     c = re.sub(r"style=\{\{[^\}]+\}\}", ...)  # 멀티라인 regex 금지
-    open(f, 'w').write(c)                     # 검증 없는 write 금지
+    open(f, 'w').write(c)  # 검증 없는 write 금지
 ```
 
 ### import alias 규칙

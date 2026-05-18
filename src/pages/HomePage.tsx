@@ -18,6 +18,7 @@ import {resolveImageUrl} from '../utils/image'
 import type {PostCard} from '../features/listing/api/listingApi'
 import {getListings, toggleWish} from '../features/listing/api/listingApi'
 import type {Grade, HomeFilter, SportFilter,} from '../types/listing'
+import ConditionBadge from '../components/ui/ConditionBadge'
 
 // ── 종목 카테고리 ──────────────────────────────────────────────────────────────
 
@@ -47,22 +48,6 @@ const SORT_OPTIONS: { key: HomeFilter['sort']; label: string }[] = [
 
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
 
-
-/** 등급별 배경색 */
-function gradeStyle(grade: Grade): React.CSSProperties {
-  const map: Record<Grade, string> = {
-    S: 'var(--color-primary)',
-    A: 'var(--color-accent)',
-    B: 'var(--color-text-sub)',
-    C: 'var(--color-text-hint)',
-  }
-  return {
-    background: map[grade],
-    color: '#fff',
-    // Tier 1: 등급 레이블(S/A/B/C)은 영문 단독 → IAMAPLAYER
-    fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-  }
-}
 
 // ── 유니폼 SVG 일러스트 ────────────────────────────────────────────────────────
 
@@ -149,12 +134,7 @@ function ProductCard({item, onLike}: ProductCardProps) {
         style={{height: 160, background: 'var(--color-surface-sunken)'}}
       >
         {/* 등급 배지 */}
-        <span
-          className="absolute top-2.5 left-2.5 text-[12px] font-bold px-1.5 py-0.5 rounded-[5px]"
-          style={gradeStyle(item.grade)}
-        >
-          {item.grade}
-        </span>
+        <ConditionBadge grade={item.grade} size="sm" className="absolute top-2.5 left-2.5"/>
         
         {/* 유니폼 이미지: 실제 썸네일 우선, 없으면 색상 폴백
              resolveImageUrl: bare filename·미확인 도메인 → null 처리 */}
