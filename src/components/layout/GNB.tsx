@@ -392,10 +392,11 @@ function NotificationButton({className}: { className?: string }) {
 }
 
 // ── 네비게이션 아이템 ─────────────────────────────────────────────────────────
-// '홈'과 '마켓'을 '/' 하나로 통합 — 홈 피드가 곧 마켓 리스팅 페이지 (2026-05-14)
-// /search 는 키워드 검색 전용 페이지로만 사용
+// 홈(/) — 브랜드 소개 + 피처 리스팅 허브
+// 마켓(/search) — 전체 검색·필터 마켓플레이스
 const NAV_ITEMS = [
-  {id: 'market', label: '마켓', path: '/'},
+  {id: 'home', label: '홈', path: '/'},
+  {id: 'market', label: '마켓', path: '/search'},
   {id: 'community', label: '커뮤니티', path: '/community'},
   {id: 'chat', label: '채팅', path: '/chat'},
   {id: 'mypage', label: '마이페이지', path: '/mypage'},
@@ -408,9 +409,9 @@ export default function GNB() {
   const {isAuthenticated} = useAuthStore()
   
   const getActiveId = () => {
-    // '/' (홈 = 마켓 리스팅) → 'market'
-    if (location.pathname === '/') return 'market'
-    // /search는 키워드 검색 전용 — nav active 없음
+    // '/' → 홈, '/search' → 마켓
+    if (location.pathname === '/') return 'home'
+    if (location.pathname.startsWith('/search')) return 'market'
     if (location.pathname.startsWith('/community')) return 'community'
     if (location.pathname.startsWith('/chat')) return 'chat'
     if (location.pathname.startsWith('/mypage')) return 'mypage'

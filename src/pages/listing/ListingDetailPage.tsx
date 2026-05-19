@@ -605,8 +605,16 @@ export default function ListingDetailPage() {
     enabled: isOwnListing,
     staleTime: 30_000,
   })
-  // 이 게시글에 연결된 활성 거래 (있으면 거래 관리 버튼, 없으면 수정 버튼)
-  const activeTradeForPost = sellerTrades?.content.find(t => t.post.postId === postId)
+  // 이 게시글에 연결된 활성 거래 — ACCEPTED 이상 상태일 때만 "잠김" 처리
+  // REQUESTED(요청됨) 상태는 아직 수락 전이므로 잠금 대상에서 제외:
+  //   - 판매자는 수락 전에 다른 요청을 자유롭게 볼 수 있어야 함
+  //   - 게시글은 수락(ACCEPTED) 시점에 RESERVED 처리됨 (백엔드 acceptTrade 기준)
+  const LOCKED_TRADE_STATUSES: import('../../types/listing').TradeStatus[] = [
+    'ACCEPTED', 'PAID', 'IN_PROGRESS', 'RECEIVED', 'CONFIRMED', 'COMPLETED', 'DISPUTED',
+  ]
+  const activeTradeForPost = sellerTrades?.content.find(
+    t => t.post.postId === postId && LOCKED_TRADE_STATUSES.includes(t.status)
+  )
   
   /**
    * 찜 토글 핸들러

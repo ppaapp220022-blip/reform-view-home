@@ -1317,3 +1317,22 @@ print('총',total,'쌍')
 python3 -c "from pathlib import Path; [print(f,open(f,'rb').read().count(b'\x00')) for f in Path('src').rglob('*.tsx') if open(f,'rb').read().count(b'\x00')]"
 npx eslint src/ 2>&1 | grep -B1 "Parsing error" | grep "\.tsx"
 ```
+
+## 2026-05-19 기능 개선 작업 (2차)
+
+### 완료된 항목
+- [done] **배송지 미입력 시 결제 버튼 잠금** — TradePage ACCEPTED 구매자: deliveryType=DELIVERY && !deliveryAddress 일 때 경고 배너 + disabled 버튼 표시
+- [done] **판매자 거래 거절 기능** — TradePage REQUESTED 판매자: 2단계 확인 UI (거절하기 → 확인 모달) + `cancelTrade` API (PATCH /api/trades/{id}/cancel) 추가
+  - ⚠ 백엔드에 `/cancel` 엔드포인트 미구현 — 프론트 UI만 완성, 백엔드 구현 필요
+- [done] **거래 잠금 조건 변경** — ListingDetailPage: `activeTradeForPost` 필터를 ACCEPTED 이상 상태만으로 제한 (REQUESTED는 잠금 제외)
+- [done] **채팅 상대방 메시지 골드 버블** — TradePage EmbeddedChatInner: 상대방 버블 `surface-raised` → `rgba(255,184,0,.10)` + gold 테두리
+  - ChatPage MessageBubble은 이전 세션에 이미 gold 적용됨
+- [done] **판매자 출금 페이지 안내** — TradePage CONFIRMED/COMPLETED 판매자: 골드 배너 + `/mypage`(state:{tab:'points'}) 링크 버튼
+- [done] **SearchPage 실제 DB 데이터 연동** — 목 데이터(ALL_LISTINGS) 전면 제거, `getListings` useQuery로 교체
+  - PostCard 기반 ProductCard 컴포넌트 재작성 (thumbnailUrl 실제 이미지 우선)
+  - 찜 낙관적 UI (`wishedOverride` Map)
+  - 페이지네이션 (`page` state + "더 보기" 버튼, hasMore 조건)
+  - 사이즈 필터는 클라이언트 측 필터링 (API 파라미터 미지원)
+- [done] `tradeApi.ts` — `cancelTrade(tradeId)` 함수 추가
+- [done] `TradeConfirmPage.tsx` — 미사용 `[courierName, setCourierName]` state 제거
+- [done] ESLint: 0 errors / tsc: 0 errors

@@ -9,20 +9,21 @@
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
  * 데이터: 목 데이터 (백엔드 미연동)
  */
-import {useCallback, useState} from 'react'
+import {useState} from 'react'
 import {Link} from 'react-router-dom'
-import {AlertCircle, Heart, SlidersHorizontal} from 'lucide-react'
+import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, SlidersHorizontal, X} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {formatPrice} from '../utils/format'
 import {resolveImageUrl} from '../utils/image'
 import type {PostCard} from '../features/listing/api/listingApi'
 import {getListings, toggleWish} from '../features/listing/api/listingApi'
-import type {Grade, HomeFilter, SportFilter,} from '../types/listing'
+import type {DeliveryType, Grade, Sport} from '../types/listing'
 import ConditionBadge from '../components/ui/ConditionBadge'
+import Pagination from '../components/ui/Pagination'
 
-// ── 종목 카테고리 ──────────────────────────────────────────────────────────────
+// ── 필터 상수 ─────────────────────────────────────────────────────────────────
 
-const SPORT_TABS: { key: SportFilter; label: string }[] = [
+const SPORT_OPTIONS: { key: Sport | 'all'; label: string }[] = [
   {key: 'all', label: '전체'},
   {key: 'BASEBALL', label: '야구'},
   {key: 'SOCCER', label: '축구'},
@@ -32,14 +33,24 @@ const SPORT_TABS: { key: SportFilter; label: string }[] = [
   {key: 'ETC', label: '기타'},
 ]
 
-const GRADES: { key: Grade | 'all'; label: string }[] = [
+const GRADE_OPTIONS: { key: Grade | 'all'; label: string }[] = [
   {key: 'all', label: '전체'},
   {key: 'S', label: 'S급'},
   {key: 'A', label: 'A급'},
   {key: 'B', label: 'B급'},
   {key: 'C', label: 'C급'},
 ]
-const SORT_OPTIONS: { key: HomeFilter['sort']; label: string }[] = [
+
+const SIZE_OPTIONS = ['전체', 'XS', 'S', 'M', 'L', 'XL', 'XXL']
+
+const DELIVERY_OPTIONS: { key: DeliveryType | 'all'; label: string }[] = [
+  {key: 'all', label: '전체'},
+  {key: 'DELIVERY', label: '택배'},
+  {key: 'DIRECT', label: '직거래'},
+  {key: 'BOTH', label: '모두 가능'},
+]
+
+const SORT_OPTIONS = [
   {key: 'latest', label: '최신순'},
   {key: 'popular', label: '인기순'},
   {key: 'price_asc', label: '낮은가격'},
@@ -49,175 +60,93 @@ const SORT_OPTIONS: { key: HomeFilter['sort']; label: string }[] = [
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
 
 
-// ── 유니폼 SVG 일러스트 ────────────────────────────────────────────────────────
 
-interface JerseyProps {
-  color: string
-  number?: string
-  size?: 'sm' | 'lg'
-}
+
+// ── 상품 카드 (SearchPage와 동일한 스타일) ───────────────────────────────────
 
 /**
- * Jersey — CSS 유니폼 형태 일러스트
- * 와이어프레임의 .j 계열 클래스를 SVG/JSX로 재현
+ * ProductCard — SearchPage와 동일한 4/5 비율·네이비 배경·외부 찜버튼 구조
+ * isWished: wishedOverride 적용 후 최종 찜 상태
  */
-function Jersey({color, number, size = 'sm'}: JerseyProps) {
-  const w = size === 'lg' ? 80 : 52
-  const h = size === 'lg' ? 96 : 64
-  const sw = size === 'lg' ? 20 : 13  // sleeve width
-  const sh = size === 'lg' ? 32 : 22  // sleeve height
-  const numSize = size === 'lg' ? 32 : 20
-  
-  return (
-    <svg
-      width={w + sw * 2}
-      height={h}
-      viewBox={`0 0 ${w + sw * 2} ${h}`}
-      aria-hidden="true"
-      style={{overflow: 'visible'}}
-    >
-      {/* 왼쪽 소매 */}
-      <rect x={0} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9}/>
-      {/* 오른쪽 소매 */}
-      <rect x={w + sw} y={0} width={sw} height={sh} rx={4} fill={color} opacity={0.9}/>
-      {/* 몸통 */}
-      <rect x={sw} y={0} width={w} height={h} rx={4} fill={color}/>
-      {/* 가로 스트라이프 */}
-      <rect x={sw} y={size === 'lg' ? 24 : 16} width={w} height={size === 'lg' ? 6 : 4} fill="rgba(255,255,255,0.2)"/>
-      {/* 등번호 */}
-      {number && (
-        <text
-          x={sw + w / 2}
-          y={size === 'lg' ? 70 : 48}
-          textAnchor="middle"
-          fontSize={numSize}
-          fill="rgba(255,255,255,0.35)"
-          fontFamily="Giants, sans-serif"
-        >
-          {number}
-        </text>
-      )}
-    </svg>
-  )
-}
-
-// ── 상품 카드 ─────────────────────────────────────────────────────────────────
-
-interface ProductCardProps {
+function ProductCard({
+  item,
+  isWished,
+  onLike,
+}: {
   item: PostCard
-  onLike: (id: number) => void
-}
-
-/** 팀별 고정 색상 (실제 이미지 없을 때 폴백) */
-const JERSEY_COLORS = [
-  '#B5222B', '#1A3051', '#034694', '#1A7A40', '#A50044',
-  '#6B0078', '#C8102E', '#003087', '#002147', '#E3001B',
-]
-
-function fallbackColor(id: number) {
-  return JERSEY_COLORS[id % JERSEY_COLORS.length]
-}
-
-function ProductCard({item, onLike}: ProductCardProps) {
+  isWished: boolean
+  onLike: (postId: number) => void
+}) {
+  const imgSrc = resolveImageUrl(item.thumbnailUrl)
   return (
-    <Link
-      to={`/listing/${item.postId}`}
-      className="block no-underline rounded-[var(--r-card)] overflow-hidden hover:border-[var(--color-border-strong)] transition-colors"
-      style={{
-        background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-      }}
+    <article
+      className="rounded-xl overflow-hidden transition-shadow hover:shadow-md relative"
+      style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
     >
-      {/* 이미지 영역 */}
-      <div
-        className="relative flex items-center justify-center"
-        style={{height: 160, background: 'var(--color-surface-sunken)'}}
-      >
-        {/* 등급 배지 */}
-        <ConditionBadge grade={item.grade} size="sm" className="absolute top-2.5 left-2.5"/>
-        
-        {/* 유니폼 이미지: 실제 썸네일 우선, 없으면 색상 폴백
-             resolveImageUrl: bare filename·미확인 도메인 → null 처리 */}
-        {resolveImageUrl(item.thumbnailUrl) ? (
-          <img
-            src={resolveImageUrl(item.thumbnailUrl)!}
-            alt={item.title}
-            className="w-full h-full object-cover"
-            style={{position: 'absolute', inset: 0}}
-            onError={(e) => {
-              // 이미지 로드 실패 시 숨기고 폴백 표시
-              ;(e.currentTarget as HTMLImageElement).style.display = 'none'
-            }}
-          />
-        ) : (
-          <Jersey color={fallbackColor(item.postId)} number={String(item.postId % 99)}/>
-        )}
-        
-        {/* 찜 버튼 */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            onLike(item.postId)
-          }}
-          className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-          style={{
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid var(--color-border)',
-          }}
-          aria-label="찜하기"
-        >
-          <Heart
-            size={13}
-            strokeWidth={1.75}
-            style={{
-              color: item.isWished ? 'var(--color-accent)' : 'var(--color-text-hint)',
-              fill: item.isWished ? 'var(--color-accent)' : 'none',
-            }}
-          />
-        </button>
-      </div>
-      
-      {/* 정보 영역 */}
-      <div className="p-3">
-        <p
-          className="text-[12px] font-medium uppercase tracking-[0.5px] mb-1"
-          style={{color: 'var(--color-text-hint)'}}
-        >
-          {item.team} · {item.sport}
-        </p>
-        <p
-          className="text-[14px] font-medium leading-snug mb-2 line-clamp-2"
-          style={{color: 'var(--color-text-main)'}}
-        >
-          {item.title}
-        </p>
-        <p
-          className="text-[16px] font-medium"
-          style={{
-            color: 'var(--color-primary)',
-            // Tier 1: 가격(₩ + 숫자)은 IAMAPLAYER
-            fontFamily: "'IAMAPLAYER',Giants,sans-serif",
-          }}
-        >
-          {formatPrice(item.price)}
-        </p>
-        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-          <span
-            className="text-[12px] px-1.5 py-0.5 rounded-full"
-            style={{
-              border: '1px solid var(--color-border-strong)',
-              color: 'var(--color-text-sub)',
-            }}
-          >
-            {item.size}
-          </span>
-          <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
-            {item.timeAgo}
-          </span>
+      <Link to={`/listing/${item.postId}`} className="block no-underline">
+        {/* 썸네일 — API 이미지 우선, 없으면 네이비 플레이스홀더 */}
+        <div className="relative" style={{aspectRatio: '4/5', background: '#1A3051'}}>
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={item.title}
+              className="w-full h-full object-cover"
+              onError={e => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          ) : (
+            <>
+              {/* 대각선 스트라이프 배경 */}
+              <div
+                className="absolute inset-0"
+                style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}
+              />
+              {/* 등번호 워터마크 */}
+              <span
+                className="absolute inset-0 flex items-center justify-center select-none"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 80, color: 'rgba(255,255,255,.13)'}}
+              >
+                {item.postId % 99}
+              </span>
+            </>
+          )}
+          {/* 등급 배지 */}
+          <ConditionBadge grade={item.grade} size="sm" className="absolute top-2 left-2"/>
         </div>
-      </div>
-    </Link>
+
+        {/* 정보 영역 */}
+        <div className="p-3">
+          <p className="text-[13px] mb-0.5" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
+          <p className="text-sm font-semibold leading-snug line-clamp-2" style={{color: 'var(--color-text-main)'}}>
+            {item.title}
+          </p>
+          <div className="flex items-center justify-between mt-2">
+            <span
+              className="font-bold text-sm"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
+              {formatPrice(item.price)}
+            </span>
+            <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>{item.timeAgo}</span>
+          </div>
+        </div>
+      </Link>
+
+      {/* 찜 버튼 — Link 바깥 (article 위에 absolute) */}
+      <button
+        onClick={() => onLike(item.postId)}
+        className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+        style={{background: 'rgba(255,255,255,.88)'}}
+        aria-label="찜하기"
+      >
+        <Heart
+          size={15}
+          fill={isWished ? 'var(--color-accent)' : 'none'}
+          color={isWished ? 'var(--color-accent)' : '#0D1B2A'}
+        />
+      </button>
+    </article>
   )
 }
 
@@ -297,13 +226,23 @@ function HeroSection() {
           </div>
         </div>
         
-        {/* 유니폼 일러스트 (데스크탑만) */}
-        <div className="hidden md:flex items-center justify-center w-56 flex-shrink-0 relative">
-          <div style={{transform: 'rotate(-4deg)', opacity: 0.9}}>
-            <Jersey color="#B5222B" number="7" size="lg"/>
+        {/* 장식 일러스트 (데스크탑만) — 대각선 패턴 + 숫자 워터마크 */}
+        <div className="hidden md:flex items-center justify-center w-56 flex-shrink-0 relative select-none">
+          <div
+            className="w-36 h-44 rounded-2xl relative overflow-hidden"
+            style={{transform: 'rotate(-4deg)', background: '#B5222B', opacity: 0.9}}
+          >
+            <div className="absolute inset-0"
+                 style={{backgroundImage: 'repeating-linear-gradient(115deg,rgba(255,255,255,.07) 0 2px,transparent 2px 16px)'}}/>
+            <span className="absolute inset-0 flex items-end justify-center pb-4"
+                  style={{fontFamily:"'IAMAPLAYER',Giants,sans-serif",fontSize:64,color:'rgba(255,255,255,.25)'}}>7</span>
           </div>
-          <div className="absolute right-6 -bottom-4" style={{transform: 'rotate(6deg)', opacity: 0.45, zIndex: 0}}>
-            <Jersey color="#ffffff" number="" size="lg"/>
+          <div
+            className="absolute right-6 -bottom-4 w-28 h-36 rounded-2xl overflow-hidden"
+            style={{transform: 'rotate(6deg)', background: 'rgba(255,255,255,.12)', zIndex: 0}}
+          >
+            <div className="absolute inset-0"
+                 style={{backgroundImage: 'repeating-linear-gradient(115deg,rgba(255,255,255,.07) 0 2px,transparent 2px 16px)'}}/>
           </div>
         </div>
       </div>
@@ -311,278 +250,466 @@ function HeroSection() {
   )
 }
 
-// ── 필터 사이드바 ─────────────────────────────────────────────────────────────
 
-interface FilterSidebarProps {
-  filter: HomeFilter
-  onChange: (f: HomeFilter) => void
+
+// ── 필터 섹션 (SearchPage와 동일한 구조) ─────────────────────────────────────
+
+/**
+ * FilterSection — 접을 수 있는 필터 그룹 래퍼
+ * SearchPage의 FilterSection과 동일한 컴포넌트
+ */
+function FilterSection({title, children, collapsible, open, onToggle}: {
+  title: string
+  children: React.ReactNode
+  collapsible?: boolean
+  open?: boolean
+  onToggle?: () => void
+}) {
+  return (
+    <div style={{padding: '14px 16px', borderBottom: '1px solid var(--color-border)'}}>
+      <button
+        className="w-full flex items-center justify-between mb-2"
+        onClick={collapsible ? onToggle : undefined}
+        style={{cursor: collapsible ? 'pointer' : 'default'}}
+      >
+        <span
+          className="text-xs font-semibold tracking-widest"
+          style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+        >
+          {title}
+        </span>
+        {collapsible && (open
+          ? <ChevronUp size={14} color="var(--color-text-hint)"/>
+          : <ChevronDown size={14} color="var(--color-text-hint)"/>
+        )}
+      </button>
+      {(!collapsible || open) && children}
+    </div>
+  )
 }
 
-function FilterSidebar({filter, onChange}: FilterSidebarProps) {
-  function set<K extends keyof HomeFilter>(key: K, value: HomeFilter[K]) {
-    onChange({...filter, [key]: value})
-  }
-  
+/**
+ * FilterContent — 필터 패널 내용 (SearchPage와 동일한 디자인)
+ * 데스크탑 사이드바 & 모바일 드로어 양쪽에서 공용
+ */
+function FilterContent({
+  sport, setSport,
+  grade, setGrade,
+  size, setSize,
+  delivery, setDelivery,
+  maxPrice, setMaxPrice,
+  onReset,
+}: {
+  sport: Sport | 'all'
+  setSport: (v: Sport | 'all') => void
+  grade: Grade | 'all'
+  setGrade: (v: Grade | 'all') => void
+  size: string
+  setSize: (v: string) => void
+  delivery: DeliveryType | 'all'
+  setDelivery: (v: DeliveryType | 'all') => void
+  maxPrice: number
+  setMaxPrice: (v: number) => void
+  onReset: () => void
+}) {
   return (
-    <aside
-      className="w-[220px] flex-shrink-0 py-5"
-      style={{
-        background: 'var(--color-surface)',
-        borderRight: '1px solid var(--color-border)',
-      }}
-    >
-      
-      {/* 종목 — 수직 탭 리스트 */}
-      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2"
-         style={{color: 'var(--color-text-hint)'}}>종목</p>
-      <div className="flex flex-col">
-        {SPORT_TABS.map(({key, label}) => {
-          const isActive = filter.sport === key
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => set('sport', key)}
-              className="flex items-center gap-2 px-5 h-9 text-[14px] text-left transition-colors"
-              style={{
-                color: isActive ? 'var(--color-accent)' : 'var(--color-text-sub)',
-                fontWeight: isActive ? 600 : 400,
-                background: isActive ? 'rgba(255,46,77,.06)' : 'transparent',
-                borderLeft: isActive ? '2px solid var(--color-accent)' : '2px solid transparent',
-              }}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-      
-      {/* 컨디션 */}
-      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
-         style={{color: 'var(--color-text-hint)'}}>컨디션</p>
-      <div className="flex gap-2 px-5 flex-wrap">
-        {GRADES.map(({key, label}) => {
-          const isActive = filter.grade === key
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => set('grade', key)}
-              className="text-[13px] px-2.5 py-1 rounded transition-colors"
-              style={{
-                background: isActive ? 'var(--color-primary)' : 'transparent',
-                color: isActive ? '#fff' : 'var(--color-text-sub)',
-                border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border-strong)'}`,
-              }}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-      
-      {/* 거래 방식 */}
-      <p className="text-[12px] font-medium uppercase tracking-[1px] px-5 mb-2 mt-5"
-         style={{color: 'var(--color-text-hint)'}}>거래 방식</p>
-      <div className="flex gap-2 px-5">
-        {([['all', '전체'], ['DELIVERY', '택배'], ['DIRECT', '직거래']] as const).map(([key, label]) => {
-          const isActive = filter.deliveryType === key
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => set('deliveryType', key)}
-              className="text-[13px] px-2.5 py-1 rounded transition-colors"
-              style={{
-                background: isActive ? 'var(--color-primary)' : 'transparent',
-                color: isActive ? '#fff' : 'var(--color-text-sub)',
-                border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border-strong)'}`,
-              }}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-      
-      {/* 적용 버튼 */}
-      <div className="px-4 mt-6">
+    <div className="flex flex-col h-full">
+      {/* 필터 헤더 */}
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b"
+        style={{borderColor: 'var(--color-border)'}}
+      >
+        <span className="text-sm font-display font-bold" style={{color: 'var(--color-text-main)'}}>필터</span>
         <button
-          type="button"
-          className="w-full h-8 text-[13px] font-medium text-white rounded-[7px] transition-opacity hover:opacity-90"
-          style={{background: 'var(--color-accent)'}}
+          onClick={onReset}
+          className="flex items-center gap-1 text-xs transition-colors"
+          style={{color: 'var(--color-accent)'}}
         >
-          필터 적용
+          <RotateCcw size={12}/>초기화
         </button>
       </div>
-    </aside>
+
+      {/* 종목 */}
+      <FilterSection title="SPORT">
+        <div className="flex flex-col gap-0.5">
+          {SPORT_OPTIONS.map(o => (
+            <label key={o.key} className="flex items-center gap-2 py-1.5 cursor-pointer">
+              <input
+                type="radio"
+                checked={sport === o.key}
+                onChange={() => setSport(o.key)}
+                className="accent-[var(--color-primary)]"
+              />
+              <span
+                className="text-sm"
+                style={{
+                  color: sport === o.key ? 'var(--color-text-main)' : 'var(--color-text-sub)',
+                  fontWeight: sport === o.key ? 600 : 400,
+                }}
+              >
+                {o.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* 컨디션 */}
+      <FilterSection title="CONDITION">
+        <div className="grid grid-cols-4 gap-1.5">
+          {GRADE_OPTIONS.map(o => (
+            <button
+              key={o.key}
+              onClick={() => setGrade(o.key)}
+              className="py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={{
+                background: grade === o.key ? 'var(--color-primary)' : 'var(--color-surface-raised)',
+                color: grade === o.key ? '#fff' : 'var(--color-text-sub)',
+                border: `1px solid ${grade === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+              }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* 사이즈 */}
+      <FilterSection title="SIZE">
+        <div className="flex flex-wrap gap-1.5">
+          {SIZE_OPTIONS.map(s => (
+            <button
+              key={s}
+              onClick={() => setSize(s)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+              style={{
+                background: size === s ? 'var(--color-primary)' : 'var(--color-surface-raised)',
+                color: size === s ? '#fff' : 'var(--color-text-sub)',
+                border: `1px solid ${size === s ? 'var(--color-primary)' : 'var(--color-border)'}`,
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* 거래 방식 */}
+      <FilterSection title="TRADE">
+        <div className="flex flex-col gap-0.5">
+          {DELIVERY_OPTIONS.map(o => (
+            <label key={o.key} className="flex items-center gap-2 py-1.5 cursor-pointer">
+              <input
+                type="radio"
+                checked={delivery === o.key}
+                onChange={() => setDelivery(o.key)}
+                className="accent-[var(--color-primary)]"
+              />
+              <span
+                className="text-sm"
+                style={{
+                  color: delivery === o.key ? 'var(--color-text-main)' : 'var(--color-text-sub)',
+                  fontWeight: delivery === o.key ? 600 : 400,
+                }}
+              >
+                {o.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* 가격 범위 */}
+      <FilterSection title="PRICE">
+        <p
+          className="text-sm font-bold mb-2"
+          style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+        >
+          ₩0 — ₩{(maxPrice * 1000).toLocaleString('ko-KR')}
+        </p>
+        <input
+          type="range"
+          min={10}
+          max={300}
+          value={maxPrice}
+          onChange={e => setMaxPrice(Number(e.target.value))}
+          className="w-full"
+          style={{accentColor: 'var(--color-accent)'}}
+        />
+      </FilterSection>
+    </div>
   )
 }
 
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const [filter, setFilter] = useState<HomeFilter>({
-    sport: 'all',
-    grade: 'all',
-    deliveryType: 'all',
-    sort: 'latest',
-  })
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set())
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
-  
-  /**
-   * 찜 토글 핸들러
-   * 낙관적 UI: 즉시 likedIds 상태 반전 → toggleWish API 호출 → 실패 시 롤백
-   * likedIds는 "현재 세션에서 서버 기본값을 반전한 id 목록"
-   */
-  const handleLike = useCallback(async (id: number) => {
-    setLikedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
-    try {
-      await toggleWish(id)
-    } catch {
-      /* API 실패 시 낙관적 변경을 롤백 */
-      setLikedIds((prev) => {
-        const next = new Set(prev)
-        if (next.has(id)) {
-          next.delete(id)
-        } else {
-          next.add(id)
-        }
-        return next
-      })
-    }
-  }, [])
-  
-  /* API 쿼리 파라미터 빌드 */
-  const queryParams = {
-    sport: filter.sport !== 'all' ? filter.sport : undefined,
-    condition: filter.grade !== 'all' ? filter.grade as Grade : undefined,
-    tradeType: filter.deliveryType !== 'all' ? filter.deliveryType : undefined,
-    sort: filter.sort,
-    size: 20,
-    page: 0,
+  /* ── 필터 상태 (SearchPage와 동일한 개별 state 방식) ── */
+  const [sport, setSport] = useState<Sport | 'all'>('all')
+  const [grade, setGrade] = useState<Grade | 'all'>('all')
+  const [size, setSize] = useState('전체')              // 클라이언트 측 필터링
+  const [delivery, setDelivery] = useState<DeliveryType | 'all'>('all')
+  const [maxPrice, setMaxPrice] = useState(300)         // 슬라이더: 10~300 (×1000원)
+  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular'>('latest')
+  const [page, setPage] = useState(0)                   // 0-based 페이지
+
+  /* ── UI 상태 ── */
+  const [filterOpen, setFilterOpen] = useState(false)   // 모바일 필터 드로어
+
+  /* ── 찜 낙관적 UI (postId → 최종 찜 여부 오버라이드) ── */
+  const [wishedOverride, setWishedOverride] = useState<Map<number, boolean>>(new Map())
+
+  /* ── 필터 변경 시 page 0 초기화 래퍼 ── */
+  function setSportR(v: Sport | 'all') { setSport(v); setPage(0) }
+  function setGradeR(v: Grade | 'all') { setGrade(v); setPage(0) }
+  function setSizeR(v: string)         { setSize(v);  setPage(0) }
+  function setDeliveryR(v: DeliveryType | 'all') { setDelivery(v); setPage(0) }
+  function setMaxPriceR(v: number)     { setMaxPrice(v); setPage(0) }
+
+  /* ── 필터 전체 초기화 ── */
+  function resetFilter() {
+    setSport('all'); setGrade('all'); setSize('전체')
+    setDelivery('all'); setMaxPrice(300); setPage(0)
   }
-  
-  /* 판매글 목록 조회 */
+
+  /* ── API 파라미터 ── */
+  const queryParams = {
+    sport:     sport    !== 'all'  ? sport    : undefined,
+    condition: grade    !== 'all'  ? grade    : undefined,
+    tradeType: delivery !== 'all'  ? delivery : undefined,
+    maxPrice:  maxPrice < 300      ? maxPrice * 1000 : undefined,
+    sort,
+    page,
+    size: 20,
+  }
+
+  /* ── 판매글 목록 조회 ── */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['listings', queryParams],
     queryFn: () => getListings(queryParams),
-    staleTime: 30_000,  // 30초 동안 재요청 없음
+    staleTime: 30_000,
+    placeholderData: prev => prev,   // 필터 바뀌어도 이전 결과 유지
   })
-  
-  /* 찜 상태를 로컬 토글과 병합 */
-  const listings: PostCard[] = (data?.content ?? []).map((item) => ({
-    ...item,
-    isWished: likedIds.has(item.postId) ? !item.isWished : item.isWished,
-  }))
-  
+
+  /* ── 사이즈 클라이언트 필터 + 찜 오버라이드 병합 ── */
+  const allItems: PostCard[] = data?.content ?? []
+  const results: PostCard[] = size !== '전체'
+    ? allItems.filter(item => item.size === size)
+    : allItems
+
+  const totalPages = data?.totalPages ?? 1
+
+  /* ── 찜 토글 ── */
+  async function toggleLike(postId: number) {
+    const current = wishedOverride.has(postId)
+      ? wishedOverride.get(postId)!
+      : (allItems.find(i => i.postId === postId)?.isWished ?? false)
+    setWishedOverride(prev => new Map(prev).set(postId, !current))
+    try {
+      await toggleWish(postId)
+    } catch {
+      setWishedOverride(prev => new Map(prev).set(postId, current))
+    }
+  }
+
+  function isItemWished(item: PostCard): boolean {
+    return wishedOverride.has(item.postId)
+      ? wishedOverride.get(item.postId)!
+      : item.isWished
+  }
+
+  /* ── 활성 필터 수 (모바일 배지용) ── */
+  const activeFilterCount = [
+    sport !== 'all', grade !== 'all',
+    size !== '전체', delivery !== 'all', maxPrice < 300,
+  ].filter(Boolean).length
+
+  /* ── FilterContent에 전달할 props ── */
+  const filterProps = {
+    sport, setSport: setSportR,
+    grade, setGrade: setGradeR,
+    size,  setSize:  setSizeR,
+    delivery, setDelivery: setDeliveryR,
+    maxPrice, setMaxPrice: setMaxPriceR,
+    onReset: resetFilter,
+  }
+
   return (
     <div style={{background: 'var(--color-bg)'}}>
-      {/* 히어로 */}
+      {/* ── 히어로 ── */}
       <HeroSection/>
-      
-      {/* 본문 */}
-      <div className="flex max-w-[1280px] mx-auto" style={{minHeight: 500}}>
-        {/* 사이드바 — md 이상에서만 표시 */}
-        <div className="hidden md:block">
-          <FilterSidebar filter={filter} onChange={setFilter}/>
+
+      {/* ── 모바일 필터 드로어 오버레이 ── */}
+      {filterOpen && (
+        <div
+          className="fixed inset-0 z-40 md:hidden"
+          style={{background: 'rgba(13,27,42,.45)', backdropFilter: 'blur(2px)'}}
+          onClick={() => setFilterOpen(false)}
+        />
+      )}
+      {/* ── 모바일 필터 드로어 ── */}
+      <div
+        className="fixed left-0 top-0 bottom-0 z-50 md:hidden w-72 overflow-y-auto transition-transform duration-300"
+        style={{
+          background: 'var(--color-surface)',
+          transform: filterOpen ? 'translateX(0)' : 'translateX(-100%)',
+          boxShadow: filterOpen ? '4px 0 24px rgba(0,33,71,.18)' : 'none',
+        }}
+      >
+        <div
+          className="flex items-center justify-between px-4 py-4"
+          style={{borderBottom: '1px solid var(--color-border)'}}
+        >
+          <span className="font-display font-bold" style={{color: 'var(--color-text-main)'}}>필터</span>
+          <button onClick={() => setFilterOpen(false)} aria-label="닫기">
+            <X size={20} color="var(--color-text-sub)"/>
+          </button>
         </div>
-        
-        {/* 콘텐츠 */}
-        <main className="flex-1 min-w-0 px-6 py-6">
-          {/* 필터 행 */}
-          <div className="flex items-center gap-3 mb-5 flex-wrap">
-            <span className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
-              상품 <strong style={{color: 'var(--color-text-main)'}}>{data?.totalElements ?? 0}</strong>개
-            </span>
-            
-            {/* 모바일 필터 버튼 */}
-            <button
-              type="button"
-              onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-              className="md:hidden flex items-center gap-1.5 text-[14px] px-3 h-8 rounded-[7px] transition-colors"
-              style={{
-                border: '1px solid var(--color-border-strong)',
-                color: 'var(--color-text-sub)',
-              }}
-            >
-              <SlidersHorizontal size={14} strokeWidth={1.75}/>
-              필터
-            </button>
-            
-            {/* 정렬 */}
-            <div className="flex gap-4 ml-auto">
-              {SORT_OPTIONS.map(({key, label}) => (
+        <FilterContent {...filterProps}/>
+        <div className="p-4">
+          <button
+            className="w-full py-3 rounded-xl font-bold text-sm text-white"
+            style={{background: 'var(--color-primary)'}}
+            onClick={() => setFilterOpen(false)}
+          >
+            적용하기
+          </button>
+        </div>
+      </div>
+
+      {/* ── 본문 ── */}
+      <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6">
+        <div className="flex gap-6">
+
+          {/* 데스크탑 필터 사이드바 */}
+          <aside
+            className="hidden md:block flex-shrink-0 rounded-2xl overflow-hidden sticky self-start"
+            style={{
+              width: 220,
+              top: 72,
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              boxShadow: '0 4px 12px -2px rgba(0,33,71,.08)',
+            }}
+          >
+            <FilterContent {...filterProps}/>
+          </aside>
+
+          {/* 결과 영역 */}
+          <div className="flex-1 min-w-0">
+            {/* 정렬 + 모바일 필터 버튼 */}
+            <div className="flex items-center justify-between mb-4 gap-3">
+              <div className="flex items-center gap-3">
+                {/* 모바일 필터 버튼 */}
                 <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter((f) => ({...f, sort: key}))}
-                  className="text-[14px] transition-colors"
+                  onClick={() => setFilterOpen(true)}
+                  className="md:hidden flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium relative"
                   style={{
-                    color: filter.sort === key ? 'var(--color-accent)' : 'var(--color-text-hint)',
-                    fontWeight: filter.sort === key ? 500 : 400,
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-sub)',
                   }}
                 >
-                  {label}
+                  <SlidersHorizontal size={15}/>
+                  필터
+                  {activeFilterCount > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[12px] font-bold text-white flex items-center justify-center"
+                      style={{background: 'var(--color-accent)'}}
+                    >
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </button>
-              ))}
+                <span className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                  <span
+                    className="font-bold"
+                    style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                  >
+                    {data?.totalElements ?? results.length}
+                  </span>개 상품
+                </span>
+              </div>
+
+              {/* 정렬 버튼 */}
+              <div className="flex gap-1.5 flex-wrap">
+                {SORT_OPTIONS.map(o => (
+                  <button
+                    key={o.key}
+                    onClick={() => { setSort(o.key as typeof sort); setPage(0) }}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',
+                      color: sort === o.key ? '#fff' : 'var(--color-text-sub)',
+                      border: `1px solid ${sort === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                    }}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-          
-          {/* 상품 그리드 — 2열(모바일) / 3열(md) / 4열(lg) / 5열(xl) */}
-          {isLoading ? (
-            /* 스켈레톤 로딩 */
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
-              {Array.from({length: 10}).map((_, i) => (
-                <div key={i} className="rounded-[var(--r-card)] overflow-hidden animate-pulse"
-                     style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
-                  <div style={{height: 160, background: 'var(--color-surface-raised)'}}/>
-                  <div className="p-3 flex flex-col gap-2">
-                    <div className="h-3 rounded" style={{background: 'var(--color-surface-raised)', width: '60%'}}/>
-                    <div className="h-4 rounded" style={{background: 'var(--color-surface-raised)'}}/>
-                    <div className="h-5 rounded" style={{background: 'var(--color-surface-raised)', width: '40%'}}/>
-                  </div>
+
+            {/* 로딩 */}
+            {isLoading && (
+              <div className="flex justify-center py-20">
+                <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
+              </div>
+            )}
+
+            {/* 에러 */}
+            {isError && !isLoading && (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <p className="font-display font-bold text-base" style={{color: 'var(--color-text-main)'}}>
+                  데이터를 불러오지 못했습니다
+                </p>
+                <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>잠시 후 다시 시도해주세요.</p>
+              </div>
+            )}
+
+            {/* 상품 그리드 or 빈 상태 */}
+            {!isLoading && !isError && (
+              results.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <p className="font-display font-bold text-base mb-1" style={{color: 'var(--color-text-main)'}}>
+                    조건에 맞는 상품이 없어요
+                  </p>
+                  <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>필터를 조정해 다시 검색해 보세요.</p>
+                  <button
+                    onClick={resetFilter}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                    style={{background: 'var(--color-primary)'}}
+                  >
+                    필터 초기화
+                  </button>
                 </div>
-              ))}
-            </div>
-          ) : isError ? (
-            /* 에러 상태 */
-            <div className="py-16 text-center flex flex-col items-center gap-3">
-              <AlertCircle size={32} color="var(--color-error)"/>
-              <p className="text-[15px] font-medium" style={{color: 'var(--color-text-main)'}}>
-                상품을 불러오지 못했습니다
-              </p>
-              <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
-                잠시 후 다시 시도해주세요.
-              </p>
-            </div>
-          ) : listings.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 mb-8">
-              {listings.map((item) => (
-                <ProductCard key={item.postId} item={item} onLike={handleLike}/>
-              ))}
-            </div>
-          ) : (
-            <div className="py-16 text-center">
-              <p className="text-[15px] font-medium mb-2" style={{color: 'var(--color-text-main)'}}>
-                조건에 맞는 상품이 없어요.
-              </p>
-              <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
-                필터를 조정해 다시 검색해 보세요.
-              </p>
-            </div>
-          )}
-        
-        </main>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {results.map(item => (
+                    <ProductCard
+                      key={item.postId}
+                      item={item}
+                      isWished={isItemWished(item)}
+                      onLike={toggleLike}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* 페이지네이션 */}
+            {!isLoading && totalPages > 1 && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={p => {
+                  setPage(p)
+                  window.scrollTo({top: 0, behavior: 'smooth'})
+                }}
+              />
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

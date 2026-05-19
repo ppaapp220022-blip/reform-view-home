@@ -199,7 +199,6 @@ function ShippingInputForm({
   const queryClient = useQueryClient()
   const [couriers, setCouriers] = useState<Courier[]>([])
   const [courierCode, setCourierCode] = useState('')
-  const [courierName, setCourierName] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
   const [loadingCouriers, setLoadingCouriers] = useState(false)
   const [expanded, setExpanded] = useState(false)
