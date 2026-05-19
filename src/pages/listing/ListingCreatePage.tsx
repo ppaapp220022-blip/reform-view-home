@@ -13,7 +13,18 @@
  */
 import {formatPrice} from '../../utils/format'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {deletePostDraft, getPostDraft, savePostDraft} from '../../features/listing/api/draftApi'
+import {
+  deletePostDraft,
+  getPostDraft,
+  savePostDraft,
+  type DraftModeration,
+} from '../../features/listing/api/draftApi'
+import {
+  createListing,
+  suggestListingFromImage,
+  uploadListingImages,
+} from '../../features/listing/api/listingApi'
+import {resolveImageUrl} from '../../utils/image'
 import {AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Loader2, Sparkles, Upload, X,} from 'lucide-react'
 import {useNavigate} from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
@@ -46,17 +57,6 @@ const DELIVERY_OPTIONS: { key: DeliveryType; label: string; desc: string }[] = [
   {key: 'BOTH', label: '모두', desc: '택배 + 직거래'},
 ]
 
-/** 위험 키워드 → 레벨 매핑 (실제 AI 대신 클라이언트 단순 탐지) */
-const RISK_KEYWORDS: { word: string; level: RiskLevel; msg: string }[] = [
-  {word: '선불', level: 'HIGH', msg: '선불 요청은 사기 위험도가 매우 높습니다.'},
-  {word: '계좌이체', level: 'HIGH', msg: '직접 계좌이체를 요구하는 거래는 주의가 필요합니다.'},
-  {word: '해외배송', level: 'MID', msg: '해외배송 거래는 분쟁 처리가 어려울 수 있습니다.'},
-  {word: '정품 아님', level: 'MID', msg: '비정품 상품은 판매가 제한될 수 있습니다.'},
-  {word: '가품', level: 'HIGH', msg: '가품 판매는 서비스 약관 위반입니다.'},
-  {word: '도용', level: 'HIGH', msg: '저작권 도용 의심 문구가 감지되었습니다.'},
-]
-
-
 // ── 폼 타입 ──────────────────────────────────────────────────────────────────
 
 interface ListingForm {
@@ -72,14 +72,21 @@ interface ListingForm {
   tradeArea: string
 }
 
+interface DraftImageItem {
+  id: string
+  previewUrl: string
+  uploadedUrl: string | null
+  file: File | null
+}
+
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
 
 /** 이미지 업로드 영역 — 실제 파일 선택 + 미리보기 */
 function ImageUploader({
                          images, onAdd, onRemove,
                        }: {
-  images: File[]                          // 선택된 파일 목록
-  onAdd: (files: File[]) => void          // 파일 추가 콜백
+  images: DraftImageItem[]                // 선택/복원된 이미지 목록
+  onAdd: (files: File[]) => void | Promise<void> // 파일 추가 콜백
   onRemove: (idx: number) => void         // 파일 제거 콜백
 }) {
   const MAX = 8
@@ -113,15 +120,13 @@ function ImageUploader({
         {images.map((file, i) => {
           /* File 객체를 object URL로 변환해 img src로 사용
              onLoad 이후 revokeObjectURL로 메모리 해제 */
-          const previewUrl = URL.createObjectURL(file)
           return (
             <div key={i} className="relative rounded-xl overflow-hidden flex-shrink-0"
                  style={{width: 80, height: 80, background: 'var(--color-surface-raised)'}}>
               <img
-                src={previewUrl}
+                src={file.previewUrl}
                 alt={`이미지 ${i + 1}`}
                 className="w-full h-full object-cover"
-                onLoad={() => URL.revokeObjectURL(previewUrl)}
               />
               {i === 0 && (
                 <span className="absolute bottom-1 left-1 text-[12px] font-bold px-1 py-0.5 rounded"
@@ -259,34 +264,31 @@ function RiskBanner({level, msg}: { level: RiskLevel; msg: string }) {
 
 /** AI 패널 — /api/listings/ai-suggest 실연동 */
 function AiPanel({
-                   form, onApply, images,
+                   form, onApply, images, moderation,
                  }: {
   form: ListingForm
   /** AI 추천 결과 적용 콜백 — title + description 동시 반영 */
   onApply: (result: { title: string; description: string }) => void
-  /** 업로드된 이미지 파일 목록 (첫 번째 파일을 AI에 전송) */
-  images: File[]
+  /** 업로드된 이미지 목록 (이번 세션에 추가한 파일이 있을 때만 AI 분석 가능) */
+  images: DraftImageItem[]
+  moderation: DraftModeration | null
 }) {
   const [aiLoading, setAiLoading] = useState(false)
   /** AI 추천 결과 — null이면 미생성 또는 오류 */
   const [aiResult, setAiResult] = useState<{ title: string; description: string } | null>(null)
-  /* 설명 변경 시 위험 탐지 — useState+useEffect 대신 useMemo로 파생 상태 계산 */
-  const risks = useMemo<{ level: RiskLevel; msg: string }[]>(() => {
-    if (!form.description) return []
-    return RISK_KEYWORDS
-      .filter(r => form.description.includes(r.word))
-      .map(r => ({level: r.level, msg: r.msg}))
-  }, [form.description])
+  const firstLocalImage = useMemo(
+    () => images.find((image) => image.file)?.file ?? null,
+    [images],
+  )
   
   async function requestAiDescription() {
     if (images.length === 0) return
+    if (!firstLocalImage) return
     setAiLoading(true)
     setAiResult(null)
     try {
-      /* 첫 번째 이미지를 multipart/form-data로 서버에 전송
-         — 백엔드 POST /api/listings/ai-suggest → { title, description } */
-      const {suggestListingFromImage} = await import('../../features/listing/api/listingApi')
-      const result = await suggestListingFromImage(images[0])
+      /* 이번 세션에 올린 첫 번째 이미지를 multipart/form-data로 전송한다. */
+      const result = await suggestListingFromImage(firstLocalImage)
       setAiResult(result)
     } catch (err) {
       console.error('[AI 추천] 오류:', err)
@@ -297,7 +299,7 @@ function AiPanel({
   }
   
   /** 이미지가 1장 이상 업로드되어 있어야 AI 추천 가능 */
-  const canGenerate = images.length > 0
+  const canGenerate = firstLocalImage != null
   
   return (
     <div className="flex flex-col gap-4">
@@ -374,26 +376,41 @@ function AiPanel({
       {/* 위험 탐지 */}
       <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-2 px-4 py-3" style={{
-          background: risks.length > 0 ? 'rgba(255,46,77,.06)' : 'var(--color-surface-raised)',
+          background: moderation ? 'rgba(255,46,77,.06)' : 'var(--color-surface-raised)',
           borderBottom: '1px solid var(--color-border)'
         }}>
-          {risks.length > 0
+          {moderation
             ? <AlertTriangle size={15} color="var(--color-accent)"/>
             : <CheckCircle2 size={15} color="var(--color-success)"/>
           }
           <span className="text-sm font-bold"
-                style={{color: risks.length > 0 ? 'var(--color-accent)' : 'var(--color-success)'}}>
-            {risks.length > 0 ? `위험 요소 ${risks.length}건 감지` : '위험 요소 없음'}
+                style={{color: moderation ? 'var(--color-accent)' : 'var(--color-success)'}}>
+            {moderation ? '주의가 필요한 내용 감지' : '위험 요소 없음'}
           </span>
         </div>
         <div className="p-4" style={{background: 'var(--color-surface)'}}>
-          {risks.length === 0 ? (
+          {!moderation ? (
             <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
-              설명을 입력하면 실시간으로 사기 위험 문구를 탐지합니다.
+              초안을 저장할 때 백엔드 AI가 제목과 설명을 함께 검사합니다.
             </p>
           ) : (
             <div className="flex flex-col gap-2">
-              {risks.map((r, i) => <RiskBanner key={i} level={r.level} msg={r.msg}/>)}
+              <RiskBanner
+                level={moderation.riskLevel}
+                msg={moderation.reason ?? '주의가 필요한 내용이 감지되었습니다.'}
+              />
+              {moderation.suggestion && (
+                <div
+                  className="px-3 py-2.5 rounded-xl text-xs leading-relaxed"
+                  style={{
+                    background: 'var(--color-surface-raised)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-sub)',
+                  }}
+                >
+                  {moderation.suggestion}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -459,7 +476,8 @@ export default function ListingCreatePage() {
     title: '', sport: 'SOCCER', team: '', jerseyNumber: '',
     size: 'M', grade: 'A', deliveryType: 'BOTH', price: '', description: '', tradeArea: '',
   })
-  const [images, setImages] = useState<File[]>([])
+  const [images, setImages] = useState<DraftImageItem[]>([])
+  const [draftModeration, setDraftModeration] = useState<DraftModeration | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)   // 등록 실패 메시지
   // 초안 관련 상태
@@ -477,13 +495,47 @@ export default function ListingCreatePage() {
   useEffect(() => {
     if (!isAuthenticated) return
     getPostDraft()
-      .then(draft => {
-        if (draft && (draft.title || draft.content)) {
+      .then(({draft, moderation}) => {
+        const hasDraft =
+          !!draft &&
+          (
+            !!draft.title ||
+            !!draft.content ||
+            !!draft.team ||
+            !!draft.uniformNumber ||
+            !!draft.directTradeLocation ||
+            !!draft.imageUrls?.length
+          )
+        if (hasDraft) {
+          const restoredImages: DraftImageItem[] = (draft.imageUrls ?? [])
+            .reduce<DraftImageItem[]>((acc, url, index) => {
+              const resolved = resolveImageUrl(url)
+              if (!resolved) {
+                return acc
+              }
+              acc.push({
+                id: `draft-${index}-${url}`,
+                previewUrl: resolved,
+                uploadedUrl: url,
+                file: null,
+              })
+              return acc
+            }, [])
           setForm(prev => ({
             ...prev,
             title: draft.title ?? prev.title,
+            sport: draft.sport ?? prev.sport,
+            team: draft.team ?? prev.team,
+            jerseyNumber: draft.uniformNumber ?? prev.jerseyNumber,
+            grade: draft.condition ?? prev.grade,
+            size: draft.size ?? prev.size,
+            deliveryType: draft.tradeType ?? prev.deliveryType,
+            price: draft.price != null ? String(draft.price) : prev.price,
             description: draft.content ?? prev.description,
+            tradeArea: draft.directTradeLocation ?? prev.tradeArea,
           }))
+          setImages(restoredImages)
+          setDraftModeration(moderation ?? null)
           setDraftLoaded(true)
         }
       })
@@ -494,11 +546,26 @@ export default function ListingCreatePage() {
   /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) — 로그인 상태에서만 */
   useEffect(() => {
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
-    if (!isAuthenticated || (!form.title && !form.description)) return
+    if (!isAuthenticated) return
     
     draftTimerRef.current = setTimeout(() => {
       setDraftSaving(true)
-      savePostDraft({title: form.title, content: form.description})
+      savePostDraft({
+        title: form.title || null,
+        content: form.description || null,
+        sport: form.sport,
+        team: form.team || null,
+        uniformNumber: form.jerseyNumber || null,
+        condition: form.grade,
+        size: form.size || null,
+        tradeType: form.deliveryType,
+        price: form.price ? Number(form.price) : null,
+        directTradeLocation: form.tradeArea || null,
+        imageUrls: images
+          .map((image) => image.uploadedUrl)
+          .filter((url): url is string => !!url),
+      })
+        .then((state) => setDraftModeration(state.moderation ?? null))
         .catch(() => { /* 자동저장 실패는 무시 */
         })
         .finally(() => setDraftSaving(false))
@@ -507,7 +574,7 @@ export default function ListingCreatePage() {
     return () => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current)
     }
-  }, [isAuthenticated, form.title, form.description])
+  }, [isAuthenticated, form, images])
   
   /* 종목 변경 시 초기화 */
   function handleSportChange(sport: Sport) {
@@ -519,6 +586,48 @@ export default function ListingCreatePage() {
     update('title', title)
     update('description', description)
   }
+
+  async function handleAddImages(files: File[]) {
+    if (!files.length) return
+
+    const nextItems: DraftImageItem[] = files.map((file, index) => ({
+      id: `local-${Date.now()}-${index}`,
+      previewUrl: URL.createObjectURL(file),
+      uploadedUrl: null,
+      file,
+    }))
+
+    setImages((prev) => [...prev, ...nextItems])
+
+    try {
+      const uploadedUrls = await uploadListingImages(files)
+      setImages((prev) => {
+        let cursor = 0
+        return prev.map((image) => {
+          if (!nextItems.some((item) => item.id === image.id)) {
+            return image
+          }
+          const uploadedUrl = uploadedUrls[cursor] ?? null
+          cursor += 1
+          return {...image, uploadedUrl}
+        })
+      })
+    } catch {
+      nextItems.forEach((image) => URL.revokeObjectURL(image.previewUrl))
+      setImages((prev) => prev.filter((image) => !nextItems.some((item) => item.id === image.id)))
+      setSubmitError('이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    }
+  }
+
+  function removeImage(idx: number) {
+    setImages((prev) => {
+      const target = prev[idx]
+      if (target?.file) {
+        URL.revokeObjectURL(target.previewUrl)
+      }
+      return prev.filter((_, index) => index !== idx)
+    })
+  }
   
   /* 제출 — createListing API 연동 */
   async function handleSubmit() {
@@ -527,13 +636,11 @@ export default function ListingCreatePage() {
     setSubmitError(null)   // 이전 에러 초기화
     try {
       /* Step 1: 선택된 File[] 을 서버에 업로드하여 imageUrls[] 확보 */
-      const {createListing, uploadListingImages} = await import('../../features/listing/api/listingApi')
-      let imageUrls: string[] = []
-      try {
-        imageUrls = images.length > 0 ? await uploadListingImages(images) : []
-      } catch {
-        // 이미지 업로드 실패 시 별도 안내 (백엔드 스토리지 미구성 등)
-        setSubmitError('이미지 업로드에 실패했습니다. 이미지 없이 등록하거나 잠시 후 다시 시도해주세요.')
+      const imageUrls = images
+        .map((image) => image.uploadedUrl)
+        .filter((url): url is string => !!url)
+      if (imageUrls.length === 0) {
+        setSubmitError('이미지 업로드가 완료되지 않았습니다. 잠시 후 다시 시도해주세요.')
         setSubmitting(false)
         return
       }
@@ -563,7 +670,7 @@ export default function ListingCreatePage() {
     }
   }
   
-  const canSubmit = !!form.title && !!form.price && images.length > 0
+  const canSubmit = !!form.title && !!form.price && images.some((image) => !!image.uploadedUrl)
   
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
@@ -617,8 +724,8 @@ export default function ListingCreatePage() {
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
               <ImageUploader
                 images={images}
-                onAdd={files => setImages(p => [...p, ...files])}
-                onRemove={i => setImages(p => p.filter((_, idx) => idx !== i))}
+                onAdd={handleAddImages}
+                onRemove={removeImage}
               />
             </div>
             
@@ -776,7 +883,7 @@ export default function ListingCreatePage() {
             
             {/* AI 패널 (모바일: 인라인) */}
             <div className="xl:hidden">
-              <AiPanel form={form} onApply={applyAiDescription} images={images}/>
+              <AiPanel form={form} onApply={applyAiDescription} images={images} moderation={draftModeration}/>
             </div>
             
             {/* 등록 실패 에러 메시지 */}
@@ -813,7 +920,7 @@ export default function ListingCreatePage() {
           {/* ── 우: AI 패널 (데스크탑) ───────────────────────────────── */}
           <div className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-20 flex flex-col gap-4">
-              <AiPanel form={form} onApply={applyAiDescription} images={images}/>
+              <AiPanel form={form} onApply={applyAiDescription} images={images} moderation={draftModeration}/>
             </div>
           </div>
         </div>

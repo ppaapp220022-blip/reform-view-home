@@ -9,6 +9,7 @@
  * - 거래 진행 중(status !== 'AVAILABLE') 이면 가격·배송방식 잠금
  */
 import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import {useRef, useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
@@ -260,6 +261,9 @@ export default function ListingEditPage() {
       await updateListing(postId, {
         title: form.title,
         description: form.description,
+        sport: form.sport,
+        team: form.team,
+        uniformName: form.uniformName,
         price: Number(form.price),
         condition: form.grade,
         size: form.size || undefined,
@@ -375,11 +379,25 @@ export default function ListingEditPage() {
                 {/* 기존 이미지 URL 렌더링 */}
                 {existingUrls.map((url, i) => (
                   <div key={`existing-${i}`} className="relative flex-shrink-0">
-                    <img
-                      src={url}
-                      alt={`기존 이미지 ${i + 1}`}
-                      className="w-[80px] h-[80px] rounded-[8px] object-cover border border-border"
-                    />
+                    {resolveImageUrl(url) ? (
+                      <img
+                        src={resolveImageUrl(url) ?? undefined}
+                        alt={`기존 이미지 ${i + 1}`}
+                        className="w-[80px] h-[80px] rounded-[8px] object-cover"
+                        style={{border: '1px solid var(--color-border)'}}
+                      />
+                    ) : (
+                      <div
+                        className="w-[80px] h-[80px] rounded-[8px] flex items-center justify-center text-[12px] text-center px-2"
+                        style={{
+                          border: '1px solid var(--color-border)',
+                          background: 'var(--color-surface-raised)',
+                          color: 'var(--color-text-hint)',
+                        }}
+                      >
+                        이미지 없음
+                      </div>
+                    )}
                     {/* 대표 이미지 뱃지 (첫 번째 이미지) */}
                     {i === 0 && (
                       <span
