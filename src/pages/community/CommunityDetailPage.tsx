@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Send,
   ThumbsUp,
+  Trash2,
   X,
 } from 'lucide-react'
 import {resolveImageUrl} from '../../utils/image'
@@ -34,12 +35,15 @@ import type {AuthorBrief, ReplyItem, ReplyRequest} from '../../types/community'
 import ReportModal from '../../components/ui/ReportModal'
 import {
   createReply,
+  deleteCommunityPost,
   deleteReply,
   getCommunityPostDetail,
   getReplies,
   togglePostLike,
   toggleReplyLike,
+  updateCommunityPost,
   updateReply,
+  type CommunityPostUpdateRequest,
 } from '../../features/community/api/communityApi'
 import useAuthStore from '../../store/authStore'
 
@@ -394,6 +398,122 @@ function TopReplyItem({
   )
 }
 
+// ── 서브 컴포넌트: 게시글 수정 모달 ──────────────────────────────────────────
+/**
+ * EditModal — 게시글 수정 모달
+ *
+ * 기존 게시글 데이터를 초기값으로 받아 사용자가 수정 후 PUT API 호출.
+ * WriteModal 구조와 동일하되, initialData로 pre-fill 처리.
+ */
+function EditModal({
+  initialData,
+  commId,
+  onClose,
+  onSuccess,
+}: {
+  initialData: { commTitle: string; commContent: string; commImageUrl?: string | null }
+  commId: number
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  // 기존 데이터로 초기값 설정
+  const [title, setTitle] = useState(initialData.commTitle)
+  const [content, setContent] = useState(initialData.commContent)
+
+  // updateCommunityPost API useMutation
+  const { mutate, isPending } = useMutation({
+    mutationFn: (req: CommunityPostUpdateRequest) => updateCommunityPost(commId, req),
+    onSuccess: () => {
+      onSuccess()   // 상세 데이터 리프레시 콜백
+      onClose()
+    },
+  })
+
+  // 폼 제출 핸들러
+  function handleSubmit() {
+    if (!title.trim() || !content.trim()) return
+    mutate({
+      commTitle: title.trim(),
+      commContent: content.trim(),
+      commImageUrl: initialData.commImageUrl ?? undefined,
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: 'rgba(13,27,42,.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl flex flex-col"
+        style={{
+          background: 'var(--color-surface)',
+          boxShadow: '0 -8px 32px rgba(0,33,71,.15)',
+          maxHeight: '90vh',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
+          <h2 className="font-bold text-base text-text-main">게시글 수정</h2>
+          <button onClick={onClose} aria-label="닫기">
+            <X size={20} className="text-text-sub" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+          {/* 제목 */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-text-main">
+              제목 <span className="text-accent">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력해주세요"
+              maxLength={100}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-surface-raised border border-border text-text-main"
+            />
+          </div>
+
+          {/* 내용 */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-text-main">
+              내용 <span className="text-accent">*</span>
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="내용을 입력해주세요"
+              rows={8}
+              maxLength={2000}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none leading-relaxed bg-surface-raised border border-border text-text-main"
+            />
+            <p className="text-xs mt-1 text-right text-text-hint">{content.length}/2000</p>
+          </div>
+        </div>
+
+        {/* 수정 완료 버튼 */}
+        <div className="px-5 py-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!title.trim() || !content.trim() || isPending}
+            className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 bg-accent"
+          >
+            {isPending && <Loader2 size={16} className="animate-spin" />}
+            {isPending ? '수정 중...' : '수정 완료'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function CommunityDetailPage() {
   const {id} = useParams<{ id: string }>()
@@ -426,6 +546,8 @@ export default function CommunityDetailPage() {
   
   // ── 로컬 상태 ───────────────────────────────────────────────────────────
   const [reportModalOpen, setReportModalOpen] = useState(false)
+  /** 게시글 수정 모달 열림 여부 */
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replyingTo, setReplyingTo] = useState<{ id: number; nickname: string } | null>(null)
   const [localLiked, setLocalLiked] = useState<boolean | null>(null)   // null = 서버값 사용
@@ -436,6 +558,28 @@ export default function CommunityDetailPage() {
   /** 수정 중인 댓글 텍스트 */
   const [editingText, setEditingText] = useState('')
   
+  // ── 게시글 삭제 mutation ────────────────────────────────────────────────
+  const {mutate: deletePost, isPending: isDeletingPost} = useMutation({
+    mutationFn: () => deleteCommunityPost(commId),
+    onSuccess: () => {
+      // 목록 캐시 무효화 후 커뮤니티 목록으로 이동
+      queryClient.invalidateQueries({queryKey: ['communityPosts']})
+      navigate('/community')
+    },
+  })
+
+  /** 게시글 수정 성공 콜백 — 상세 데이터 리프레시 */
+  function handleEditSuccess() {
+    queryClient.invalidateQueries({queryKey: ['communityPost', commId]})
+  }
+
+  /** 게시글 삭제 확인 핸들러 */
+  function handleDeletePost() {
+    if (confirm('게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      deletePost()
+    }
+  }
+
   // ── 댓글 작성 mutation ──────────────────────────────────────────────────
   const {mutate: submitReply, isPending: isSubmittingReply} = useMutation({
     mutationFn: (req: ReplyRequest) => createReply(commId, req),
@@ -564,6 +708,19 @@ export default function CommunityDetailPage() {
           onClose={() => setReportModalOpen(false)}
         />
       )}
+      {/* 게시글 수정 모달 — 본인 글일 때만 열림 */}
+      {editModalOpen && post && (
+        <EditModal
+          initialData={{
+            commTitle: post.commTitle,
+            commContent: post.commContent,
+            commImageUrl: post.commImageUrl,
+          }}
+          commId={commId}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
       <div className="max-w-[800px] mx-auto px-4 md:px-7 py-6 md:py-10">
         
         {/* 뒤로가기 */}
@@ -638,9 +795,31 @@ export default function CommunityDetailPage() {
                   <MessageSquare size={12}/>
                   {post.commentCount}
                 </span>
+                {/* 본인 글인 경우에만 수정/삭제 버튼 표시 */}
+                {post.author.memberId === myMemberId && (
+                  <>
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      className="flex items-center gap-1 transition-colors hover:text-accent text-text-hint"
+                      aria-label="게시글 수정"
+                    >
+                      <Edit2 size={11}/>
+                      수정
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      disabled={isDeletingPost}
+                      className="flex items-center gap-1 transition-colors hover:text-error text-text-hint disabled:opacity-50"
+                      aria-label="게시글 삭제"
+                    >
+                      {isDeletingPost ? <Loader2 size={11} className="animate-spin"/> : <Trash2 size={11}/>}
+                      삭제
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setReportModalOpen(true)}
-                  className="flex items-center gap-1 transition-colors hover:text-[var(--color-accent)]"
+                  className="flex items-center gap-1 transition-colors hover:text-[var(--color-accent)] text-text-hint"
                   aria-label="신고"
                 >
                   <Flag size={11}/>
