@@ -14,7 +14,7 @@
  */
 import apiClient from '../../../lib/axios'
 import type {PageResponse} from '../../../types/api'
-import type {SportType, InterestSettingRequest, InterestSettingResponse} from '../../auth/api/authApi'
+import type {InterestSettingRequest, InterestSettingResponse, SportType} from '../../auth/api/authApi'
 
 // ── 응답 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────
 
@@ -98,7 +98,7 @@ export async function getMyProfile(): Promise<ProfileResponse> {
 export async function uploadProfileImage(file: File): Promise<string> {
   const fd = new FormData()
   fd.append('profileImage', file)
-
+  
   const {data} = await apiClient.post<{ profileImageUrl: string }>(
     '/users/me/profile-image',
     fd,

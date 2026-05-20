@@ -239,3 +239,14 @@ export async function getMyTrades(params: {
   const {data} = await apiClient.get<PageResponse<TradeResponse>>('/trades/my', {params})
   return data
 }
+
+/**
+ * 거래 취소/거절 (판매자 전용)
+ * PATCH /api/trades/{id}/cancel
+ * 판매자가 REQUESTED 상태의 거래 요청을 거절할 때 사용
+ * → 거래 상태 CANCELED 전환, 게시글은 ON_SALE 유지
+ */
+export async function cancelTrade(tradeId: number): Promise<TradeStatus> {
+  const {data} = await apiClient.patch<{ status: TradeStatus }>(`/trades/${tradeId}/cancel`)
+  return data.status
+}

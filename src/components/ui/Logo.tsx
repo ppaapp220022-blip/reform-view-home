@@ -14,7 +14,7 @@
  * SVG 파일들은 모두 PNG 임베드 래퍼 → CSS fill/stroke 색상 변경 불가
  * 권장 height: main 24–32px, simple 20–28px
  */
-import { useState, useEffect } from 'react'
+import {useEffect, useState} from 'react'
 
 interface LogoProps {
   variant?: 'main' | 'simple'
@@ -24,15 +24,15 @@ interface LogoProps {
 
 /** SVG viewBox 기준 가로세로 비율 */
 const ASPECT_RATIO = {
-  main:   1822 / 430,  // ≈ 4.24 (main / main-dark 동일)
+  main: 1822 / 430,  // ≈ 4.24 (main / main-dark 동일)
   simple: 2240 / 411,  // ≈ 5.45
 } as const
 
 /** src/assets에 있는 로고 파일 경로 매핑 */
 const LOGO_SRC = {
   mainLight: '/assets/re-form_logo_main.svg',
-  mainDark:  '/assets/re-form_logo_main_dark.svg',
-  simple:    '/assets/re-form_logo_simple.svg',
+  mainDark: '/assets/re-form_logo_main_dark.svg',
+  simple: '/assets/re-form_logo_simple.svg',
 } as const
 
 /**
@@ -48,9 +48,9 @@ function useDarkMode(): boolean {
     // 없으면 OS 설정 따라감
     return window.matchMedia('(prefers-color-scheme: dark)').matches
   }
-
+  
   const [isDark, setIsDark] = useState<boolean>(getIsDark)
-
+  
   useEffect(() => {
     // <html> 클래스 변경 감시 (Tailwind .dark 토글 감지)
     const observer = new MutationObserver(() => {
@@ -60,36 +60,36 @@ function useDarkMode(): boolean {
       attributes: true,
       attributeFilter: ['class'],
     })
-
+    
     // OS 다크모드 변경 감시
     const mq = window.matchMedia('(prefers-color-scheme: dark)')
     const onMqChange = () => setIsDark(getIsDark())
     mq.addEventListener('change', onMqChange)
-
+    
     return () => {
       observer.disconnect()
       mq.removeEventListener('change', onMqChange)
     }
   }, [])
-
+  
   return isDark
 }
 
 export default function Logo({
-  variant = 'main',
-  height = 28,
-  className = '',
-}: LogoProps) {
+                               variant = 'main',
+                               height = 28,
+                               className = '',
+                             }: LogoProps) {
   const isDark = useDarkMode()
-
+  
   // variant별 src 결정
   const src =
     variant === 'simple'
       ? LOGO_SRC.simple                              // 겸용 단일 파일
       : isDark ? LOGO_SRC.mainDark : LOGO_SRC.mainLight  // 다크모드 자동 전환
-
+  
   const width = Math.round(height * ASPECT_RATIO[variant])
-
+  
   return (
     <img
       src={src}
@@ -98,7 +98,7 @@ export default function Logo({
       height={height}
       className={className}
       draggable={false}
-      style={{ objectFit: 'contain' }}
+      style={{objectFit: 'contain'}}
     />
   )
 }

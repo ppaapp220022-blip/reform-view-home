@@ -264,7 +264,11 @@ function ShippingInputForm({
             <label className="text-xs font-semibold block mb-1.5" style={{color: 'var(--color-text-hint)'}}>택배사</label>
             <select
               value={courierCode}
-              onChange={e => setCourierCode(e.target.value)}
+              onChange={e => {
+                setCourierCode(e.target.value)
+                const found = couriers.find(c => c.code === e.target.value)
+                setCourierName(found?.name ?? '')
+              }}
               className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
               style={{
                 background: 'var(--color-surface-raised)',

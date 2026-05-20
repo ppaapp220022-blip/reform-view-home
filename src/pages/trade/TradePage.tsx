@@ -41,7 +41,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type {TradeResponse} from '../../features/trade/api/tradeApi'
-import {acceptTrade, confirmTrade, getTrade, startShipping, updateDelivery,} from '../../features/trade/api/tradeApi'
+import {acceptTrade, cancelTrade, confirmTrade, getTrade, startShipping, updateDelivery,} from '../../features/trade/api/tradeApi'
 import type {Courier} from '../../features/delivery/api/deliveryApi'
 import {getCouriers} from '../../features/delivery/api/deliveryApi'
 import type {ChatMessage} from '../../features/chat/api/chatApi'
@@ -741,6 +741,8 @@ function ActionPanel({
   const [showWarning, setShowWarning] = useState(false)
   const [acceptError, setAcceptError] = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [rejectError, setRejectError] = useState<string | null>(null)
+  const [rejectConfirming, setRejectConfirming] = useState(false)
   
   // 판매자 — 거래 수락
   const {mutate: doAccept, isPending: isAccepting} = useMutation({
@@ -751,6 +753,18 @@ function ActionPanel({
     },
     onError() {
       setAcceptError('거래 수락 중 오류가 발생했습니다.')
+    },
+  })
+  
+  // 판매자 — 거래 거절 (REQUESTED → CANCELED)
+  const {mutate: doReject, isPending: isRejecting} = useMutation({
+    mutationFn: () => cancelTrade(trade.tradeId),
+    onSuccess() {
+      queryClient.invalidateQueries({queryKey: ['trade', String(trade.tradeId)]})
+      onRefetch()
+    },
+    onError() {
+      setRejectError('거래 거절 중 오류가 발생했습니다.')
     },
   })
   
@@ -881,9 +895,41 @@ function ActionPanel({
           </p>
         )}
         {!isBuyer && (
-          <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
-            정산까지 영업일 기준 1~3일 소요됩니다.
-          </p>
+          <div className="flex flex-col gap-2.5">
+            <div
+              className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
+              style={{background: 'rgba(255,184,0,.08)', border: '1px solid rgba(255,184,0,.3)'}}
+            >
+              <Package size={15} style={{color: 'var(--color-gold)', flexShrink: 0, marginTop: 2}}/>
+              <div>
+                <p
+                  className="text-sm font-bold mb-0.5"
+                  style={{color: 'var(--color-gold)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                >
+                  정산 포인트가 지급되었습니다!
+                </p>
+                <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+                  마이페이지 &gt; 포인트 내역에서 출금을 신청하실 수 있습니다.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/mypage"
+              state={{tab: 'points'}}
+              className="w-full py-3 rounded-xl font-bold text-sm text-center flex items-center justify-center gap-2 hover:text-white transition-colors"
+              style={{
+                background: 'rgba(255,184,0,.15)',
+                color: 'var(--color-gold)',
+                border: '1px solid rgba(255,184,0,.35)',
+              }}
+            >
+              <Package size={15}/>
+              출금 신청하러 가기
+            </Link>
+            <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
+              정산까지 영업일 기준 1~3일 소요됩니다.
+            </p>
+          </div>
         )}
       </div>
     )
@@ -931,9 +977,18 @@ function ActionPanel({
             <p className="text-xs" style={{color: 'var(--color-accent)'}}>{acceptError}</p>
           </div>
         )}
+        {rejectError && (
+          <div
+            className="flex items-start gap-2 px-4 py-3 rounded-xl"
+            style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+          >
+            <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+            <p className="text-xs" style={{color: 'var(--color-accent)'}}>{rejectError}</p>
+          </div>
+        )}
         <button
           onClick={() => doAccept()}
-          disabled={isAccepting}
+          disabled={isAccepting || isRejecting}
           className="w-full py-4 rounded-xl font-bold text-base text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
           style={{background: 'var(--color-accent)'}}
         >
@@ -941,6 +996,48 @@ function ActionPanel({
             ? <><Loader2 size={17} className="animate-spin"/>수락 중...</>
             : <><CheckCircle2 size={17}/>거래 수락하기</>}
         </button>
+        {/* 거절 버튼 — 1단계: 버튼 노출 / 2단계: 확인 메시지 */}
+        {!rejectConfirming ? (
+          <button
+            onClick={() => setRejectConfirming(true)}
+            disabled={isAccepting || isRejecting}
+            className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            style={{
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-sub)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <XCircle size={15}/>
+            거래 거절하기
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-center leading-relaxed" style={{color: 'var(--color-warning)'}}>
+              거절하면 구매자에게 알림이 전송됩니다. 정말 거절하시겠습니까?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setRejectConfirming(false)
+                  doReject()
+                }}
+                disabled={isRejecting}
+                className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-1.5 disabled:opacity-60"
+                style={{background: 'var(--color-accent)'}}
+              >
+                {isRejecting ? <><Loader2 size={14} className="animate-spin"/>거절 중...</> : '네, 거절합니다'}
+              </button>
+              <button
+                onClick={() => setRejectConfirming(false)}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+                style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}
+              >
+                돌아가기
+              </button>
+            </div>
+          </div>
+        )}
         <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
           수락하면 구매자가 결제를 진행할 수 있습니다.
         </p>
@@ -961,31 +1058,112 @@ function ActionPanel({
               onSuccess={onRefetch}
             />
           )}
-          <Link
-            to={`/payment/${trade.tradeId}`}
-            className="w-full py-4 rounded-xl font-bold text-base text-white text-center flex items-center justify-center gap-2 hover:text-white transition-all"
-            style={{background: 'var(--color-accent)', boxShadow: '0 4px 16px rgba(255,46,77,.28)'}}
-          >
-            <Package size={17}/>
-            결제하기
-          </Link>
+          {/* 택배 거래에서 배송지 미입력 시 경고 표시 */}
+          {trade.deliveryType === 'DELIVERY' && !trade.deliveryAddress && (
+            <div
+              className="flex items-start gap-2.5 px-4 py-3 rounded-xl"
+              style={{background: 'rgba(255,149,0,.08)', border: '1px solid rgba(255,149,0,.3)'}}
+            >
+              <AlertCircle size={14} style={{color: 'var(--color-warning)', flexShrink: 0, marginTop: 1}}/>
+              <p className="text-xs leading-relaxed" style={{color: 'var(--color-warning)'}}>
+                결제 전에 배송지를 입력해주세요. 위의 배송지 입력 칸을 눌러 주소를 등록하면 결제가 가능합니다.
+              </p>
+            </div>
+          )}
+          {/* 배송지 입력 완료 시에만 결제 버튼 활성화 */}
+          {trade.deliveryType === 'DELIVERY' && !trade.deliveryAddress ? (
+            <button
+              disabled
+              className="w-full py-4 rounded-xl font-bold text-base text-white flex items-center justify-center gap-2 opacity-40 cursor-not-allowed"
+              style={{background: 'var(--color-text-hint)'}}
+            >
+              <Package size={17}/>
+              배송지 입력 후 결제 가능
+            </button>
+          ) : (
+            <Link
+              to={`/payment/${trade.tradeId}`}
+              className="w-full py-4 rounded-xl font-bold text-base text-white text-center flex items-center justify-center gap-2 hover:text-white transition-all"
+              style={{background: 'var(--color-accent)', boxShadow: '0 4px 16px rgba(255,46,77,.28)'}}
+            >
+              <Package size={17}/>
+              결제하기
+            </Link>
+          )}
         </div>
       )
     }
     return (
-      <div
-        className="flex items-start gap-3 p-4 rounded-2xl"
-        style={{background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)'}}
-      >
-        <Clock size={15} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
-        <div>
-          <p className="text-sm font-semibold" style={{color: 'var(--color-info)'}}>
-            구매자 결제 대기 중
-          </p>
-          <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
-            구매자가 결제를 완료하면 배송 정보를 입력해주세요.
-          </p>
+      <div className="flex flex-col gap-3">
+        {/* 구매자 결제 대기 안내 */}
+        <div
+          className="flex items-start gap-3 p-4 rounded-2xl"
+          style={{background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)'}}
+        >
+          <Clock size={15} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
+          <div>
+            <p className="text-sm font-semibold" style={{color: 'var(--color-info)'}}>
+              구매자 결제 대기 중
+            </p>
+            <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
+              구매자가 결제를 완료하면 배송 정보를 입력해주세요.
+            </p>
+          </div>
         </div>
+        
+        {/* 취소 에러 */}
+        {rejectError && (
+          <div
+            className="flex items-start gap-2 px-4 py-3 rounded-xl"
+            style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+          >
+            <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+            <p className="text-xs" style={{color: 'var(--color-accent)'}}>{rejectError}</p>
+          </div>
+        )}
+        
+        {/* 결제 전 거래 취소 — 2단계 확인 */}
+        {!rejectConfirming ? (
+          <button
+            onClick={() => setRejectConfirming(true)}
+            disabled={isRejecting}
+            className="w-full py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            style={{
+              background: 'var(--color-surface-raised)',
+              color: 'var(--color-text-sub)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <XCircle size={15}/>
+            거래 취소하기
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-center leading-relaxed" style={{color: 'var(--color-warning)'}}>
+              취소하면 구매자에게 알림이 전송됩니다. 정말 거래를 취소하시겠습니까?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setRejectConfirming(false)
+                  doReject()
+                }}
+                disabled={isRejecting}
+                className="flex-1 py-2.5 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-1.5 disabled:opacity-60"
+                style={{background: 'var(--color-accent)'}}
+              >
+                {isRejecting ? <><Loader2 size={14} className="animate-spin"/>취소 중...</> : '네, 취소합니다'}
+              </button>
+              <button
+                onClick={() => setRejectConfirming(false)}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
+                style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}
+              >
+                돌아가기
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -1234,8 +1412,9 @@ function EmbeddedChatInner({
               <div
                 className="max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed"
                 style={{
-                  background: isMe ? 'var(--color-primary)' : 'var(--color-surface-raised)',
+                  background: isMe ? 'var(--color-primary)' : 'rgba(255,184,0,.10)',
                   color: isMe ? '#fff' : 'var(--color-text-main)',
+                  border: isMe ? undefined : '1px solid rgba(255,184,0,.22)',
                   borderBottomRightRadius: isMe ? 4 : undefined,
                   borderBottomLeftRadius: isMe ? undefined : 4,
                   opacity: msg.messageId < 0 ? 0.6 : 1, // 낙관적 메시지

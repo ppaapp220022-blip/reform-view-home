@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Send,
   ThumbsUp,
+  Trash2,
   X,
 } from 'lucide-react'
 import {resolveImageUrl} from '../../utils/image'
@@ -34,12 +35,15 @@ import type {AuthorBrief, ReplyItem, ReplyRequest} from '../../types/community'
 import ReportModal from '../../components/ui/ReportModal'
 import {
   createReply,
+  deleteCommunityPost,
   deleteReply,
   getCommunityPostDetail,
   getReplies,
   togglePostLike,
   toggleReplyLike,
+  updateCommunityPost,
   updateReply,
+  type CommunityPostUpdateRequest,
 } from '../../features/community/api/communityApi'
 import useAuthStore from '../../store/authStore'
 
@@ -115,7 +119,7 @@ function ChildReplyItem({
     return (
       <div className="flex items-start gap-2 pl-8 py-2">
         <CornerDownRight size={14} style={{color: 'var(--color-border)', flexShrink: 0, marginTop: 2}}/>
-        <p className="text-xs italic" style={{color: 'var(--color-text-hint)'}}>삭제된 댓글입니다.</p>
+        <p className="text-xs italic text-text-hint" >삭제된 댓글입니다.</p>
       </div>
     )
   }
@@ -129,22 +133,21 @@ function ChildReplyItem({
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-semibold" style={{color: 'var(--color-text-main)'}}>
+          <span className="text-xs font-semibold text-text-main" >
             {reply.author.nickname}
           </span>
-          <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
+          <span className="text-[12px] text-text-hint" >
             {formatDate(reply.createdAt)}
           </span>
         </div>
-        <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-main)'}}>
+        <p className="text-sm leading-relaxed text-text-main" >
           {reply.replyContent}
         </p>
         {/* 대댓글 좋아요 */}
         <div className="flex items-center gap-3 mt-1.5">
           <button
             onClick={() => onLike(reply.replyId)}
-            className="flex items-center gap-1 text-xs transition-colors"
-            style={{color: reply.isLiked ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+            className={`flex items-center gap-1 text-xs transition-colors ${reply.isLiked ? 'text-accent' : 'text-text-hint'}`}
           >
             <ThumbsUp size={11}/>
             {reply.likeCount > 0 && reply.likeCount}
@@ -154,8 +157,7 @@ function ChildReplyItem({
             <>
               <button
                 onClick={() => onEdit(reply.replyId, reply.replyContent)}
-                className="flex items-center gap-1 text-xs transition-colors"
-                style={{color: 'var(--color-text-hint)'}}
+                className="flex items-center gap-1 text-xs transition-colors text-text-hint"
               >
                 <Edit2 size={11}/>
                 수정
@@ -164,8 +166,7 @@ function ChildReplyItem({
                 onClick={() => {
                   if (confirm('댓글을 삭제하시겠습니까?')) onDelete(reply.replyId)
                 }}
-                className="flex items-center gap-1 text-xs transition-colors"
-                style={{color: 'var(--color-text-hint)'}}
+                className="flex items-center gap-1 text-xs transition-colors text-text-hint"
               >
                 <X size={11}/>
                 삭제
@@ -191,8 +192,7 @@ function ChildReplyItem({
               <button
                 onClick={onEditSubmit}
                 disabled={!editingText.trim()}
-                className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                style={{background: 'var(--color-accent)'}}
+                className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50 bg-accent"
               >
                 <Check size={11}/>
                 저장
@@ -248,8 +248,8 @@ function TopReplyItem({
   
   if (reply.isDeleted) {
     return (
-      <div className="py-3" style={{borderBottom: '1px solid var(--color-border)'}}>
-        <p className="text-sm italic" style={{color: 'var(--color-text-hint)'}}>삭제된 댓글입니다.</p>
+      <div className="py-3 border-b border-border" >
+        <p className="text-sm italic text-text-hint" >삭제된 댓글입니다.</p>
         {/* 삭제된 댓글의 대댓글은 그대로 표시 */}
         {reply.children.map(child => (
           <ChildReplyItem
@@ -271,17 +271,17 @@ function TopReplyItem({
   }
   
   return (
-    <div className="py-3" style={{borderBottom: '1px solid var(--color-border)'}}>
+    <div className="py-3 border-b border-border" >
       <div className="flex items-start gap-3">
         <Avatar author={reply.author} size={32}/>
         
         <div className="flex-1 min-w-0">
           {/* 작성자 + 날짜 */}
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+            <span className="text-sm font-semibold text-text-main" >
               {reply.author.nickname}
             </span>
-            <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+            <span className="text-xs text-text-hint" >
               {formatDate(reply.createdAt)}
             </span>
           </div>
@@ -304,8 +304,7 @@ function TopReplyItem({
                 <button
                   onClick={onEditSubmit}
                   disabled={!editingText.trim()}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
-                  style={{background: 'var(--color-accent)'}}
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-white disabled:opacity-50 bg-accent"
                 >
                   <Check size={11}/>
                   저장
@@ -324,7 +323,7 @@ function TopReplyItem({
               </div>
             </div>
           ) : (
-            <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-main)'}}>
+            <p className="text-sm leading-relaxed text-text-main" >
               {reply.replyContent}
             </p>
           )}
@@ -334,8 +333,7 @@ function TopReplyItem({
             {/* 좋아요 */}
             <button
               onClick={() => onLike(reply.replyId)}
-              className="flex items-center gap-1 text-xs transition-colors"
-              style={{color: reply.isLiked ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+              className={`flex items-center gap-1 text-xs transition-colors ${reply.isLiked ? 'text-accent' : 'text-text-hint'}`}
             >
               <ThumbsUp size={12}/>
               {reply.likeCount > 0 && <span>{reply.likeCount}</span>}
@@ -344,8 +342,7 @@ function TopReplyItem({
             {/* 답글 달기 */}
             <button
               onClick={() => onReplyTo(reply.replyId, reply.author.nickname)}
-              className="text-xs transition-colors"
-              style={{color: isReplying ? 'var(--color-accent)' : 'var(--color-text-hint)'}}
+              className={`text-xs transition-colors ${isReplying ? 'text-accent' : 'text-text-hint'}`}
             >
               답글 달기
             </button>
@@ -357,8 +354,7 @@ function TopReplyItem({
           <div className="flex items-center gap-1">
             <button
               onClick={() => onEdit(reply.replyId, reply.replyContent)}
-              className="p-1 rounded-lg transition-colors"
-              style={{color: 'var(--color-text-hint)'}}
+              className="p-1 rounded-lg transition-colors text-text-hint"
               aria-label="댓글 수정"
             >
               <Edit2 size={15}/>
@@ -367,8 +363,7 @@ function TopReplyItem({
               onClick={() => {
                 if (confirm('댓글을 삭제하시겠습니까?')) onDelete(reply.replyId)
               }}
-              className="p-1 rounded-lg transition-colors"
-              style={{color: 'var(--color-text-hint)'}}
+              className="p-1 rounded-lg transition-colors text-text-hint"
               aria-label="댓글 삭제"
             >
               <X size={15}/>
@@ -380,8 +375,7 @@ function TopReplyItem({
       {/* 대댓글 목록 */}
       {reply.children.length > 0 && (
         <div
-          className="mt-1 rounded-xl"
-          style={{background: 'var(--color-surface-sunken)'}}
+          className="mt-1 rounded-xl bg-surface-sunken"
         >
           {reply.children.map(child => (
             <ChildReplyItem
@@ -400,6 +394,122 @@ function TopReplyItem({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ── 서브 컴포넌트: 게시글 수정 모달 ──────────────────────────────────────────
+/**
+ * EditModal — 게시글 수정 모달
+ *
+ * 기존 게시글 데이터를 초기값으로 받아 사용자가 수정 후 PUT API 호출.
+ * WriteModal 구조와 동일하되, initialData로 pre-fill 처리.
+ */
+function EditModal({
+  initialData,
+  commId,
+  onClose,
+  onSuccess,
+}: {
+  initialData: { commTitle: string; commContent: string; commImageUrl?: string | null }
+  commId: number
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  // 기존 데이터로 초기값 설정
+  const [title, setTitle] = useState(initialData.commTitle)
+  const [content, setContent] = useState(initialData.commContent)
+
+  // updateCommunityPost API useMutation
+  const { mutate, isPending } = useMutation({
+    mutationFn: (req: CommunityPostUpdateRequest) => updateCommunityPost(commId, req),
+    onSuccess: () => {
+      onSuccess()   // 상세 데이터 리프레시 콜백
+      onClose()
+    },
+  })
+
+  // 폼 제출 핸들러
+  function handleSubmit() {
+    if (!title.trim() || !content.trim()) return
+    mutate({
+      commTitle: title.trim(),
+      commContent: content.trim(),
+      commImageUrl: initialData.commImageUrl ?? undefined,
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ background: 'rgba(13,27,42,.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl flex flex-col"
+        style={{
+          background: 'var(--color-surface)',
+          boxShadow: '0 -8px 32px rgba(0,33,71,.15)',
+          maxHeight: '90vh',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: '1px solid var(--color-border)' }}
+        >
+          <h2 className="font-bold text-base text-text-main">게시글 수정</h2>
+          <button onClick={onClose} aria-label="닫기">
+            <X size={20} className="text-text-sub" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+          {/* 제목 */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-text-main">
+              제목 <span className="text-accent">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력해주세요"
+              maxLength={100}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none bg-surface-raised border border-border text-text-main"
+            />
+          </div>
+
+          {/* 내용 */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5 text-text-main">
+              내용 <span className="text-accent">*</span>
+            </label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="내용을 입력해주세요"
+              rows={8}
+              maxLength={2000}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none resize-none leading-relaxed bg-surface-raised border border-border text-text-main"
+            />
+            <p className="text-xs mt-1 text-right text-text-hint">{content.length}/2000</p>
+          </div>
+        </div>
+
+        {/* 수정 완료 버튼 */}
+        <div className="px-5 py-4" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <button
+            onClick={handleSubmit}
+            disabled={!title.trim() || !content.trim() || isPending}
+            className="w-full py-3.5 rounded-xl font-bold text-sm text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 bg-accent"
+          >
+            {isPending && <Loader2 size={16} className="animate-spin" />}
+            {isPending ? '수정 중...' : '수정 완료'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -436,6 +546,8 @@ export default function CommunityDetailPage() {
   
   // ── 로컬 상태 ───────────────────────────────────────────────────────────
   const [reportModalOpen, setReportModalOpen] = useState(false)
+  /** 게시글 수정 모달 열림 여부 */
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [replyText, setReplyText] = useState('')
   const [replyingTo, setReplyingTo] = useState<{ id: number; nickname: string } | null>(null)
   const [localLiked, setLocalLiked] = useState<boolean | null>(null)   // null = 서버값 사용
@@ -446,6 +558,28 @@ export default function CommunityDetailPage() {
   /** 수정 중인 댓글 텍스트 */
   const [editingText, setEditingText] = useState('')
   
+  // ── 게시글 삭제 mutation ────────────────────────────────────────────────
+  const {mutate: deletePost, isPending: isDeletingPost} = useMutation({
+    mutationFn: () => deleteCommunityPost(commId),
+    onSuccess: () => {
+      // 목록 캐시 무효화 후 커뮤니티 목록으로 이동
+      queryClient.invalidateQueries({queryKey: ['communityPosts']})
+      navigate('/community')
+    },
+  })
+
+  /** 게시글 수정 성공 콜백 — 상세 데이터 리프레시 */
+  function handleEditSuccess() {
+    queryClient.invalidateQueries({queryKey: ['communityPost', commId]})
+  }
+
+  /** 게시글 삭제 확인 핸들러 */
+  function handleDeletePost() {
+    if (confirm('게시글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      deletePost()
+    }
+  }
+
   // ── 댓글 작성 mutation ──────────────────────────────────────────────────
   const {mutate: submitReply, isPending: isSubmittingReply} = useMutation({
     mutationFn: (req: ReplyRequest) => createReply(commId, req),
@@ -546,7 +680,7 @@ export default function CommunityDetailPage() {
   if (postLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 size={28} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+        <Loader2 size={28} className="animate-spin text-text-hint" />
       </div>
     )
   }
@@ -554,7 +688,7 @@ export default function CommunityDetailPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <AlertCircle size={28} color="var(--color-error)"/>
-        <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>게시글을 찾을 수 없습니다.</p>
+        <p className="text-sm text-text-sub" >게시글을 찾을 수 없습니다.</p>
       </div>
     )
   }
@@ -566,12 +700,25 @@ export default function CommunityDetailPage() {
   const sportLabel = SPORT_LABEL[post.sport as keyof typeof SPORT_LABEL] ?? post.sport
   
   return (
-    <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
+    <div className="min-h-screen bg-bg" >
       {reportModalOpen && (
         <ReportModal
           targetType="COMMUNITY_POST"
           targetId={post.commId}
           onClose={() => setReportModalOpen(false)}
+        />
+      )}
+      {/* 게시글 수정 모달 — 본인 글일 때만 열림 */}
+      {editModalOpen && post && (
+        <EditModal
+          initialData={{
+            commTitle: post.commTitle,
+            commContent: post.commContent,
+            commImageUrl: post.commImageUrl,
+          }}
+          commId={commId}
+          onClose={() => setEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
         />
       )}
       <div className="max-w-[800px] mx-auto px-4 md:px-7 py-6 md:py-10">
@@ -580,8 +727,7 @@ export default function CommunityDetailPage() {
         <div className="flex items-center gap-2 mb-6">
           <button
             onClick={() => navigate('/community')}
-            className="flex items-center gap-1.5 text-sm transition-colors hover:text-[var(--color-accent)]"
-            style={{color: 'var(--color-text-sub)'}}
+            className="flex items-center gap-1.5 text-sm transition-colors hover:text-[var(--color-accent)] text-text-sub"
           >
             <ChevronLeft size={16}/>
             커뮤니티
@@ -590,8 +736,7 @@ export default function CommunityDetailPage() {
         
         {/* 게시글 카드 */}
         <article
-          className="rounded-2xl overflow-hidden mb-6"
-          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          className="rounded-2xl overflow-hidden mb-6 bg-surface border border-border"
         >
           {/* 게시글 헤더 */}
           <div className="p-5 md:p-6">
@@ -632,16 +777,16 @@ export default function CommunityDetailPage() {
               <div className="flex items-center gap-2.5">
                 <Avatar author={post.author} size={34}/>
                 <div>
-                  <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+                  <p className="text-sm font-semibold text-text-main" >
                     {post.author.nickname}
                   </p>
-                  <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+                  <p className="text-xs text-text-hint" >
                     {formatDate(post.createdAt)}
                   </p>
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 text-xs" style={{color: 'var(--color-text-hint)'}}>
+              <div className="flex items-center gap-3 text-xs text-text-hint" >
                 <span className="flex items-center gap-1">
                   <Eye size={12}/>
                   {post.commViewCount}
@@ -650,9 +795,31 @@ export default function CommunityDetailPage() {
                   <MessageSquare size={12}/>
                   {post.commentCount}
                 </span>
+                {/* 본인 글인 경우에만 수정/삭제 버튼 표시 */}
+                {post.author.memberId === myMemberId && (
+                  <>
+                    <button
+                      onClick={() => setEditModalOpen(true)}
+                      className="flex items-center gap-1 transition-colors hover:text-accent text-text-hint"
+                      aria-label="게시글 수정"
+                    >
+                      <Edit2 size={11}/>
+                      수정
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      disabled={isDeletingPost}
+                      className="flex items-center gap-1 transition-colors hover:text-error text-text-hint disabled:opacity-50"
+                      aria-label="게시글 삭제"
+                    >
+                      {isDeletingPost ? <Loader2 size={11} className="animate-spin"/> : <Trash2 size={11}/>}
+                      삭제
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setReportModalOpen(true)}
-                  className="flex items-center gap-1 transition-colors hover:text-[var(--color-accent)]"
+                  className="flex items-center gap-1 transition-colors hover:text-[var(--color-accent)] text-text-hint"
                   aria-label="신고"
                 >
                   <Flag size={11}/>
@@ -664,12 +831,10 @@ export default function CommunityDetailPage() {
           
           {/* 본문 */}
           <div
-            className="px-5 md:px-6 pb-5"
-            style={{borderTop: '1px solid var(--color-border)'}}
+            className="px-5 md:px-6 pb-5 border-t border-border"
           >
             <p
-              className="pt-5 text-sm leading-loose whitespace-pre-wrap"
-              style={{color: 'var(--color-text-main)'}}
+              className="pt-5 text-sm leading-loose whitespace-pre-wrap text-text-main"
             >
               {post.commContent}
             </p>
@@ -689,8 +854,7 @@ export default function CommunityDetailPage() {
           
           {/* 게시글 좋아요 버튼 */}
           <div
-            className="px-5 md:px-6 py-4 flex items-center justify-center"
-            style={{borderTop: '1px solid var(--color-border)'}}
+            className="px-5 md:px-6 py-4 flex items-center justify-center border-t border-border"
           >
             <button
               onClick={handlePostLike}
@@ -709,15 +873,13 @@ export default function CommunityDetailPage() {
         
         {/* 댓글 섹션 */}
         <section
-          className="rounded-2xl overflow-hidden"
-          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          className="rounded-2xl overflow-hidden bg-surface border border-border"
         >
           {/* 댓글 헤더 */}
           <div
-            className="px-5 py-4 flex items-center gap-2"
-            style={{borderBottom: '1px solid var(--color-border)'}}
+            className="px-5 py-4 flex items-center gap-2 border-b border-border"
           >
-            <MessageSquare size={16} style={{color: 'var(--color-text-sub)'}}/>
+            <MessageSquare size={16} className="text-text-sub"/>
             <h2 className="font-bold text-sm"
                 style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}>
               댓글 {post.commentCount}
@@ -728,7 +890,7 @@ export default function CommunityDetailPage() {
           <div className="px-5">
             {replies.length === 0 ? (
               <div className="py-12 text-center">
-                <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>첫 번째 댓글을 남겨보세요!</p>
+                <p className="text-sm text-text-hint" >첫 번째 댓글을 남겨보세요!</p>
               </div>
             ) : (
               replies.map(reply => (
@@ -753,8 +915,7 @@ export default function CommunityDetailPage() {
           
           {/* 댓글 입력 폼 */}
           <div
-            className="px-5 py-4"
-            style={{borderTop: '1px solid var(--color-border)'}}
+            className="px-5 py-4 border-t border-border"
           >
             {/* 답글 대상 표시 */}
             {replyingTo && (
@@ -762,14 +923,13 @@ export default function CommunityDetailPage() {
                 className="flex items-center justify-between px-3 py-2 rounded-xl mb-2"
                 style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
               >
-                <span className="text-xs" style={{color: 'var(--color-accent)'}}>
+                <span className="text-xs text-accent" >
                   <CornerDownRight size={12} className="inline mr-1"/>
                   <strong>{replyingTo.nickname}</strong>님에게 답글 작성 중
                 </span>
                 <button
                   onClick={() => setReplyingTo(null)}
-                  className="text-xs"
-                  style={{color: 'var(--color-text-hint)'}}
+                  className="text-xs text-text-hint"
                 >
                   취소
                 </button>
@@ -800,8 +960,7 @@ export default function CommunityDetailPage() {
               <button
                 onClick={handleSubmitReply}
                 disabled={!replyText.trim() || isSubmittingReply}
-                className="p-2.5 rounded-xl flex-shrink-0 disabled:opacity-40"
-                style={{background: 'var(--color-accent)', color: '#fff'}}
+                className="p-2.5 rounded-xl flex-shrink-0 disabled:opacity-40 bg-accent text-white"
               >
                 {/* 전송 중에는 Loader2 스피너, 대기 중에는 Send 아이콘 */}
                 {isSubmittingReply ? (

@@ -12,240 +12,17 @@
  * 상태: 로컬 필터 (추후 URL searchParams + useQuery 전환)
  */
 import {formatPrice} from '../../utils/format'
-import {useMemo, useState} from 'react'
+import {useState} from 'react'
 import {Link, useSearchParams} from 'react-router-dom'
-import {ChevronDown, ChevronRight, ChevronUp, Heart, RotateCcw, Search, SlidersHorizontal, X,} from 'lucide-react'
-import type {DeliveryType, Grade, ListingItem, Sport} from '../../types/listing'
+import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, X,} from 'lucide-react'
+import Pagination from '../../components/ui/Pagination'
+import {useQuery} from '@tanstack/react-query'
+import {getListings, toggleWish} from '../../features/listing/api/listingApi'
+import type {PostCard} from '../../features/listing/api/listingApi'
+import {resolveImageUrl} from '../../utils/image'
+import ConditionBadge from '../../components/ui/ConditionBadge'
+import type {DeliveryType, Grade, Sport} from '../../types/listing'
 
-// ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-const ALL_LISTINGS: ListingItem[] = [
-  {
-    id: 1,
-    title: '맨체스터 유나이티드 23/24 홈 어센틱',
-    team: '맨체스터 유나이티드',
-    price: 78000,
-    grade: 'S',
-    size: 'M',
-    deliveryType: 'BOTH',
-    jerseyColor: '#B5222B',
-    jerseyNumber: '7',
-    likedCount: 24,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '2시간 전'
-  },
-  {
-    id: 2,
-    title: '리버풀 FC 07/08 어웨이 레플리카',
-    team: '리버풀 FC',
-    price: 55000,
-    grade: 'A',
-    size: 'L',
-    deliveryType: 'BOTH',
-    jerseyColor: '#C8102E',
-    jerseyNumber: '10',
-    likedCount: 18,
-    isLiked: true,
-    sport: 'SOCCER',
-    timeAgo: '5시간 전'
-  },
-  {
-    id: 3,
-    title: '첼시 FC 11/12 홈 어센틱',
-    team: '첼시 FC',
-    price: 43000,
-    grade: 'B',
-    size: 'XL',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#034694',
-    jerseyNumber: '11',
-    likedCount: 7,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '어제'
-  },
-  {
-    id: 4,
-    title: '레알 마드리드 21/22 서드 킷',
-    team: '레알 마드리드',
-    price: 92000,
-    grade: 'S',
-    size: 'S',
-    deliveryType: 'DIRECT',
-    jerseyColor: '#6B0078',
-    jerseyNumber: '9',
-    likedCount: 41,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '3일 전'
-  },
-  {
-    id: 5,
-    title: '전북 현대 2024 홈 어센틱',
-    team: '전북 현대',
-    price: 66000,
-    grade: 'S',
-    size: 'M',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#1A7A40',
-    jerseyNumber: '27',
-    likedCount: 12,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '1주 전'
-  },
-  {
-    id: 6,
-    title: '바르셀로나 22/23 어웨이 레플리카',
-    team: 'FC 바르셀로나',
-    price: 48000,
-    grade: 'A',
-    size: 'M',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#A50044',
-    jerseyNumber: '10',
-    likedCount: 33,
-    isLiked: true,
-    sport: 'SOCCER',
-    timeAgo: '4시간 전'
-  },
-  {
-    id: 7,
-    title: '두산 베어스 2023 홈 유니폼',
-    team: '두산 베어스',
-    price: 59000,
-    grade: 'S',
-    size: 'L',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#002147',
-    jerseyNumber: '36',
-    likedCount: 9,
-    isLiked: false,
-    sport: 'BASEBALL',
-    timeAgo: '6시간 전'
-  },
-  {
-    id: 8,
-    title: 'KT 위즈 2024 어웨이 유니폼',
-    team: 'KT 위즈',
-    price: 44000,
-    grade: 'B',
-    size: 'XL',
-    deliveryType: 'BOTH',
-    jerseyColor: '#D50032',
-    jerseyNumber: '22',
-    likedCount: 5,
-    isLiked: false,
-    sport: 'BASEBALL',
-    timeAgo: '2일 전'
-  },
-  {
-    id: 9,
-    title: '서울 SK 나이츠 23/24 홈',
-    team: '서울 SK 나이츠',
-    price: 71000,
-    grade: 'A',
-    size: 'M',
-    deliveryType: 'DIRECT',
-    jerseyColor: '#E3001B',
-    jerseyNumber: '14',
-    likedCount: 16,
-    isLiked: false,
-    sport: 'BASKETBALL',
-    timeAgo: '어제'
-  },
-  {
-    id: 10,
-    title: '인천 대한항공 점보스 유니폼',
-    team: '인천 대한항공',
-    price: 38000,
-    grade: 'C',
-    size: 'S',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#003087',
-    jerseyNumber: '5',
-    likedCount: 3,
-    isLiked: false,
-    sport: 'VOLLEYBALL',
-    timeAgo: '3일 전'
-  },
-  {
-    id: 11,
-    title: 'PSG 23/24 홈 어센틱',
-    team: '파리 생제르맹',
-    price: 110000,
-    grade: 'S',
-    size: 'L',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#004170',
-    jerseyNumber: '7',
-    likedCount: 55,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '1일 전'
-  },
-  {
-    id: 12,
-    title: 'T1 2024 스프링 유니폼',
-    team: 'T1',
-    price: 85000,
-    grade: 'A',
-    size: 'M',
-    deliveryType: 'BOTH',
-    jerseyColor: '#C8102E',
-    jerseyNumber: '',
-    likedCount: 72,
-    isLiked: false,
-    sport: 'ESPORTS',
-    timeAgo: '3시간 전'
-  },
-  {
-    id: 13,
-    title: 'KIA 타이거즈 2023 홈 어센틱',
-    team: 'KIA 타이거즈',
-    price: 67000,
-    grade: 'S',
-    size: 'L',
-    deliveryType: 'DELIVERY',
-    jerseyColor: '#D50032',
-    jerseyNumber: '53',
-    likedCount: 28,
-    isLiked: false,
-    sport: 'BASEBALL',
-    timeAgo: '5일 전'
-  },
-  {
-    id: 14,
-    title: '토트넘 22/23 홈 어센틱',
-    team: '토트넘 홋스퍼',
-    price: 89000,
-    grade: 'S',
-    size: 'M',
-    deliveryType: 'BOTH',
-    jerseyColor: '#FFFFFF',
-    jerseyNumber: '10',
-    likedCount: 45,
-    isLiked: false,
-    sport: 'SOCCER',
-    timeAgo: '6시간 전'
-  },
-  {
-    id: 15,
-    title: '현대캐피탈 스카이워커스 유니폼',
-    team: '현대캐피탈',
-    price: 42000,
-    grade: 'B',
-    size: 'XL',
-    deliveryType: 'DIRECT',
-    jerseyColor: '#003087',
-    jerseyNumber: '11',
-    likedCount: 8,
-    isLiked: false,
-    sport: 'VOLLEYBALL',
-    timeAgo: '2일 전'
-  },
-]
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
@@ -282,48 +59,67 @@ const SORT_OPTIONS = [
 
 // ── 등급/유틸 ─────────────────────────────────────────────────────────────────
 
-const GRADE_META: Record<Grade, { label: string; bg: string; text: string; border: string }> = {
-  S: {label: 'S급', bg: 'rgba(255,184,0,.12)', text: '#B38000', border: 'rgba(255,184,0,.35)'},
-  A: {label: 'A급', bg: 'rgba(0,33,71,.08)', text: '#002147', border: 'rgba(0,33,71,.25)'},
-  B: {label: 'B급', bg: 'rgba(90,106,122,.10)', text: '#5A6A7A', border: 'rgba(90,106,122,.3)'},
-  C: {label: 'C급', bg: 'rgba(255,149,0,.10)', text: '#CC7700', border: 'rgba(255,149,0,.3)'},
-}
+
 
 // ── 컴포넌트 ──────────────────────────────────────────────────────────────────
 
-/** 상품 카드 */
-function ProductCard({item, onLike}: { item: ListingItem; onLike: (id: number) => void }) {
-  const m = GRADE_META[item.grade]
+/** 상품 카드 — PostCard(API) 기반 */
+function ProductCard({
+  item,
+  isWished,
+  onLike,
+}: {
+  item: PostCard
+  isWished: boolean
+  onLike: (postId: number) => void
+}) {
+
+  const imgSrc = resolveImageUrl(item.thumbnailUrl)
   return (
-    <article className="rounded-xl overflow-hidden transition-shadow hover:shadow-md relative"
-             style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}>
-      <Link to={`/listing/${item.id}`} className="block">
-        {/* 썸네일 */}
-        <div className="relative" style={{aspectRatio: '4/5', background: item.jerseyColor ?? '#1A3051'}}>
-          <div className="absolute inset-0"
-               style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>
-          <span className="absolute inset-0 flex items-center justify-center select-none"
-                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 80, color: 'rgba(255,255,255,.13)'}}>
-            {item.jerseyNumber}
-          </span>
-          {/* 등급 배지 */}
-          <span className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded" style={{
-            background: m.bg,
-            color: m.text,
-            border: `1px solid ${m.border}`,
-            fontFamily: "'Giants','Pretendard',sans-serif"
-          }}>
-            {m.label}
-          </span>
+    <article
+      className="rounded-xl overflow-hidden transition-shadow hover:shadow-md relative"
+      style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
+    >
+      <Link to={`/listing/${item.postId}`} className="block">
+        {/* 썸네일 — API 이미지 우선, 없으면 네이비 플레이스홀더 */}
+        <div className="relative" style={{aspectRatio: '4/5', background: '#1A3051'}}>
+          {imgSrc ? (
+            <img
+              src={imgSrc}
+              alt={item.title}
+              className="w-full h-full object-cover"
+              onError={e => {
+                (e.currentTarget as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          ) : (
+            <>
+              <div
+                className="absolute inset-0"
+                style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}
+              />
+              <span
+                className="absolute inset-0 flex items-center justify-center select-none"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 80, color: 'rgba(255,255,255,.13)'}}
+              >
+                {item.postId % 99}
+              </span>
+            </>
+          )}
+          {/* 등급 배지 — HomePage와 동일한 ConditionBadge 컴포넌트 사용 */}
+          <ConditionBadge grade={item.grade} size="sm" className="absolute top-2 left-2"/>
         </div>
         {/* 정보 */}
         <div className="p-3">
           <p className="text-[13px] mb-0.5" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
-          <p className="text-sm font-semibold leading-snug line-clamp-2"
-             style={{color: 'var(--color-text-main)'}}>{item.title}</p>
+          <p className="text-sm font-semibold leading-snug line-clamp-2" style={{color: 'var(--color-text-main)'}}>
+            {item.title}
+          </p>
           <div className="flex items-center justify-between mt-2">
-            <span className="font-bold text-sm"
-                  style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+            <span
+              className="font-bold text-sm"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
               {formatPrice(item.price)}
             </span>
             <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>{item.timeAgo}</span>
@@ -332,13 +128,16 @@ function ProductCard({item, onLike}: { item: ListingItem; onLike: (id: number) =
       </Link>
       {/* 찜 버튼 */}
       <button
-        onClick={() => onLike(item.id)}
+        onClick={() => onLike(item.postId)}
         className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all"
         style={{background: 'rgba(255,255,255,.88)'}}
         aria-label="찜하기"
       >
-        <Heart size={15} fill={item.isLiked ? 'var(--color-accent)' : 'none'}
-               color={item.isLiked ? 'var(--color-accent)' : '#0D1B2A'}/>
+        <Heart
+          size={15}
+          fill={isWished ? 'var(--color-accent)' : 'none'}
+          color={isWished ? 'var(--color-accent)' : '#0D1B2A'}
+        />
       </button>
     </article>
   )
@@ -502,26 +301,61 @@ export default function SearchPage() {
   const [size, setSize] = useState('전체')
   const [delivery, setDelivery] = useState<DeliveryType | 'all'>('all')
   const [maxPrice, setMaxPrice] = useState(300)
-  const [sort, setSort] = useState('latest')
+  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular'>('latest')
+  const [page, setPage] = useState(0) // 0-based 페이지
   
   /* 모바일 필터 드로어 */
   const [filterOpen, setFilterOpen] = useState(false)
   
-  /* 찜 상태 (로컬) */
-  const [liked, setLiked] = useState<Set<number>>(
-    () => new Set(ALL_LISTINGS.filter(l => l.isLiked).map(l => l.id))
-  )
+  /* 찜 낙관적 UI 오버라이드 (postId → true/false) */
+  const [wishedOverride, setWishedOverride] = useState<Map<number, boolean>>(new Map())
   
-  function toggleLike(id: number) {
-    setLiked(prev => {
-      const n = new Set(prev)
-      if (n.has(id)) {
-        n.delete(id)
-      } else {
-        n.add(id)
-      }
-      return n
-    })
+  
+  /* API — 실제 DB 데이터 조회 */
+  const {data, isLoading, isError} = useQuery({
+    queryKey: ['searchListings', query, sport, grade, delivery, maxPrice, sort, page],
+    queryFn: () =>
+      getListings({
+        keyword: query || undefined,
+        sport: sport !== 'all' ? sport : undefined,
+        condition: grade !== 'all' ? grade : undefined,
+        tradeType: delivery !== 'all' ? delivery : undefined,
+        maxPrice: maxPrice < 300 ? maxPrice * 1000 : undefined,
+        sort,
+        page,
+        size: 20,
+      }),
+    staleTime: 30_000,
+    placeholderData: prev => prev, // 필터 바뀌어도 이전 결과 유지 (깜빡임 방지)
+  })
+  
+  /* 사이즈 필터는 API 미지원 → 클라이언트 측 필터링 */
+  const allItems: PostCard[] = data?.content ?? []
+  const results: PostCard[] = size !== '전체'
+    ? allItems.filter(item => item.size === size)
+    : allItems
+  
+  const totalPages = data?.totalPages ?? 1
+  
+  /* 찜 토글 — 낙관적 UI + API 호출 */
+  async function toggleLike(postId: number) {
+    const current = wishedOverride.has(postId)
+      ? wishedOverride.get(postId)!
+      : (allItems.find(i => i.postId === postId)?.isWished ?? false)
+    setWishedOverride(prev => new Map(prev).set(postId, !current))
+    try {
+      await toggleWish(postId)
+    } catch {
+      // 실패 시 롤백
+      setWishedOverride(prev => new Map(prev).set(postId, current))
+    }
+  }
+  
+  /* 이 아이템이 찜 상태인지 판단 (낙관적 override 우선) */
+  function isItemWished(item: PostCard): boolean {
+    return wishedOverride.has(item.postId)
+      ? wishedOverride.get(item.postId)!
+      : item.isWished
   }
   
   /* 필터 초기화 */
@@ -533,36 +367,11 @@ export default function SearchPage() {
     setMaxPrice(300)
   }
   
-  /* 검색 실행 */
+  /* 검색 실행 — 새 검색어 입력 시 페이지 초기화 */
   function handleSearch() {
     setQuery(inputVal)
+    setPage(0)
   }
-  
-  /* 필터링 + 정렬 */
-  const results = useMemo(() => {
-    let list = ALL_LISTINGS.map(l => ({...l, isLiked: liked.has(l.id)}))
-    
-    if (query) {
-      const q = query.toLowerCase()
-      list = list.filter(l => l.title.toLowerCase().includes(q) || l.team.toLowerCase().includes(q))
-    }
-    if (sport !== 'all') list = list.filter(l => l.sport === sport)
-    if (grade !== 'all') list = list.filter(l => l.grade === grade)
-    if (size !== '전체') list = list.filter(l => l.size === size)
-    if (delivery !== 'all') list = list.filter(l => l.deliveryType === delivery || l.deliveryType === 'BOTH')
-    list = list.filter(l => l.price <= maxPrice * 1000)
-    
-    switch (sort) {
-      case 'popular':
-        return list.sort((a, b) => b.likedCount - a.likedCount)
-      case 'price_asc':
-        return list.sort((a, b) => a.price - b.price)
-      case 'price_desc':
-        return list.sort((a, b) => b.price - a.price)
-      default:
-        return list
-    }
-  }, [query, sport, grade, size, delivery, maxPrice, sort, liked])
   
   /* 활성 필터 수 */
   const activeFilterCount = [
@@ -570,9 +379,18 @@ export default function SearchPage() {
     size !== '전체', delivery !== 'all', maxPrice < 300,
   ].filter(Boolean).length
   
+  /* 필터 변경 시 page를 0으로 리셋하는 래퍼 setter */
   const filterProps = {
-    sport, setSport, grade, setGrade,
-    size, setSize, delivery, setDelivery, maxPrice, setMaxPrice,
+    sport,
+    setSport: (v: Sport | 'all') => { setSport(v); setPage(0) },
+    grade,
+    setGrade: (v: Grade | 'all') => { setGrade(v); setPage(0) },
+    size,
+    setSize: (v: string) => { setSize(v); setPage(0) },
+    delivery,
+    setDelivery: (v: DeliveryType | 'all') => { setDelivery(v); setPage(0) },
+    maxPrice,
+    setMaxPrice: (v: number) => { setMaxPrice(v); setPage(0) },
     onReset: resetFilter,
   }
   
@@ -694,7 +512,7 @@ export default function SearchPage() {
                   <span className="font-bold" style={{
                     color: 'var(--color-text-main)',
                     fontFamily: "'IAMAPLAYER',Giants,sans-serif"
-                  }}>{results.length}</span>개 상품
+                  }}>{data?.totalElements ?? results.length}</span>개 상품
                   {query && <span>  &quot;{query}&quot; 검색 결과</span>}
                 </span>
               </div>
@@ -704,7 +522,7 @@ export default function SearchPage() {
                 {SORT_OPTIONS.map(o => (
                   <button
                     key={o.key}
-                    onClick={() => setSort(o.key)}
+                    onClick={() => { setSort(o.key as 'latest' | 'price_asc' | 'price_desc' | 'popular'); setPage(0) }}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={{
                       background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',
@@ -752,50 +570,76 @@ export default function SearchPage() {
               </div>
             )}
             
-            {/* 그리드 or EmptyState */}
-            {results.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-4">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{background: 'var(--color-surface-raised)'}}
-                >
-                  <Search size={28} color="var(--color-text-hint)"/>
-                </div>
-                <div className="text-center">
-                  <p className="font-display font-bold text-base mb-1" style={{color: 'var(--color-text-main)'}}>
-                    검색 결과가 없어요
-                  </p>
-                  <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>
-                    다른 키워드나 필터를 시도해보세요.
-                  </p>
-                </div>
-                <button onClick={resetFilter} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
-                        style={{background: 'var(--color-primary)'}}>
-                  필터 초기화
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                {results.map(item => (
-                  <ProductCard key={item.id} item={item} onLike={toggleLike}/>
-                ))}
+            {/* 로딩 스피너 */}
+            {isLoading && (
+              <div className="flex justify-center py-20">
+                <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
               </div>
             )}
             
-            {/* 더보기 버튼 (목 — 추후 무한스크롤 전환) */}
-            {results.length > 0 && (
-              <div className="flex justify-center mt-8">
-                <button
-                  className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-sm transition-colors"
-                  style={{
-                    background: 'var(--color-surface)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-sub)'
-                  }}
-                >
-                  더 보기 <ChevronRight size={16}/>
-                </button>
+            {/* 에러 */}
+            {isError && !isLoading && (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <p className="font-display font-bold text-base" style={{color: 'var(--color-text-main)'}}>
+                  데이터를 불러오지 못했습니다
+                </p>
+                <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                  잠시 후 다시 시도해주세요.
+                </p>
               </div>
+            )}
+            
+            {/* 그리드 or EmptyState */}
+            {!isLoading && !isError && (
+              results.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{background: 'var(--color-surface-raised)'}}
+                  >
+                    <Search size={28} color="var(--color-text-hint)"/>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-display font-bold text-base mb-1" style={{color: 'var(--color-text-main)'}}>
+                      검색 결과가 없어요
+                    </p>
+                    <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                      다른 키워드나 필터를 시도해보세요.
+                    </p>
+                  </div>
+                  <button
+                    onClick={resetFilter}
+                    className="px-5 py-2.5 rounded-xl text-sm font-bold text-white"
+                    style={{background: 'var(--color-primary)'}}
+                  >
+                    필터 초기화
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {results.map(item => (
+                    <ProductCard
+                      key={item.postId}
+                      item={item}
+                      isWished={isItemWished(item)}
+                      onLike={toggleLike}
+                    />
+                  ))}
+                </div>
+              )
+            )}
+            
+            {/* 페이지네이션 */}
+            {!isLoading && totalPages > 1 && (
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onChange={(p) => {
+                  setPage(p)
+                  // 페이지 변경 시 결과 상단으로 스크롤
+                  window.scrollTo({top: 0, behavior: 'smooth'})
+                }}
+              />
             )}
           </div>
         </div>

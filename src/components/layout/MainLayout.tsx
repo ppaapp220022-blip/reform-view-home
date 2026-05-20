@@ -12,7 +12,7 @@
  *
  * Router에서 Outlet으로 자식 페이지를 렌더링함.
  */
-import { Outlet } from 'react-router-dom'
+import {Outlet} from 'react-router-dom'
 import GNB from './GNB'
 import Footer from './Footer'
 import BottomTabBar from './BottomTabBar'
@@ -21,23 +21,23 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-[var(--color-bg)]">
       {/* 상단 고정 네비게이션 (모바일/데스크톱 공통) */}
-      <GNB />
-
+      <GNB/>
+      
       {/*
        * 페이지 콘텐츠 영역
        * pb-16: 모바일에서 BottomTabBar(64px) 높이만큼 하단 패딩 확보
        * md:pb-0: 데스크톱에서는 패딩 불필요
        */}
       <main className="flex-1 flex flex-col pb-16 md:pb-0">
-        <Outlet />
+        <Outlet/>
       </main>
-
+      
       {/* 하단 탭바 — 모바일 전용 (md 이상에서 숨김, BottomTabBar 내부에서 md:hidden 처리) */}
-      <BottomTabBar />
-
+      <BottomTabBar/>
+      
       {/* 하단 푸터 — 데스크톱 전용 (md 미만에서 숨김) */}
       <div className="hidden md:block">
-        <Footer />
+        <Footer/>
       </div>
     </div>
   )

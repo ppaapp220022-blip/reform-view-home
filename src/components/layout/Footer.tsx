@@ -31,18 +31,18 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="max-w-[1280px] mx-auto px-7 pt-10 pb-8">
-
+        
         <div className="grid gap-8" style={{gridTemplateColumns: '1.4fr 1fr 1fr 1fr 1fr'}}>
-
+          
           {/* 브랜드 소개 — simple variant: 푸터 좁은 공간 */}
           <div>
             <Logo variant="simple" height={24}/>
-
+            
             <p className="mt-3.5 text-[14px] text-[var(--color-text-sub)] leading-relaxed max-w-[280px]">
               스포츠 유니폼을 가장 빠르게 거래하는 곳.<br/>
               팬을 위한 신뢰 기반 리셀 마켓.
             </p>
-
+            
             <div className="mt-3.5 flex gap-1.5 flex-wrap">
               <span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[13px] font-semibold bg-[var(--color-primary)] text-white tracking-[0.08em]"
@@ -58,7 +58,7 @@ export default function Footer() {
               </span>
             </div>
           </div>
-
+          
           {FOOTER_COLS.map(({heading, links}) => (
             <div key={heading}>
               {/* 섹션 헤더: 굵고 잘 보여야 하므로 font-display(Giants) */}
@@ -76,7 +76,7 @@ export default function Footer() {
             </div>
           ))}
         </div>
-
+        
         <div className="mt-8 pt-[18px] border-t border-[var(--color-border)] flex justify-between items-center">
           <span
             className="text-[13px] tracking-[0.08em] text-[var(--color-text-sub)]"

@@ -19,8 +19,8 @@
  *
  * 등록 탭: red 라운드 사각형 (active 개념 없음, 항상 동일)
  */
-import { useLocation, useNavigate } from 'react-router-dom'
-import { Home, Heart, Plus, MessageCircle, User } from 'lucide-react'
+import {useLocation, useNavigate} from 'react-router-dom'
+import {Heart, Home, MessageCircle, Plus, User} from 'lucide-react'
 
 type TabId = 'home' | 'likes' | 'sell' | 'chat' | 'my'
 
@@ -33,11 +33,11 @@ interface TabItem {
 }
 
 const TAB_ITEMS: TabItem[] = [
-  { id: 'home',  label: '홈',   path: '/',            Icon: Home },
-  { id: 'likes', label: '관심', path: '/likes',       Icon: Heart },
-  { id: 'sell',  label: '등록', path: '/listing/new', Icon: Plus, primary: true },
-  { id: 'chat',  label: '채팅', path: '/chat',        Icon: MessageCircle },
-  { id: 'my',    label: 'MY',   path: '/mypage',      Icon: User },
+  {id: 'home', label: '홈', path: '/', Icon: Home},
+  {id: 'likes', label: '관심', path: '/likes', Icon: Heart},
+  {id: 'sell', label: '등록', path: '/listing/new', Icon: Plus, primary: true},
+  {id: 'chat', label: '채팅', path: '/chat', Icon: MessageCircle},
+  {id: 'my', label: 'MY', path: '/mypage', Icon: User},
 ]
 
 /** 현재 경로 기준 활성 탭 id 반환 */
@@ -54,15 +54,15 @@ export default function BottomTabBar() {
   const location = useLocation()
   const navigate = useNavigate()
   const activeTab = getActiveTab(location.pathname)
-
+  
   return (
     <nav
       className="md:hidden sticky bottom-0 z-20 h-16 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex items-end px-0 pb-2 pt-1.5"
       aria-label="하단 탭 내비게이션"
     >
-      {TAB_ITEMS.map(({ id, label, path, Icon, primary }) => {
+      {TAB_ITEMS.map(({id, label, path, Icon, primary}) => {
         const isActive = activeTab === id
-
+        
         return (
           <button
             key={id}
@@ -84,8 +84,9 @@ export default function BottomTabBar() {
           >
             {primary ? (
               /* 등록 — accent 강조 버튼 */
-              <span className="w-9 h-9 rounded-[10px] bg-[var(--color-accent)] text-white flex items-center justify-center">
-                <Icon size={20} strokeWidth={2.5} />
+              <span
+                className="w-9 h-9 rounded-[10px] bg-[var(--color-accent)] text-white flex items-center justify-center">
+                <Icon size={20} strokeWidth={2.5}/>
               </span>
             ) : (
               /* 일반 탭 — 활성 시 accent-subtle pill 배경 */
@@ -97,7 +98,7 @@ export default function BottomTabBar() {
                     : 'transparent',
                 }}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.75} />
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.75}/>
               </span>
             )}
             {label}

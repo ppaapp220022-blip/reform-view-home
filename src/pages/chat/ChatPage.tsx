@@ -16,7 +16,7 @@
  * 메시지 이력: getMessages(chatId) REST API (desc → 역정렬해 초기값 주입)
  */
 import {useEffect, useMemo, useRef, useState} from 'react'
-import {Link, useSearchParams} from 'react-router-dom'
+import {Link, useParams, useSearchParams} from 'react-router-dom'
 import {useQuery} from '@tanstack/react-query'
 import {
   AlertTriangle,
@@ -360,9 +360,10 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
                 borderBottomRightRadius: 4,
               }
               : {
-                background: 'var(--color-surface-raised)',
+                /* gold subtle 틴트 — #FFB800(--color-gold) 10% 불투명도 */
+                background: 'rgba(255,184,0,.10)',
                 color: 'var(--color-text-main)',
-                border: '1px solid var(--color-border)',
+                border: '1px solid rgba(255,184,0,.22)',
                 borderBottomLeftRadius: 4,
               }
           }
@@ -851,10 +852,13 @@ export default function ChatPage() {
     staleTime: 30_000,
   })
   
-  // URL ?roomId=xxx 쿼리파라미터로 초기 방 지정 지원
-  // SellerCard에서 채팅방 생성 후 /chat?roomId={chatId} 로 navigate 할 때 사용
+  // URL 방 지정 — /chat/:chatId (path param) 또는 /chat?roomId=N (query param) 모두 지원
+  // path param 우선: 직접 URL 접근 (/chat/4) 도 404 없이 동작
+  const {chatId: pathChatId} = useParams<{ chatId?: string }>()
   const [searchParams] = useSearchParams()
-  const urlRoomId = searchParams.get('roomId') ? Number(searchParams.get('roomId')) : null
+  const urlRoomId = pathChatId
+    ? Number(pathChatId)
+    : searchParams.get('roomId') ? Number(searchParams.get('roomId')) : null
   
   // 사용자가 명시적으로 선택한 방 ID (null = 미선택)
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(urlRoomId)
