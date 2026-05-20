@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TradePage — 거래 관리 페이지 (구매자/판매자 공용)
  *
  * 라우트: /trade/:id
@@ -52,6 +52,38 @@ import {resolveImageUrl} from '../../utils/image'
 import useAuthStore from '../../store/authStore'
 import type {TradeStatus} from '../../types/listing'
 
+const KAKAO_POSTCODE_SCRIPT_ID = 'kakao-postcode-script'
+const KAKAO_POSTCODE_SCRIPT_SRC = 'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+
+type KakaoUserSelectedType = 'R' | 'J'
+type KakaoApartmentType = 'Y' | 'N'
+
+interface KakaoPostcodeData {
+  zonecode: string
+  roadAddress: string
+  jibunAddress: string
+  userSelectedType: KakaoUserSelectedType
+  bname: string
+  buildingName: string
+  apartment: KakaoApartmentType
+}
+
+interface KakaoPostcodeInstance {
+  open: () => void
+}
+
+interface KakaoPostcodeConstructor {
+  new (options: { oncomplete: (data: KakaoPostcodeData) => void }): KakaoPostcodeInstance
+}
+
+declare global {
+  interface Window {
+    kakao?: {
+      Postcode: KakaoPostcodeConstructor
+    }
+  }
+}
+
 // ── 상태 메타데이터 ────────────────────────────────────────────────────────────
 
 interface StatusMeta {
@@ -97,6 +129,88 @@ function statusToStep(status: TradeStatus): number {
     CONFIRMED: 4, COMPLETED: 4,
   }
   return map[status] ?? 0
+}
+
+function buildExtraAddress(data: KakaoPostcodeData): string {
+  let extraAddress = ''
+
+  if (data.bname && /[동로가]$/.test(data.bname)) {
+    extraAddress += data.bname
+  }
+
+  if (data.buildingName && data.apartment === 'Y') {
+    extraAddress += extraAddress ? `, ${data.buildingName}` : data.buildingName
+  }
+
+  return extraAddress ? `(${extraAddress})` : ''
+}
+
+function getPrimaryAddress(data: KakaoPostcodeData): string {
+  return data.userSelectedType === 'R' ? data.roadAddress : data.jibunAddress
+}
+
+function combineDeliveryAddress(baseAddress: string, detailAddress: string): string {
+  const trimmedBaseAddress = baseAddress.trim()
+  const trimmedDetailAddress = detailAddress.trim()
+
+  if (!trimmedBaseAddress) return ''
+  if (!trimmedDetailAddress) return trimmedBaseAddress
+
+  return `${trimmedBaseAddress} · ${trimmedDetailAddress}`
+}
+
+function splitDeliveryAddress(address: string | null): { baseAddress: string; detailAddress: string } {
+  const trimmedAddress = address?.trim() ?? ''
+
+  if (!trimmedAddress) {
+    return {baseAddress: '', detailAddress: ''}
+  }
+
+  const separatorIndex = trimmedAddress.lastIndexOf(' · ')
+  if (separatorIndex === -1) {
+    return {baseAddress: trimmedAddress, detailAddress: ''}
+  }
+
+  return {
+    baseAddress: trimmedAddress.slice(0, separatorIndex).trim(),
+    detailAddress: trimmedAddress.slice(separatorIndex + 3).trim(),
+  }
+}
+
+function ensureKakaoPostcodeScript(): Promise<KakaoPostcodeConstructor> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('window is not available'))
+  }
+
+  if (window.kakao?.Postcode) {
+    return Promise.resolve(window.kakao.Postcode)
+  }
+
+  return new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(KAKAO_POSTCODE_SCRIPT_ID) as HTMLScriptElement | null
+
+    const handleReady = () => {
+      if (window.kakao?.Postcode) {
+        resolve(window.kakao.Postcode)
+        return
+      }
+      reject(new Error('Kakao postcode script loaded without Postcode constructor'))
+    }
+
+    if (existingScript) {
+      existingScript.addEventListener('load', handleReady, {once: true})
+      existingScript.addEventListener('error', () => reject(new Error('Failed to load Kakao postcode script')), {once: true})
+      return
+    }
+
+    const script = document.createElement('script')
+    script.id = KAKAO_POSTCODE_SCRIPT_ID
+    script.src = KAKAO_POSTCODE_SCRIPT_SRC
+    script.async = true
+    script.onload = handleReady
+    script.onerror = () => reject(new Error('Failed to load Kakao postcode script'))
+    document.head.appendChild(script)
+  })
 }
 
 // ── 타임라인 컴포넌트 ─────────────────────────────────────────────────────────
@@ -278,12 +392,23 @@ function DeliveryAddressForm({
   onSuccess: () => void
 }) {
   const queryClient = useQueryClient()
+  const detailInputRef = useRef<HTMLInputElement | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [address, setAddress] = useState(currentAddress ?? '')
+  const [baseAddress, setBaseAddress] = useState('')
+  const [detailAddress, setDetailAddress] = useState('')
   const [error, setError] = useState<string | null>(null)
-  
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false)
+
+  const composedAddress = combineDeliveryAddress(baseAddress, detailAddress)
+
+  useEffect(() => {
+    const nextAddress = splitDeliveryAddress(currentAddress)
+    setBaseAddress(nextAddress.baseAddress)
+    setDetailAddress(nextAddress.detailAddress)
+  }, [currentAddress])
+
   const {mutate: submitAddress, isPending} = useMutation({
-    mutationFn: () => updateDelivery(tradeId, {deliveryAddress: address}),
+    mutationFn: () => updateDelivery(tradeId, {deliveryAddress: composedAddress}),
     onSuccess() {
       queryClient.invalidateQueries({queryKey: ['trade', String(tradeId)]})
       setExpanded(false)
@@ -294,7 +419,47 @@ function DeliveryAddressForm({
       setError('배송지 저장 중 오류가 발생했습니다.')
     },
   })
-  
+
+  const handleAddressSearch = useCallback(async () => {
+    setError(null)
+    setIsSearchingAddress(true)
+
+    try {
+      const Postcode = await ensureKakaoPostcodeScript()
+      const postcode = new Postcode({
+        oncomplete(data) {
+          const primaryAddress = getPrimaryAddress(data).trim()
+          const extraAddress = buildExtraAddress(data)
+          const nextBaseAddress = [
+            data.zonecode ? `(${data.zonecode})` : '',
+            primaryAddress,
+            extraAddress,
+          ].filter(Boolean).join(' ')
+
+          setBaseAddress(nextBaseAddress)
+          setExpanded(true)
+          setTimeout(() => {
+            detailInputRef.current?.focus()
+            detailInputRef.current?.setSelectionRange(detailInputRef.current.value.length, detailInputRef.current.value.length)
+          }, 0)
+        },
+      })
+      postcode.open()
+    } catch {
+      setError('주소 검색 창을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setIsSearchingAddress(false)
+    }
+  }, [])
+
+  const resetForm = useCallback(() => {
+    const nextAddress = splitDeliveryAddress(currentAddress)
+    setBaseAddress(nextAddress.baseAddress)
+    setDetailAddress(nextAddress.detailAddress)
+    setError(null)
+    setExpanded(false)
+  }, [currentAddress])
+
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -319,29 +484,67 @@ function DeliveryAddressForm({
           {expanded ? '닫기' : (currentAddress ? '수정' : '입력')}
         </span>
       </button>
-      
+
       {/* 입력 폼 */}
       {expanded && (
         <div className="px-4 pb-4 border-t" style={{borderColor: 'var(--color-border)'}}>
-          <textarea
-            className="w-full rounded-xl px-3 py-2.5 text-sm resize-none mt-3"
-            style={{
-              background: 'var(--color-surface-raised)',
-              border: '1px solid var(--color-border)',
-              color: 'var(--color-text-main)',
-            }}
-            rows={2}
-            placeholder="도로명 주소 + 상세 주소 (예: 서울특별시 강남구 테헤란로 123, 101호)"
-            value={address}
-            onChange={e => setAddress(e.target.value)}
-          />
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleAddressSearch}
+              disabled={isSearchingAddress}
+              className="flex items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:flex-shrink-0 hover:text-white"
+              style={{background: 'var(--color-primary)'}}
+            >
+              {isSearchingAddress
+                ? <><Loader2 size={14} className="animate-spin"/>검색 준비 중...</>
+                : <><MapPin size={14}/>우편번호 찾기</>
+              }
+            </button>
+            <div className="flex-1 rounded-xl px-3 py-2.5 text-xs leading-relaxed"
+                 style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}>
+              검색 주소와 상세주소를 나눠 입력하고 저장할 때만 하나로 합칩니다.
+            </div>
+          </div>
+          <div className="mt-3 flex flex-col gap-2">
+            <input
+              type="text"
+              className="w-full rounded-xl px-3 py-2.5 text-sm"
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-main)',
+              }}
+              placeholder="우편번호 찾기로 기본 주소를 선택해주세요"
+              value={baseAddress}
+              onChange={e => setBaseAddress(e.target.value)}
+            />
+            <input
+              ref={detailInputRef}
+              type="text"
+              className="w-full rounded-xl px-3 py-2.5 text-sm"
+              style={{
+                background: 'var(--color-surface-raised)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-main)',
+              }}
+              placeholder="상세주소를 입력해주세요. 예: 101호"
+              value={detailAddress}
+              onChange={e => setDetailAddress(e.target.value)}
+            />
+          </div>
+          {composedAddress && (
+            <p className="mt-2 text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+              저장될 주소: {composedAddress}
+            </p>
+          )}
           {error && (
             <p className="text-xs mt-1.5" style={{color: 'var(--color-error)'}}>{error}</p>
           )}
           <div className="flex gap-2 mt-2">
             <button
               onClick={() => submitAddress()}
-              disabled={!address.trim() || isPending}
+              disabled={!baseAddress.trim() || isPending}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50"
               style={{background: 'var(--color-accent)'}}
             >
@@ -351,10 +554,7 @@ function DeliveryAddressForm({
               }
             </button>
             <button
-              onClick={() => {
-                setExpanded(false);
-                setAddress(currentAddress ?? '')
-              }}
+              onClick={resetForm}
               className="px-4 py-2.5 rounded-xl text-sm font-semibold"
               style={{
                 background: 'var(--color-surface-raised)',
@@ -371,7 +571,7 @@ function DeliveryAddressForm({
   )
 }
 
-// ── 배송 입력 폼 (판매자 전용) ─────────────────────────────────────────────────
+// ── 배송 입력 폼 (판매자 전용) ────────────────────────────────────────────────
 
 function ShippingInputForm({
                              tradeId,
