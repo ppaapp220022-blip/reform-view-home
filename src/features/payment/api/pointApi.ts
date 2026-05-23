@@ -1,10 +1,10 @@
 /**
- * pointApi.ts — 포인트 관련 API 함수 모음
+ * pointApi.ts — 예치금 관련 API 함수 모음
  *
  * 백엔드 PointController (/api/points) 엔드포인트 연동
  *
- * GET    /api/users/me/points             — 포인트 지갑 조회 (보유/출금가능/정산대기)
- * GET    /api/users/me/points/history      — 포인트 내역 목록 조회
+ * GET    /api/users/me/points             — 예치금 지갑 조회 (보유/출금가능/정산대기)
+ * GET    /api/users/me/points/history      — 예치금 내역 목록 조회
  * POST   /api/users/me/points/withdraw     — 출금 요청
  * GET    /api/users/me/points/withdraw     — 내 출금 요청 목록
  * DELETE /api/users/me/points/withdraw/{id}— 출금 요청 취소
@@ -17,17 +17,17 @@ import apiClient from '../../../lib/axios'
 // ── 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────────
 
 /**
- * 포인트 내역 타입 (PointHistoryType enum 일치)
- * EARN     — 포인트 적립 (거래 완료 정산)
- * WITHDRAW — 포인트 출금
+ * 예치금 내역 타입 (PointHistoryType enum 일치)
+ * EARN     — 예치금 적립 (거래 완료 정산)
+ * WITHDRAW — 예치금 출금
  */
 export type PointHistoryType = 'EARN' | 'WITHDRAW'
 
 /**
- * 포인트 지갑 정보 (PointWalletResponseDTO)
- * balance      : 총 보유 포인트
- * withdrawable : 출금 가능 포인트 (구매 확정 완료분)
- * pending      : 정산 대기 포인트 (구매 확정 전, 에스크로 보관 중)
+ * 예치금 지갑 정보 (PointWalletResponseDTO)
+ * balance      : 총 보유 예치금
+ * withdrawable : 출금 가능 예치금 (구매 확정 완료분)
+ * pending      : 정산 대기 예치금 (구매 확정 전, 플랫폼 보관 중)
  */
 export interface PointWallet {
   balance: number
@@ -36,7 +36,7 @@ export interface PointWallet {
 }
 
 /**
- * 포인트 내역 항목 (PointHistoryItemDTO)
+ * 예치금 내역 항목 (PointHistoryItemDTO)
  * pointId      : 내역 ID
  * type         : EARN | WITHDRAW
  * changeAmount : 변동량 (적립 시 양수, 출금 시 음수)
@@ -56,9 +56,9 @@ export interface PointHistoryItem {
 // ── API 함수 ──────────────────────────────────────────────────────────────────
 
 /**
- * 포인트 지갑 조회
+ * 예치금 지갑 조회
  * GET /api/points/wallet?memberId={memberId}
- * 마이페이지 포인트 탭에서 사용
+ * 마이페이지 예치금 탭에서 사용
  */
 export async function getPointWallet(): Promise<PointWallet> {
   const {data} = await apiClient.get<PointWallet>('/users/me/points')
@@ -66,7 +66,7 @@ export async function getPointWallet(): Promise<PointWallet> {
 }
 
 /**
- * 포인트 내역 목록 조회
+ * 예치금 내역 목록 조회
  * GET /api/points/history?memberId={memberId}
  * 최신순 전체 목록 (서버 측 페이지네이션 없음 — 배열 반환)
  */

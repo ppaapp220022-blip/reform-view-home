@@ -27,10 +27,3 @@ export function formatNumber(n: number): string {
   return n.toLocaleString('ko-KR')
 }
 
-/**
- * 포인트를 P 단위로 포맷
- * 예: 200 → '+200P', -50 → '-50P'
- */
-export function formatPoints(n: number): string {
-  return (n > 0 ? '+' : '') + n + 'P'
-}

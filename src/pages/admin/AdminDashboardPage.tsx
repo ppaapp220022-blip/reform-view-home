@@ -2,22 +2,25 @@
  * AdminDashboardPage — 관리자 대시보드 (Screen 9)
  *
  * 구성:
- *   StatCard     — 핵심 KPI (총 회원·오늘 거래·미처리 신고·분쟁 건수)
+ *   StatCard       — 핵심 KPI (관리자 대시보드 요약 API)
  *   RecentReports  — 최근 신고 목록 (빠른 처리 링크)
- *   RecentMembers  — 최근 가입 회원 목록
- *   RecentTrades   — 최근 거래 현황
+  *   RiskSnapshot   — 최근 위험 탐지 결과 (게시글/채팅)
+  *   RecentMembers  — 최근 가입 회원 목록
+ *   RecentTrades   — 관리자 대시보드 최근 거래 요약
  *   QuickActions   — 관리 바로가기
  *
- * 데이터: 목 데이터 (추후 Admin API 연동)
- * 권한: Role.ADMIN 전용 (현재는 목 고정)
+ * 데이터:
+ *   - 핵심 지표와 최근 거래는 GET /api/admin/dashboard/summary 사용
+ *   - 회원/신고/출금 상세 섹션은 각 관리자 목록 API를 개별 조회한다.
  */
 import {formatPrice} from '../../utils/format'
 import {Link} from 'react-router-dom'
+import {type ReactNode, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
-import {useState} from 'react'
 import {
   AlertCircle,
   AlertOctagon,
+  AlertTriangle,
   Banknote,
   BarChart2,
   Bell,
@@ -25,88 +28,27 @@ import {
   ChevronRight,
   Flag,
   Shield,
-  ShoppingBag,
-  TrendingUp,
   Users,
-  XCircle,
 } from 'lucide-react'
-import type {AdminMemberListItem, AdminWithdrawItem, ReportItem} from '../../features/admin/api/adminApi'
+import type {
+  AdminDashboardSummary,
+  AdminMemberListItem,
+  AdminRiskItem,
+  AdminWithdrawItem,
+  ReportItem,
+  RiskLevel,
+  TradeStatus,
+} from '../../features/admin/api/adminApi'
 import {
+  getAdminChatRisks,
+  getAdminDashboardSummary,
   getAdminMembers,
+  getAdminPostRisks,
   getAdminReports,
   getAdminWithdrawList,
   processAdminReport,
   processWithdraw,
 } from '../../features/admin/api/adminApi'
-
-// ── 목 데이터 ─────────────────────────────────────────────────────────────────
-
-const STATS = [
-  {label: '총 회원', value: '2,847', sub: '오늘 +12', icon: Users, color: 'var(--color-primary)'},
-  {label: '오늘 거래', value: '138', sub: '전일 대비 +23%', icon: ShoppingBag, color: 'var(--color-success)'},
-  {label: '미처리 신고', value: '7', sub: '즉시 처리 필요', icon: Flag, color: 'var(--color-accent)'},
-  {label: '진행 중 분쟁', value: '3', sub: '48시간 내 처리', icon: AlertOctagon, color: 'var(--color-warning)'},
-]
-
-// ReportStatus/ReportReason/MemberStatus 는 adminApi.ts에서 import
-
-interface TradeRow {
-  id: number
-  postTitle: string
-  buyerNickname: string
-  sellerNickname: string
-  price: number
-  status: string
-  createdAt: string
-}
-
-const MOCK_TRADES: TradeRow[] = [
-  {
-    id: 201,
-    postTitle: '맨유 23/24 홈 어센틱',
-    buyerNickname: 'jersey_master',
-    sellerNickname: 'uniform_king',
-    price: 78000,
-    status: 'COMPLETED',
-    createdAt: '2026-05-09'
-  },
-  {
-    id: 202,
-    postTitle: '바르셀로나 22/23 어웨이',
-    buyerNickname: 'barca_fan99',
-    sellerNickname: 'uniform_pro',
-    price: 48000,
-    status: 'IN_PROGRESS',
-    createdAt: '2026-05-09'
-  },
-  {
-    id: 203,
-    postTitle: '전북 현대 2024 홈',
-    buyerNickname: 'hoops_king',
-    sellerNickname: 'kbo_master',
-    price: 66000,
-    status: 'DISPUTED',
-    createdAt: '2026-05-08'
-  },
-  {
-    id: 204,
-    postTitle: 'T1 2024 스프링 유니폼',
-    buyerNickname: 'faker_fan',
-    sellerNickname: 'esports_shop',
-    price: 85000,
-    status: 'PAID',
-    createdAt: '2026-05-08'
-  },
-  {
-    id: 205,
-    postTitle: '서울 SK 나이츠 23/24 홈',
-    buyerNickname: 'hoops_seoul',
-    sellerNickname: 'kbl_shop',
-    price: 71000,
-    status: 'CONFIRMED',
-    createdAt: '2026-05-07'
-  },
-]
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
@@ -130,15 +72,29 @@ const MEMBER_STATUS_META: Record<AdminMemberListItem['status'], { label: string;
   WITHDRAWN: {label: '탈퇴', color: 'var(--color-text-hint)'},
 }
 
-const TRADE_STATUS_KO: Record<string, { label: string; color: string }> = {
-  REQUESTED: {label: '거래 요청', color: 'var(--color-info)'},
-  ACCEPTED: {label: '수락', color: 'var(--color-info)'},
-  PAID: {label: '결제 완료', color: 'var(--color-primary)'},
-  IN_PROGRESS: {label: '배송 중', color: 'var(--color-primary)'},
-  CONFIRMED: {label: '수령 확인', color: 'var(--color-success)'},
-  COMPLETED: {label: '거래 완료', color: 'var(--color-success)'},
-  CANCELED: {label: '취소', color: 'var(--color-text-hint)'},
-  DISPUTED: {label: '분쟁', color: 'var(--color-accent)'},
+const RISK_LEVEL_META: Record<Exclude<RiskLevel, never>, { label: string; color: string; bg: string }> = {
+  LOW: {label: 'LOW', color: 'var(--color-info)', bg: 'rgba(14,165,233,0.1)'},
+  MID: {label: 'MID', color: 'var(--color-warning)', bg: 'rgba(255,149,0,0.1)'},
+  HIGH: {label: 'HIGH', color: 'var(--color-accent)', bg: 'rgba(255,46,77,0.1)'},
+}
+
+const TRADE_STATUS_LABEL: Record<TradeStatus, string> = {
+  REQUESTED: '요청',
+  ACCEPTED: '수락',
+  PAID: '결제 완료',
+  IN_PROGRESS: '진행 중',
+  RECEIVED: '수령 완료',
+  CONFIRMED: '확정',
+  COMPLETED: '거래 완료',
+  CANCELED: '취소',
+  DISPUTED: '분쟁',
+}
+
+function formatDashboardDate(date = new Date()): string {
+  const year = date.getFullYear()
+  const month = date.getMonth() + 1
+  const day = date.getDate()
+  return `${year}년 ${month}월 ${day}일 기준`
 }
 
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
@@ -166,6 +122,45 @@ function SectionHeader({title, linkTo, linkLabel}: { title: string; linkTo?: str
 // ── 메인 컴포넌트 ─────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  /** 관리자 대시보드 전용 집계 API를 우선 사용해 KPI와 최근 거래를 일관되게 렌더링한다. */
+  const {data: dashboardSummary, isLoading: isDashboardSummaryLoading, isError: isDashboardSummaryError} = useQuery({
+    queryKey: ['adminDashboard', 'summary'],
+    queryFn: getAdminDashboardSummary,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  })
+
+  const dashboardStats = [
+    {
+      label: '총 회원',
+      value: isDashboardSummaryLoading ? '...' : `${dashboardSummary?.memberCount ?? 0}`,
+      sub: `오늘 거래 ${dashboardSummary?.todayTradeCount ?? 0}건`,
+      icon: Users,
+      color: 'var(--color-primary)',
+    },
+    {
+      label: '미처리 신고',
+      value: isDashboardSummaryLoading ? '...' : `${dashboardSummary?.pendingReportCount ?? 0}`,
+      sub: '즉시 처리 필요',
+      icon: Flag,
+      color: 'var(--color-accent)',
+    },
+    {
+      label: '출금 대기',
+      value: isDashboardSummaryLoading ? '...' : `${dashboardSummary?.pendingWithdrawCount ?? 0}`,
+      sub: `오늘 완료 ${dashboardSummary?.todayCompletedTradeCount ?? 0}건`,
+      icon: Banknote,
+      color: 'var(--color-success)',
+    },
+    {
+      label: '진행 중 분쟁',
+      value: isDashboardSummaryLoading ? '...' : `${dashboardSummary?.disputeCount ?? 0}`,
+      sub: `오늘 취소 ${dashboardSummary?.todayCanceledTradeCount ?? 0}건`,
+      icon: AlertOctagon,
+      color: 'var(--color-warning)',
+    },
+  ] as const
+
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
       
@@ -179,7 +174,7 @@ export default function AdminDashboardPage() {
             </h1>
           </div>
           <p className="text-[14px]" style={{color: 'var(--color-text-hint)'}}>
-            2026년 5월 9일 기준 · 실시간 데이터
+            {formatDashboardDate()} · 관리자 운영 데이터
           </p>
         </div>
         <button
@@ -195,7 +190,7 @@ export default function AdminDashboardPage() {
       
       {/* ── KPI 카드 4개 ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {STATS.map((s) => {
+        {dashboardStats.map((s) => {
           const Icon = s.icon
           return (
             <div
@@ -252,57 +247,11 @@ export default function AdminDashboardPage() {
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <SectionHeader title="최근 거래 현황"/>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
-                <thead>
-                <tr style={{borderBottom: '1px solid var(--color-border)'}}>
-                  {['상품명', '구매자', '판매자', '금액', '상태'].map((h) => (
-                    <th
-                      key={h}
-                      className="pb-2 text-left font-semibold pr-3 last:pr-0"
-                      style={{color: 'var(--color-text-hint)', fontSize: 11}}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-                </thead>
-                <tbody>
-                {MOCK_TRADES.map((t) => {
-                  const statusMeta = TRADE_STATUS_KO[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
-                  return (
-                    <tr
-                      key={t.id}
-                      style={{borderBottom: '1px solid var(--color-border)'}}
-                    >
-                      <td className="py-3 pr-3 max-w-[160px] truncate font-medium"
-                          style={{color: 'var(--color-text-main)'}}>
-                        {t.postTitle}
-                      </td>
-                      <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
-                        {t.buyerNickname}
-                      </td>
-                      <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
-                        {t.sellerNickname}
-                      </td>
-                      <td className="py-3 pr-3 font-medium"
-                          style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
-                        {formatPrice(t.price)}
-                      </td>
-                      <td className="py-3">
-                          <span
-                            className="text-[13px] font-medium"
-                            style={{color: statusMeta.color}}
-                          >
-                            {statusMeta.label}
-                          </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-                </tbody>
-              </table>
-            </div>
+            <RecentTradesSection
+              summary={dashboardSummary}
+              isLoading={isDashboardSummaryLoading}
+              isError={isDashboardSummaryError}
+            />
           </div>
           {/* 출금 요청 관리 — 실제 API 연동 */}
           <div
@@ -325,6 +274,15 @@ export default function AdminDashboardPage() {
             <SectionHeader title="최근 가입 회원"/>
             <RecentMembersSection/>
           </div>
+
+          {/* 위험 탐지 스냅샷 — 실제 AdminRiskController 연동 */}
+          <div
+            className="rounded-[12px] p-5"
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          >
+            <SectionHeader title="최근 위험 탐지"/>
+            <RiskSnapshotSection/>
+          </div>
           
           {/* 빠른 관리 바로가기 */}
           <div
@@ -336,16 +294,22 @@ export default function AdminDashboardPage() {
             </p>
             <div className="flex flex-col gap-2">
               {[
-                {to: '/admin/reports/1', icon: Flag, label: '미처리 신고 처리', badge: '7', badgeColor: 'var(--color-accent)'},
                 {
-                  to: '/admin/disputes/1',
+                  to: '/admin/reports',
+                  icon: Flag,
+                  label: '신고 목록 보기',
+                  badge: dashboardSummary?.pendingReportCount ? `${dashboardSummary.pendingReportCount}` : null,
+                  badgeColor: 'var(--color-accent)'
+                },
+                {
+                  to: '/admin/disputes',
                   icon: AlertOctagon,
-                  label: '분쟁 처리',
-                  badge: '3',
+                  label: '분쟁 현황 확인',
+                  badge: dashboardSummary?.disputeCount ? `${dashboardSummary.disputeCount}` : null,
                   badgeColor: 'var(--color-warning)'
                 },
-                {to: '/admin/members/103', icon: Users, label: '정지 회원 관리', badge: null, badgeColor: ''},
-                {to: '/admin', icon: BarChart2, label: '통계 리포트', badge: null, badgeColor: ''},
+                {to: '/admin/members', icon: Users, label: '회원 목록 보기', badge: null, badgeColor: ''},
+                {to: '/admin/withdrawals', icon: BarChart2, label: '출금 요청 보기', badge: null, badgeColor: ''},
               ].map((item) => {
                 const Icon = item.icon
                 return (
@@ -375,20 +339,20 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           
-          {/* 오늘의 지표 요약 */}
+          {/* 대시보드 연결 상태 */}
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
           >
             <p className="text-[14px] font-bold mb-4" style={{color: 'var(--color-text-main)'}}>
-              오늘의 지표
+              데이터 연결 상태
             </p>
             <div className="flex flex-col gap-3">
               {[
-                {label: '신규 판매글', value: '84건', icon: ShoppingBag, color: 'var(--color-primary)'},
-                {label: '거래 완료', value: '41건', icon: CheckCircle2, color: 'var(--color-success)'},
-                {label: '거래 취소', value: '7건', icon: XCircle, color: 'var(--color-accent)'},
-                {label: '총 거래액', value: '₩3,240,000', icon: TrendingUp, color: 'var(--color-gold)'},
+                {label: '대시보드 집계', value: dashboardSummary ? '연결됨' : '불러오는 중', icon: BarChart2, color: 'var(--color-primary)'},
+                {label: '신고 목록', value: '연결됨', icon: Flag, color: 'var(--color-accent)'},
+                {label: '출금 요청', value: '연결됨', icon: Banknote, color: 'var(--color-success)'},
+                {label: '분쟁 목록', value: dashboardSummary ? '연결됨' : '불러오는 중', icon: AlertOctagon, color: 'var(--color-warning)'},
               ].map((item) => {
                 const Icon = item.icon
                 return (
@@ -409,34 +373,29 @@ export default function AdminDashboardPage() {
             </div>
           </div>
           
-          {/* 시스템 상태 */}
+          {/* 관리자 메모 */}
           <div
             className="rounded-[12px] p-4"
             style={{background: 'var(--color-surface-sunken)', border: '1px solid var(--color-border)'}}
           >
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{background: 'var(--color-success)'}}/>
+              <div className="w-2 h-2 rounded-full" style={{background: 'var(--color-info)'}}/>
               <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
-                시스템 정상 운영 중
+                관리자 대시보드 참고
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
               {[
-                {label: 'API 서버', ok: true},
-                {label: 'DB 연결', ok: true},
-                {label: 'AI 탐지 서버', ok: true},
-                {label: '결제 게이트웨이', ok: true},
-              ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>{s.label}</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full"
-                         style={{background: s.ok ? 'var(--color-success)' : 'var(--color-accent)'}}/>
-                    <span className="text-[12px] font-medium"
-                          style={{color: s.ok ? 'var(--color-success)' : 'var(--color-accent)'}}>
-                      {s.ok ? 'OK' : 'ERR'}
-                    </span>
-                  </div>
+                '핵심 KPI와 최근 거래는 관리자 대시보드 집계 API를 사용합니다.',
+                '신고·회원·출금 상세 목록은 각 관리자 API를 별도로 조회합니다.',
+                '위험 탐지 채팅은 현재 응답에 채팅방 탐색 키가 없어 목록형 점검 UI로 유지합니다.',
+              ].map((message) => (
+                <div key={message} className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0"
+                       style={{background: 'var(--color-info)'}}/>
+                  <span className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+                    {message}
+                  </span>
                 </div>
               ))}
             </div>
@@ -457,8 +416,8 @@ function RecentReportsSection() {
   })
   
   const processMutation = useMutation({
-    mutationFn: ({reportId, action}: { reportId: number; action: ReportItem['status'] }) =>
-      processAdminReport(reportId, {action}),
+    mutationFn: ({reportId, action, adminMemo}: { reportId: number; action: ReportItem['status']; adminMemo?: string }) =>
+      processAdminReport(reportId, {action, adminMemo}),
     onSuccess: () => void qc.invalidateQueries({queryKey: ['adminReports']}),
   })
   
@@ -535,14 +494,32 @@ function RecentReportsSection() {
                 {r.status === 'PENDING' ? (
                   <div className="flex gap-1">
                     <button
-                      onClick={() => processMutation.mutate({reportId: r.reportId, action: 'WARNING'})}
+                      onClick={() => {
+                        const memo = window.prompt('경고 처리 메모를 입력하세요. 비워두면 메모 없이 처리됩니다.', '')
+                        if (memo === null) return
+
+                        processMutation.mutate({
+                          reportId: r.reportId,
+                          action: 'WARNING',
+                          adminMemo: memo.trim() || undefined,
+                        })
+                      }}
                       disabled={processMutation.isPending}
                       className="px-2 py-1 rounded text-[12px] font-bold disabled:opacity-50"
                       style={{background: 'rgba(255,149,0,.15)', color: 'var(--color-warning)'}}>
                       경고
                     </button>
                     <button
-                      onClick={() => processMutation.mutate({reportId: r.reportId, action: 'DELETED'})}
+                      onClick={() => {
+                        const memo = window.prompt('삭제 처리 메모를 입력하세요. 비워두면 메모 없이 처리됩니다.', '')
+                        if (memo === null) return
+
+                        processMutation.mutate({
+                          reportId: r.reportId,
+                          action: 'DELETED',
+                          adminMemo: memo.trim() || undefined,
+                        })
+                      }}
                       disabled={processMutation.isPending}
                       className="px-2 py-1 rounded text-[12px] font-bold disabled:opacity-50"
                       style={{background: 'rgba(255,46,77,.1)', color: 'var(--color-accent)'}}>
@@ -641,6 +618,122 @@ function RecentMembersSection() {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/** 최근 거래 요약 섹션 — 관리자 대시보드 집계 API 연동 */
+function RecentTradesSection({
+  summary,
+  isLoading,
+  isError,
+}: {
+  summary?: AdminDashboardSummary
+  isLoading: boolean
+  isError: boolean
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-2">
+        {[1, 2, 3].map((index) => (
+          <div
+            key={index}
+            className="h-12 rounded animate-pulse"
+            style={{background: 'var(--color-surface-raised)'}}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="py-6 text-center">
+        <AlertCircle size={20} className="mx-auto mb-1" style={{color: 'var(--color-error)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>최근 거래 요약을 불러오지 못했습니다.</p>
+      </div>
+    )
+  }
+
+  const recentTrades = summary?.recentTrades ?? []
+  if (recentTrades.length === 0) {
+    return (
+      <div
+        className="rounded-[10px] px-4 py-5 text-[13px] leading-relaxed"
+        style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-hint)'}}
+      >
+        오늘 집계된 거래가 없습니다.
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
+        <thead>
+        <tr style={{borderBottom: '1px solid var(--color-border)'}}>
+          {['상품명', '구매자', '판매자', '금액', '상태'].map((header) => (
+            <th
+              key={header}
+              className="pb-2 text-left font-semibold pr-3 last:pr-0"
+              style={{color: 'var(--color-text-hint)', fontSize: 11}}
+            >
+              {header}
+            </th>
+          ))}
+        </tr>
+        </thead>
+        <tbody>
+        {recentTrades.map((trade) => (
+          <tr key={trade.tradeId} style={{borderBottom: '1px solid var(--color-border)'}}>
+            <td className="py-3 pr-3">
+              <Link
+                to={`/trade/${trade.tradeId}`}
+                className="font-medium transition-colors hover:text-[var(--color-accent)]"
+                style={{color: 'var(--color-text-main)'}}
+              >
+                {trade.postTitle}
+              </Link>
+            </td>
+            <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+              {trade.buyerNickname}
+            </td>
+            <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+              {trade.sellerNickname}
+            </td>
+            <td
+              className="py-3 pr-3 whitespace-nowrap"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
+              {formatPrice(trade.price)}
+            </td>
+            <td className="py-3">
+              <span
+                className="px-2 py-0.5 rounded-full text-[13px] font-medium"
+                style={{
+                  background: trade.status === 'COMPLETED'
+                    ? 'rgba(0,179,110,0.1)'
+                    : trade.status === 'DISPUTED'
+                      ? 'rgba(255,149,0,0.1)'
+                      : trade.status === 'CANCELED'
+                        ? 'rgba(255,46,77,0.1)'
+                        : 'var(--color-surface-sunken)',
+                  color: trade.status === 'COMPLETED'
+                    ? 'var(--color-success)'
+                    : trade.status === 'DISPUTED'
+                      ? 'var(--color-warning)'
+                      : trade.status === 'CANCELED'
+                        ? 'var(--color-accent)'
+                        : 'var(--color-text-sub)',
+                }}
+              >
+                {TRADE_STATUS_LABEL[trade.status]}
+              </span>
+            </td>
+          </tr>
+        ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -829,6 +922,161 @@ export function WithdrawManagementSection() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** 위험 탐지 스냅샷 섹션 — 실제 AdminRiskController 연동 */
+function RiskSnapshotSection() {
+  /**
+   * 게시글/채팅 위험 탐지는 각각 별도 엔드포인트를 사용한다.
+   * 대시보드에서는 최근 HIGH 3건만 보여주고, 채팅은 messageId 기준이라
+   * 현재는 직접 이동 링크 대신 탐지 사유와 제안만 빠르게 확인하게 한다.
+   */
+  const {data: postRiskPage, isLoading: isPostRiskLoading, isError: isPostRiskError} = useQuery({
+    queryKey: ['adminRisk', 'posts', 'dashboard'],
+    queryFn: () => getAdminPostRisks({riskLevel: 'HIGH', page: 0, size: 3}),
+    staleTime: 30_000,
+  })
+  const {data: chatRiskPage, isLoading: isChatRiskLoading, isError: isChatRiskError} = useQuery({
+    queryKey: ['adminRisk', 'chat', 'dashboard'],
+    queryFn: () => getAdminChatRisks({riskLevel: 'HIGH', page: 0, size: 3}),
+    staleTime: 30_000,
+  })
+
+  if (isPostRiskLoading || isChatRiskLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[1, 2, 3].map((index) => (
+          <div
+            key={index}
+            className="h-14 rounded-xl animate-pulse"
+            style={{background: 'var(--color-surface-raised)'}}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (isPostRiskError && isChatRiskError) {
+    return (
+      <div className="py-6 text-center">
+        <AlertCircle size={20} className="mx-auto mb-1" style={{color: 'var(--color-error)'}}/>
+        <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>위험 탐지 목록을 불러오지 못했습니다.</p>
+      </div>
+    )
+  }
+
+  const riskyPosts = postRiskPage?.content ?? []
+  const riskyChats = chatRiskPage?.content ?? []
+
+  return (
+    <div className="flex flex-col gap-4">
+      <RiskBucket
+        title="위험 게시글"
+        emptyMessage="탐지된 HIGH 위험 게시글이 없습니다."
+        items={riskyPosts}
+        renderAction={(item) => (
+          <Link
+            to={`/listing/${item.targetId}`}
+            className="text-[12px] font-medium transition-colors"
+            style={{color: 'var(--color-text-hint)'}}
+          >
+            원문 보기
+          </Link>
+        )}
+      />
+
+      <RiskBucket
+        title="위험 채팅"
+        emptyMessage="탐지된 HIGH 위험 채팅이 없습니다."
+        items={riskyChats}
+        renderAction={() => (
+          <span className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
+            상세 연결 대기
+          </span>
+        )}
+      />
+    </div>
+  )
+}
+
+function RiskBucket({
+  title,
+  items,
+  emptyMessage,
+  renderAction,
+}: {
+  title: string
+  items: AdminRiskItem[]
+  emptyMessage: string
+  renderAction: (item: AdminRiskItem) => ReactNode
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <AlertTriangle size={14} style={{color: 'var(--color-warning)'}} strokeWidth={1.75}/>
+        <p className="text-[13px] font-semibold" style={{color: 'var(--color-text-main)'}}>
+          {title}
+        </p>
+      </div>
+
+      {items.length === 0 ? (
+        <div
+          className="rounded-[10px] px-3 py-3 text-[13px]"
+          style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-hint)'}}
+        >
+          {emptyMessage}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {items.map((item) => {
+            const levelMeta = item.riskLevel ? RISK_LEVEL_META[item.riskLevel] : null
+            return (
+              <div
+                key={`${item.targetType}-${item.riskId}-${item.targetId}`}
+                className="rounded-[10px] px-3 py-3"
+                style={{background: 'var(--color-surface-sunken)', border: '1px solid var(--color-border)'}}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span
+                        className="text-[12px] font-bold"
+                        style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-text-main)'}}
+                      >
+                        #{item.targetId}
+                      </span>
+                      {levelMeta && (
+                        <span
+                          className="px-1.5 py-0.5 rounded-full text-[11px] font-semibold"
+                          style={{background: levelMeta.bg, color: levelMeta.color}}
+                        >
+                          {levelMeta.label}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[13px] leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+                      {item.reason ?? '감지 사유가 제공되지 않았습니다.'}
+                    </p>
+                    {item.suggestion && (
+                      <p className="text-[12px] mt-1 leading-relaxed" style={{color: 'var(--color-text-hint)'}}>
+                        제안: {item.suggestion}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    {renderAction(item)}
+                    <p className="text-[11px] mt-1" style={{color: 'var(--color-text-hint)'}}>
+                      {item.createdAt.slice(5, 16).replace('T', ' ')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

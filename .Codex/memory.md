@@ -1,0 +1,50 @@
+﻿- [done] 2026-05-20 배송지 입력 UI는 `src/pages/trade/TradePage.tsx`의 `DeliveryAddressForm`에서 관리한다.
+- [done] 2026-05-20 카카오 우편번호 검색은 프론트에서 동적 스크립트(`postcode.v2.js`)를 로드해 팝업으로 열고, 선택 주소를 `deliveryAddress` 문자열로 저장한다.
+- [done] 2026-05-20 로그인 페이지의 Google 소셜 버튼은 공식 light/dark 브랜드 스펙에 맞춘 전용 CSS 토큰(`--color-google-button-*`)으로 관리한다.
+- [done] 2026-05-20 로그인 페이지의 Google/Kakao 소셜 버튼은 공식 브랜드 가이드 기반 전용 토큰으로 관리하며, 두 버튼 모두 `rounded-[12px]`의 각진 형태로 통일했다.
+- [done] 2026-05-20 채팅 메시지는 moderation `HIGH`일 때 `src/utils/chatModeration.ts`를 통해 본문을 `*`로 마스킹하며, `ChatPage`와 `TradePage`의 임베디드 채팅에 동일하게 적용한다.
+- [done] 2026-05-20 채팅 메시지 마스킹은 서버 moderation `HIGH`뿐 아니라 `src/utils/chatModeration.ts`의 로컬 금칙어 규칙도 함께 사용해, moderation 응답 전 낙관적 메시지도 즉시 가려진다.
+- [done] 2026-05-20 게시글 등록 화면은 `src/utils/listingModeration.ts`의 로컬 키워드 검사와 초안 moderation 결과를 함께 사용해 유해 표현이 남아 있으면 등록 버튼을 잠그고, 경고 카드와 감지 표현 목록을 표시한다.
+- [done] 2026-05-20 게시글 등록 화면의 유해성 안내는 본문 하단 경고 카드 한 곳에만 표시하고, 오른쪽 `AiPanel`에서는 중복 표시하지 않는다.
+- [done] 2026-05-20 게시글 등록 화면 모바일 레이아웃은 `AI 패널 → 상품 설명 → 유해성 경고` 순서로 배치해, 상품 설명란이 유해성 경고 바로 위에 오도록 정리했다.
+- [done] 2026-05-20 게시글 등록 화면은 상단에 AI 정책 검사 안내 배너를 고정 표시하고, 본문 상태 박스는 `입력 미충족 안내`와 `유해성 경고`를 분리해 상황별로 하나만 노출한다.
+- [done] 2026-05-20 게시글 초안 복원 알림은 `실행 취소`/`복원하기` 스위치형으로 동작하며, 박스는 유지한 채 메시지와 버튼 라벨만 바뀌면서 복원 전 상태와 복원된 상태 사이를 왕복한다.
+- [done] 2026-05-20 마이페이지의 사용자 노출 용어는 `예치금`으로 통일하며, 탭/카드/내역/통계 문구도 같은 기준으로 맞춘다.
+- [done] 2026-05-20 거래 예치금과 무관한 보너스성 활동 포인트/활동 예치금 UI는 제거하고, 리뷰 완료/작성 화면의 `+200P` 적립 안내도 삭제했다.
+- [done] 2026-05-20 사용자 노출 용어에서 `에스크로`는 제거하고 `안전결제`로 통일했다. 거래 시작 모달은 직거래 선택 시 `판매자와 장소·시간·상품 상태를 충분히 확인한 뒤 진행` 안내를, 택배 선택 시 기존 결제 진행 안내를 표시한다.
+- [done] 2026-05-20 판매글 상세 하단 거래 안내 배너도 동일 규칙을 따른다. `deliveryType === 'DIRECT'`면 직거래 안내를, 택배가 가능한 글이면 안전결제 안내를 표시한다.
+- [done] 2026-05-20 직거래는 새 상태를 추가하지 않고 `DIRECT`일 때 기존 `TradeStatus`를 재해석하는 최소수정안으로 진행한다. 설계 문서는 `note/직거래-최소수정-분리설계-2026-05-20.md`에 정리했다.
+- [done] 2026-05-20 직거래 최소수정안의 1차 프론트 선반영으로 `src/utils/tradeStatusDisplay.ts`를 추가했다. `TradePage`와 `MyPage`는 `DIRECT` 거래일 때 `ACCEPTED -> 조율 중`, `CONFIRMED -> 완료 확인` 등 사용자 노출 라벨과 안내 문구를 재해석한다.
+- [done] 2026-05-20 `TradePage`와 `TradeConfirmPage`의 타임라인은 `DIRECT`일 때 `거래 요청 → 조율 진행 → 완료 확인 → 거래 완료` 4단계와 전용 아이콘을 사용한다. 하단 배너도 안전결제 문구 대신 직거래 안내로 분기한다.
+- [done] 2026-05-20 거래 타임라인은 단계 수와 무관하게 시작/끝 아이콘의 x축 위치가 고정되도록 절대 좌표 기반으로 재구성했다. 직거래 4단계와 택배 5단계 모두 양끝 여백이 같고, 내부 아이콘은 남은 공간에서 등간격으로 배치된다.
+- [done] 2026-05-20 직거래 거래 화면은 다시 `거래요청 → 거래중 → 거래완료` 3단계로 단순화했다. `TradePage`와 `TradeConfirmPage`에서 `DIRECT` 거래는 구매자에게 `거래 완료하기`를 노출하고 완료 후 매너 평가 페이지로 이동하며, 판매자는 완료 전까지 거래 취소가 가능하다.
+- [done] 2026-05-20 `PaymentPage`는 `DIRECT` 거래가 `/payment/:id`로 진입해도 결제 위젯을 렌더링하지 않고 직거래 안내 화면으로 차단한다. 프론트에서 직거래 결제 진입을 방어해, 오래된 링크나 채팅 버튼으로 들어와도 결제 API 초기화 전 단계에서 막는다.
+- [done] 2026-05-20 거래 상태 실시간 동기화는 `src/features/trade/hooks/useStompTradeRealtime.ts`로 연결했다. 백엔드 `/sub/trade/{tradeId}`와 `/sub/chat/{chatId}/trade` 이벤트를 구독해 `trade`, `chatDetail`, `chatRooms`, `myTrades` 캐시를 갱신하며, `TradePage`/`TradeConfirmPage`/`ChatPage`에서 상대방 액션도 즉시 반영된다.
+- 2026-05-23 점검 메모: `src/pages/listing/ListingEditPage.tsx`는 `submitError`/`setSubmitError` 상태가 선언되지 않아 `npm run build`가 실패한다. 수정 저장 후 무효화 키도 실제 상세 쿼리 키(`['listing', postId]`)와 다르다.
+- [done] 2026-05-23 `src/pages/listing/ListingEditPage.tsx`의 `submitError` 누락과 상세 캐시 무효화 키 오타를 수정해 빌드가 다시 통과한다. 화이트라벨이 남는다면 다음 원인은 서버의 `ON_SALE` 상태 제한 또는 API 예외 응답 추적이다.
+- [done] 2026-05-23 `ListingEditPage`는 수정/삭제를 `ON_SALE` 상태에서만 허용하도록 프론트에서도 차단한다. axios 에러 응답이 문자열/JSON/화이트라벨 HTML이어도 사용자용 메시지로 정리해 노출한다.
+- 2026-05-23 점검 메모: 판매글 작성의 카드 프리뷰(`src/pages/listing/ListingCreatePage.tsx` `AiPanel`)는 업로드 이미지를 사용하지 않고 정적 플레이스홀더만 렌더링한다. 실제 게시글 카드와 동일한 데이터 연결이 아직 안 되어 있다.
+- [done] 2026-05-23 `src/pages/listing/ListingCreatePage.tsx`의 `AiPanel` 프리뷰를 `ListingPreviewCard`로 교체했다. 첫 업로드 이미지를 대표 이미지로 쓰고, 종목/팀/등급/거래방식/사이즈/가격을 현재 입력값과 연결해 실제 목록 카드에 가까운 형태로 표시한다.
+- 2026-05-23 점검 메모: 관리자 기능은 회원/게시글/신고/출금 API는 존재하지만 분쟁 목록은 `src/pages/admin/AdminDisputesPage.tsx` 주석대로 백엔드 미구현 상태다. 일부 관리자 상세 화면은 여전히 목록 API 재사용/목 데이터 성격이 남아 있다.
+- [done] 2026-05-23 관리자 신고 상세 `src/pages/admin/AdminReportDetailPage.tsx`는 실제 `processAdminReport()` 호출로 처리되도록 연결했다. 신고자 정보가 없는 경우 더미 회원 `0` 링크를 제거하고, API 미제공 안내 상태로 바꿨다.
+- [done] 2026-05-23 관리자 회원 상세 `src/pages/admin/AdminMemberDetailPage.tsx`의 가짜 거래 행 목록을 제거하고, 거래 상세 API 미구현 안내로 대체했다. 받은 신고가 없을 때도 빈 상태 메시지를 표시한다.
+- [done] 2026-05-23 관리자 대시보드 `src/pages/admin/AdminDashboardPage.tsx`의 빠른 관리 링크를 하드코딩된 상세 ID 대신 실제 목록 라우트(`/admin/reports`, `/admin/disputes`, `/admin/members`)로 정리했다.
+- [done] 2026-05-23 알림 클릭 404 방어를 위해 `src/components/layout/GNB.tsx`에 `resolveNotificationPath()`를 추가했다. 슬래시 없는 상대경로, 절대 URL, `/review/:id`·`/reviews/:id` 형태를 현재 라우터 기준 내부 경로로 정규화해 이동한다.
+- [done] 2026-05-23 `src/pages/admin/AdminDashboardPage.tsx`의 목업 KPI/거래 예시/오늘의 지표 숫자를 제거했다. 회원·신고·출금은 실제 관리자 API로 집계하고, 거래·분쟁처럼 API가 없는 구간은 안내 상태로 표시한다.
+- [done] 2026-05-23 `src/features/admin/api/adminApi.ts`에 `GET /api/admin/risk/posts`, `GET /api/admin/risk/chat` 래퍼를 추가했고, `AdminDashboardPage`에 최근 HIGH 위험 탐지 스냅샷 섹션을 연결했다.
+- [done] 2026-05-23 관리자 프론트-백엔드 연동 갭과 필요한 추가 API/DTO 필드는 `note/admin-frontend-backend-gap-2026-05-23.md`에 정리했다.
+- 2026-05-23 점검 메모: 로그인 인증 메일 발송은 백엔드 `MailServiceImpl`에서 예외를 삼키지 않고 전파한다. `application.properties` 기본값상 `MAIL_APP_PASSWORD` 등 메일 환경변수가 비어 있으면 `/api/auth/login` 단계에서 실패할 가능성이 높다.
+- [done] 2026-05-23 백엔드에 `AdminDashboardController`, `AdminDisputeController`, `AdminReportController#get("/{id}")`가 추가된 것을 기준으로 프론트 관리자 화면을 재연동했다.
+- [done] 2026-05-23 `src/features/admin/api/adminApi.ts`는 관리자 페이지네이션을 0-based 상태에서 1-based 백엔드 파라미터로 변환하고, 대시보드 요약/분쟁 목록·상세·처리/신고 상세 타입과 래퍼를 추가했다.
+- [done] 2026-05-23 `AdminDashboardPage`, `AdminDisputesPage`, `AdminDisputeDetailPage`, `AdminReportDetailPage`, `AdminMemberDetailPage`는 새 관리자 응답 DTO에 맞춰 실제 데이터를 렌더링하도록 갱신했다. 단, 분쟁 상세의 증거 파일·주장 전문·관리자 메모 저장, 회원 정지 해제는 여전히 별도 API 지원이 없다.
+- [done] 2026-05-23 백엔드 추가 작업 요청서는 `note/admin-backend-additional-request-2026-05-23.md`에 정리했다. 분쟁 사유 필드, 분쟁/신고 관리자 메모 저장, 회원 정지 해제, 위험 채팅 이동 키 추가를 우선 요청한다.
+- [done] 2026-05-24 백엔드 분쟁 API는 구매확정 전 구매자 이의 제기 유스케이스 기준으로 재구성되었다. `AdminDisputeDetailDTO`에 `buyerClaim`, `disputedAt`, `processedAt`, `processedBy`, `adminMemo`가 추가되었고, 처리 요청은 `AdminDisputeAction(CONFIRMED|CANCELED)` + `adminMemo`를 받는다.
+- [done] 2026-05-24 프론트 `adminApi`와 `AdminDisputesPage`/`AdminDisputeDetailPage`는 새 분쟁 유스케이스에 맞춰 수정했다. 상세 화면은 구매자 이의 내용 확인 후 `구매확정 처리` 또는 `환불 처리` 두 액션만 제공하며, 관리자 메모와 처리 이력을 함께 보여준다.
+- [done] 2026-05-24 관리자 유스케이스 `UC-ADM-004` 기준으로 프론트 분쟁 상세를 다시 정리했다. 화면 구조는 `기한 연장 / 반려 / 환불 / 완료` 4액션을 모두 보여주되, 현재 백엔드가 실제 지원하는 `환불(CANCELED)`/`완료(CONFIRMED)`만 활성화하고 나머지는 `백엔드 대기` 상태로 표시한다. 판매자 소명은 아직 응답 미제공 안내로 처리한다.
+- 2026-05-24 관리자 전체 리뷰 메모: 백엔드 최신 계약 대비 프론트 미반영 항목이 남아 있다. `AdminReportActionRequestDTO`는 `adminMemo`를 받지만 `src/features/admin/api/adminApi.ts`와 `AdminReportDetailPage`/`AdminReportsPage`는 아직 액션만 전송한다.
+- 2026-05-24 관리자 전체 리뷰 메모: 백엔드 `MemberAction`은 `UNSUSPEND`와 제재 `reason`을 지원하지만, 프론트 `adminApi.ts`와 `AdminMemberDetailPage.tsx`는 `WARN/SUSPEND/WITHDRAW`만 노출하고 사유 입력도 없다.
+- 2026-05-24 관리자 전체 리뷰 메모: 백엔드 `AdminDisputeDetailDTO`는 `resolutionType`, `extendedUntil`, `sellerClaim`까지 내려주지만, 프론트 분쟁 상세는 여전히 `기한 연장/반려`를 비활성 플레이스홀더로 두고 새 메타데이터를 렌더링하지 않는다.
+- [done] 2026-05-24 관리자 최신 백엔드 계약 반영: `adminApi.ts`는 `UNSUSPEND`, 신고 `adminMemo`, 분쟁 상세 `resolutionType`/`extendedUntil`/`sellerClaim`을 타입에 반영했다.
+- [done] 2026-05-24 `AdminReportDetailPage`, `AdminReportsPage`, `AdminDashboardPage`는 신고 처리 시 `adminMemo`를 함께 전송하도록 갱신했다. 상세 화면은 메모 입력 textarea를 제공하고, 목록/대시보드는 빠른 처리 시 메모 prompt를 사용한다.
+- [done] 2026-05-24 `AdminMemberDetailPage`는 정지 해제(UNSUSPEND)와 제재 사유 입력을 지원하도록 갱신했다.
+- [done] 2026-05-24 `AdminDisputeDetailPage`와 `AdminDisputesPage`는 최신 분쟁 백엔드 계약에 맞춰 실제 지원 액션(`CONFIRMED`/`CANCELED`)만 노출하고, `resolutionType`, `extendedUntil`, `sellerClaim` 메타데이터를 렌더링한다.

@@ -75,6 +75,80 @@ function ErrorState({id}: { id?: string }) {
   )
 }
 
+// ── 직거래 결제 차단 상태 ───────────────────────────────────────────────────────
+/**
+ * 백엔드는 현재 택배 거래 중심으로 결제 흐름이 설계되어 있다.
+ * 프론트에서는 DIRECT 거래가 결제 위젯까지 진입하지 못하도록 여기서 한 번 더 차단한다.
+ */
+function DirectTradeBlockedState({trade}: { trade: TradeResponse }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4" style={{background: 'var(--color-bg)'}}>
+      <div className="w-full max-w-[520px] space-y-4">
+        <div
+          className="rounded-3xl p-6 md:p-7"
+          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        >
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+            style={{background: 'rgba(14,165,233,.08)', color: 'var(--color-info)'}}
+          >
+            <AlertCircle size={22}/>
+          </div>
+          <h1
+            className="text-xl font-bold"
+            style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+          >
+            직거래는 결제 페이지를 사용하지 않습니다
+          </h1>
+          <p className="text-sm leading-relaxed mt-2" style={{color: 'var(--color-text-sub)'}}>
+            판매자와 채팅으로 장소, 시간, 상품 상태를 충분히 확인한 뒤 거래를 진행해 주세요.
+            직거래 완료는 거래 화면에서 바로 처리할 수 있습니다.
+          </p>
+
+          <div
+            className="mt-5 px-4 py-3 rounded-2xl"
+            style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+          >
+            <p className="text-xs mb-1" style={{color: 'var(--color-text-hint)'}}>
+              해당 거래
+            </p>
+            <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+              {trade.post.title}
+            </p>
+            <p
+              className="text-base font-bold mt-1"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
+              {formatPrice(trade.tradePrice)}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Link
+            to={`/trade/${trade.tradeId}/confirm`}
+            className="w-full py-3.5 rounded-2xl font-bold text-sm text-white text-center hover:text-white"
+            style={{background: 'var(--color-accent)'}}
+          >
+            거래 화면으로 이동
+          </Link>
+          <Link
+            to={`/listing/${trade.post.postId}`}
+            className="w-full py-3.5 rounded-2xl font-semibold text-sm text-center"
+            style={{
+              background: 'var(--color-surface)',
+              color: 'var(--color-text-sub)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            판매글 보기
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 주문 요약 카드 ────────────────────────────────────────────────────────────
 /**
  * 거래 응답(TradeResponse) 기반 주문 요약 카드
@@ -184,14 +258,14 @@ function OrderSummaryCard({trade}: { trade: TradeResponse }) {
         </div>
       </div>
       
-      {/* 에스크로 안내 */}
+      {/* 안전결제 안내 */}
       <div
         className="px-5 py-3 flex items-start gap-2"
         style={{background: 'var(--color-surface-raised)', borderTop: '1px solid var(--color-border)'}}
       >
         <Shield size={14} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
         <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
-          RE:FORM 에스크로 안전결제 — 구매 확정 전까지 결제금은 RE:FORM이 보관합니다.
+          RE:FORM 안전결제 — 구매 확정 전까지 결제금은 RE:FORM이 보관합니다.
         </p>
       </div>
     </div>
@@ -277,6 +351,10 @@ export default function PaymentPage() {
   // ── 결제하기 버튼 핸들러 ────────────────────────────────────────────────────
   function handlePay() {
     if (!widgetRef.current || !widgetReady || !trade) return
+    if (trade.deliveryType === 'DIRECT') {
+      setWidgetError('직거래는 결제 페이지를 사용할 수 없습니다. 거래 화면에서 직거래를 진행해 주세요.')
+      return
+    }
     
     // 1) 백엔드에 결제 초기화 요청 → tossOrderId 발급
     initPayment(
@@ -315,6 +393,7 @@ export default function PaymentPage() {
   // ── 로딩 / 에러 상태 처리 ───────────────────────────────────────────────────
   if (isLoading) return <LoadingState/>
   if (isError || !trade) return <ErrorState id={id}/>
+  if (trade.deliveryType === 'DIRECT') return <DirectTradeBlockedState trade={trade}/>
   
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
@@ -344,7 +423,7 @@ export default function PaymentPage() {
             >
               PAYMENT
             </h1>
-            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>에스크로 안전결제</p>
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>안전결제</p>
           </div>
         </div>
         
@@ -384,11 +463,11 @@ export default function PaymentPage() {
                   </div>
                 )}
                 
-                {/* Toss Widget 결제 수단 마운트 포인트 */}
+                {/* Toss Widget 결제 수단 마운트 영역 */}
                 <div id="toss-payment-method"/>
               </div>
               
-              {/* Toss Widget 약관 마운트 포인트 */}
+              {/* Toss Widget 약관 마운트 영역 */}
               <div id="toss-agreement" className="px-5 pb-4"/>
             </div>
           </div>

@@ -8,9 +8,16 @@
  * GET   /api/admin/posts/{id}           — 게시글 상세 조회
  * PATCH /api/admin/posts/{id}/action    — 게시글 조치 (숨김/삭제)
  * GET   /api/admin/reports              — 신고 목록 조회
+ * GET   /api/admin/reports/{id}         — 신고 상세 조회
  * PATCH /api/admin/reports/{id}         — 신고 처리
+ * GET   /api/admin/disputes             — 분쟁 목록 조회
+ * GET   /api/admin/disputes/{id}        — 분쟁 상세 조회
+ * PATCH /api/admin/disputes/{id}        — 분쟁 처리
+ * GET   /api/admin/dashboard/summary    — 대시보드 집계 조회
  * GET   /api/admin/withdraw-requests    — 출금 요청 목록
  * PATCH /api/admin/withdraw-requests/{withdrawId} — 출금 승인/반려
+ * GET   /api/admin/risk/posts           — 위험 게시글 목록 조회
+ * GET   /api/admin/risk/chat            — 위험 채팅 목록 조회
  *
  * 회원/게시글/신고 API는 ApiResponse 래퍼 사용,
  * 출금 API는 raw DTO 반환
@@ -24,7 +31,7 @@ import type {PageResponse} from '../../../types/api'
 export type MemberStatus = 'ACTIVE' | 'SUSPENDED' | 'WITHDRAWN'
 
 /** 회원 제재 액션 */
-export type MemberAction = 'WARN' | 'SUSPEND' | 'WITHDRAW'
+export type MemberAction = 'WARN' | 'SUSPEND' | 'UNSUSPEND' | 'WITHDRAW'
 
 /** 게시글 상태 */
 export type PostStatus = 'ON_SALE' | 'RESERVED' | 'SOLD' | 'HIDDEN' | 'DELETED'
@@ -47,11 +54,37 @@ export type WithdrawStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 /** 출금 처리 액션 */
 export type WithdrawAction = 'APPROVE' | 'REJECT'
 
+/** 위험 탐지 등급 */
+export type RiskLevel = 'LOW' | 'MID' | 'HIGH'
+
+/** 위험 탐지 대상 */
+export type RiskTargetType = 'POST' | 'CHAT'
+
 /** 종목 enum */
 export type Sport = 'SOCCER' | 'BASEBALL' | 'BASKETBALL' | 'VOLLEYBALL' | 'ESPORTS' | 'ETC'
 
 /** 상태 등급 */
 export type Grade = 'S' | 'A' | 'B' | 'C'
+
+/** 거래 상태 */
+export type TradeStatus =
+  | 'REQUESTED'
+  | 'ACCEPTED'
+  | 'PAID'
+  | 'IN_PROGRESS'
+  | 'RECEIVED'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'CANCELED'
+  | 'DISPUTED'
+
+/** 거래 수령 방식 */
+export type TradeDeliveryType = 'DIRECT' | 'DELIVERY'
+
+/** 관리자 페이지네이션은 0-based 상태를 쓰고, 백엔드는 1-based 페이지를 기대한다. */
+function toAdminPageParam(page?: number): number | undefined {
+  return page === undefined ? undefined : page + 1
+}
 
 // ── 회원 관리 타입 ─────────────────────────────────────────────────────────────
 
@@ -89,10 +122,23 @@ export interface AdminMemberDetail {
   mannerScore: number
   role: string
   createdAt: string
+  lastLoginAt: string | null
   receivedReports: ReportItem[]
   totalSales: number
   totalPurchases: number
-  sports: string[]           // 관심 종목 목록 (UserPreference에서 파생)
+  recentTrades: AdminMemberTradeRow[]
+  /** 과거 프론트 호환용 선택 필드. 현재 백엔드 DTO에는 포함되지 않는다. */
+  sports?: string[]
+}
+
+/** 관리자 회원 상세의 최근 거래 행 */
+export interface AdminMemberTradeRow {
+  tradeId: number
+  postTitle: string
+  role: 'SELLER' | 'BUYER'
+  price: number
+  status: TradeStatus
+  completedAt: string | null
 }
 
 /** 회원 제재 요청 */
@@ -151,9 +197,32 @@ export interface AdminPostActionRequest {
 
 // ── 신고 관리 타입 ─────────────────────────────────────────────────────────────
 
+/** 관리자 신고 상세 (AdminReportDetailDTO) */
+export interface AdminReportDetail {
+  reportId: number
+  targetType: ReportTargetType
+  targetId: number
+  reason: ReportReason
+  detail: string | null
+  status: ReportStatus
+  createdAt: string
+  reporterMemberId: number | null
+  reporterNickname: string | null
+  reporterEmail: string | null
+  targetOwnerMemberId: number | null
+  targetOwnerNickname: string | null
+  targetOwnerEmail: string | null
+  targetTitle: string | null
+  targetSnapshot: string | null
+  processedAt: string | null
+  processedBy: string | null
+  adminMemo: string | null
+}
+
 /** 신고 처리 요청 */
 export interface AdminReportActionRequest {
   action: ReportStatus
+  adminMemo?: string
 }
 
 // ── 출금 관리 타입 ─────────────────────────────────────────────────────────────
@@ -174,6 +243,113 @@ export interface AdminWithdrawActionRequest {
   rejectReason?: string
 }
 
+// ── 위험 탐지 타입 ──────────────────────────────────────────────────────────────
+
+/**
+ * 관리자 위험 탐지 항목
+ * - 게시글과 채팅 모두 동일 DTO를 사용한다.
+ * - chat 대상의 targetId는 채팅방 ID가 아니라 messageId일 수 있으므로
+ *   프론트에서 바로 채팅방 상세 링크를 만들 수 없다.
+ */
+export interface AdminRiskItem {
+  riskId: number
+  targetType: RiskTargetType
+  targetId: number
+  riskLevel: RiskLevel | null
+  reason: string | null
+  suggestion: string | null
+  createdAt: string
+}
+
+// ── 분쟁 관리 타입 ─────────────────────────────────────────────────────────────
+
+/** 분쟁 목록 행 */
+export interface AdminDisputeListItem {
+  tradeId: number
+  postId: number
+  postTitle: string
+  price: number
+  status: TradeStatus
+  deliveryType: TradeDeliveryType
+  createdAt: string
+  buyerMemberId: number
+  buyerNickname: string
+  sellerMemberId: number
+  sellerNickname: string
+}
+
+/** 분쟁 상세 */
+export interface AdminDisputeDetail {
+  tradeId: number
+  postId: number
+  postTitle: string
+  price: number
+  status: TradeStatus
+  deliveryType: TradeDeliveryType
+  deliveryAddress: string | null
+  courierCode: string | null
+  courierName: string | null
+  trackingNumber: string | null
+  createdAt: string
+  shippingStartedAt: string | null
+  confirmedAt: string | null
+  completedAt: string | null
+  disputedAt: string | null
+  processedAt: string | null
+  processedBy: string | null
+  adminMemo: string | null
+  resolutionType: string | null
+  extendedUntil: string | null
+  buyerMemberId: number
+  buyerNickname: string
+  buyerEmail: string
+  buyerClaim: string | null
+  sellerMemberId: number
+  sellerNickname: string
+  sellerEmail: string
+  sellerClaim: string | null
+}
+
+/** 분쟁 처리 액션 */
+export type AdminDisputeAction = 'CONFIRMED' | 'CANCELED'
+
+/** 분쟁 처리 요청 */
+export interface AdminDisputeActionRequest {
+  action: AdminDisputeAction
+  adminMemo?: string
+}
+
+// ── 대시보드 타입 ──────────────────────────────────────────────────────────────
+
+/** 관리자 대시보드 최근 거래 요약 */
+export interface AdminRecentTrade {
+  tradeId: number
+  postId: number
+  postTitle: string
+  price: number
+  status: TradeStatus
+  createdAt: string
+  confirmedAt: string | null
+  completedAt: string | null
+  buyerMemberId: number
+  buyerNickname: string
+  sellerMemberId: number
+  sellerNickname: string
+}
+
+/** 관리자 대시보드 요약 DTO */
+export interface AdminDashboardSummary {
+  memberCount: number
+  pendingReportCount: number
+  pendingWithdrawCount: number
+  disputeCount: number
+  todayTradeCount: number
+  todayCompletedTradeCount: number
+  todayCanceledTradeCount: number
+  todayTradeVolume: number
+  recentTrades: AdminRecentTrade[]
+}
+
 // ── 회원 관리 API ──────────────────────────────────────────────────────────────
 
 /**
@@ -187,7 +363,7 @@ export async function getAdminMembers(params?: {
   size?: number
 }): Promise<PageResponse<AdminMemberListItem>> {
   const {data} = await apiClient.get<PageResponse<AdminMemberListItem>>('/admin/members', {
-    params: {...params, page: params?.page ?? 0, size: params?.size ?? 20},
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 20},
   })
   return data
 }
@@ -230,7 +406,7 @@ export async function getAdminPosts(params?: {
   size?: number
 }): Promise<PageResponse<AdminPostListItem>> {
   const {data} = await apiClient.get<PageResponse<AdminPostListItem>>('/admin/posts', {
-    params: {...params, page: params?.page ?? 0, size: params?.size ?? 20},
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 20},
   })
   return data
 }
@@ -271,8 +447,17 @@ export async function getAdminReports(params?: {
   size?: number
 }): Promise<PageResponse<ReportItem>> {
   const {data} = await apiClient.get<PageResponse<ReportItem>>('/admin/reports', {
-    params: {...params, page: params?.page ?? 0, size: params?.size ?? 20},
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 20},
   })
+  return data
+}
+
+/**
+ * 관리자 신고 상세 조회
+ * GET /api/admin/reports/{id}
+ */
+export async function getAdminReport(reportId: number): Promise<AdminReportDetail> {
+  const {data} = await apiClient.get<AdminReportDetail>(`/admin/reports/${reportId}`)
   return data
 }
 
@@ -283,8 +468,57 @@ export async function getAdminReports(params?: {
 export async function processAdminReport(
   reportId: number,
   request: AdminReportActionRequest,
-): Promise<ReportItem> {
-  const {data} = await apiClient.patch<ReportItem>(`/admin/reports/${reportId}`, request)
+): Promise<AdminReportDetail> {
+  const {data} = await apiClient.patch<AdminReportDetail>(`/admin/reports/${reportId}`, request)
+  return data
+}
+
+// ── 분쟁 관리 API ──────────────────────────────────────────────────────────────
+
+/**
+ * 관리자 분쟁 목록 조회
+ * GET /api/admin/disputes?status=&page=&size=
+ */
+export async function getAdminDisputes(params?: {
+  status?: TradeStatus
+  page?: number
+  size?: number
+}): Promise<PageResponse<AdminDisputeListItem>> {
+  const {data} = await apiClient.get<PageResponse<AdminDisputeListItem>>('/admin/disputes', {
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 20},
+  })
+  return data
+}
+
+/**
+ * 관리자 분쟁 상세 조회
+ * GET /api/admin/disputes/{tradeId}
+ */
+export async function getAdminDispute(tradeId: number): Promise<AdminDisputeDetail> {
+  const {data} = await apiClient.get<AdminDisputeDetail>(`/admin/disputes/${tradeId}`)
+  return data
+}
+
+/**
+ * 관리자 분쟁 처리
+ * PATCH /api/admin/disputes/{tradeId}
+ */
+export async function processAdminDispute(
+  tradeId: number,
+  request: AdminDisputeActionRequest,
+): Promise<AdminDisputeDetail> {
+  const {data} = await apiClient.patch<AdminDisputeDetail>(`/admin/disputes/${tradeId}`, request)
+  return data
+}
+
+// ── 대시보드 API ──────────────────────────────────────────────────────────────
+
+/**
+ * 관리자 대시보드 요약 조회
+ * GET /api/admin/dashboard/summary
+ */
+export async function getAdminDashboardSummary(): Promise<AdminDashboardSummary> {
+  const {data} = await apiClient.get<AdminDashboardSummary>('/admin/dashboard/summary')
   return data
 }
 
@@ -311,5 +545,37 @@ export async function processWithdraw(
     `/admin/withdraw-requests/${withdrawId}`,
     request,
   )
+  return data
+}
+
+// ── 위험 탐지 API ───────────────────────────────────────────────────────────────
+
+/**
+ * 위험 게시글 목록 조회
+ * GET /api/admin/risk/posts?riskLevel=&page=&size=
+ */
+export async function getAdminPostRisks(params?: {
+  riskLevel?: RiskLevel
+  page?: number
+  size?: number
+}): Promise<PageResponse<AdminRiskItem>> {
+  const {data} = await apiClient.get<PageResponse<AdminRiskItem>>('/admin/risk/posts', {
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 10},
+  })
+  return data
+}
+
+/**
+ * 위험 채팅 목록 조회
+ * GET /api/admin/risk/chat?riskLevel=&page=&size=
+ */
+export async function getAdminChatRisks(params?: {
+  riskLevel?: RiskLevel
+  page?: number
+  size?: number
+}): Promise<PageResponse<AdminRiskItem>> {
+  const {data} = await apiClient.get<PageResponse<AdminRiskItem>>('/admin/risk/chat', {
+    params: {...params, page: toAdminPageParam(params?.page), size: params?.size ?? 10},
+  })
   return data
 }

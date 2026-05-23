@@ -181,7 +181,7 @@ function HeroSection() {
             <span style={{color: 'var(--color-accent)'}}>HOME</span> AUTHENTIC
           </h2>
           <p className="text-[14px] mb-6 leading-relaxed" style={{color: 'rgba(255,255,255,0.5)'}}>
-            Size M · Grade S · 에스크로 안전결제 지원
+            Size M · Grade S · 안전결제 지원
           </p>
           <div className="flex gap-2.5">
             <Link

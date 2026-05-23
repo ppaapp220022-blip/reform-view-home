@@ -5,7 +5,7 @@
  *   거래 내역   — 구매/판매 목록, 상태별 필터
  *   판매 중     — 내 판매 목록
  *   찜 목록     — 관심 상품
- *   포인트      — 활동 포인트 + 정산 포인트 + 출금 요청
+ *   예치금      — 정산 예치금 + 출금 요청
  *   설정        — 회원 정보, 프로필 수정
  *
  * 데이터: 목 데이터 (추후 useQuery + authStore 연동)
@@ -60,6 +60,7 @@ import {logout as logoutApi} from '../../features/auth/api/authApi'
 import {getMyTrades} from '../../features/trade/api/tradeApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
 import {getListings, getMyWishes} from '../../features/listing/api/listingApi'
+import {getTradeStatusDisplayLabel} from '../../utils/tradeStatusDisplay'
 
 // ── 공용 상수 ─────────────────────────────────────────────────────────────────
 
@@ -260,7 +261,7 @@ function ProfileHeader() {
         {[
           {label: '총 구매', value: profile.totalPurchases, unit: '건'},
           {label: '총 판매', value: profile.totalSales, unit: '건'},
-          {label: '정산 포인트', value: profile.pointWithdrawable.toLocaleString('ko-KR'), unit: 'P'},
+          {label: '출금 가능 예치금', value: profile.pointWithdrawable.toLocaleString('ko-KR'), unit: '원'},
         ].map(s => (
           <div key={s.label} className="flex flex-col items-center">
             <span className="text-xl font-bold"
@@ -353,6 +354,7 @@ function TradeHistoryTab() {
         <div className="flex flex-col gap-3">
           {trades.map((t) => {
             const sm = TRADE_STATUS_META[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
+            const displayLabel = getTradeStatusDisplayLabel(t.status, t.deliveryType)
             // 상대방 정보: 내가 구매자면 판매자, 내가 판매자면 구매자
             const counterpart = t.myRole === 'buyer' ? t.seller : t.buyer
             return (
@@ -396,7 +398,7 @@ function TradeHistoryTab() {
                     </span>
                     <span className="text-[12px] font-semibold"
                           style={{color: sm.color, fontFamily: "'Giants','Pretendard',sans-serif"}}>
-                      {sm.label}
+                      {displayLabel}
                     </span>
                   </div>
                   <p className="text-sm font-semibold truncate"
@@ -656,7 +658,7 @@ function LikesTab() {
   )
 }
 
-/** 포인트 탭 — 실제 API 연동 버전 */
+/** 예치금 탭 — 실제 API 연동 버전 */
 function PointsTab() {
   const qc = useQueryClient()
   const [withdrawAmount, setWithdrawAmount] = useState('')
@@ -666,13 +668,13 @@ function PointsTab() {
   const [withdrawHolderInfo, setWithdrawHolderInfo] = useState('') // 계좌주 생년월일 6자리
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
   
-  // 포인트 지갑 조회
+  // 예치금 지갑 조회
   const {data: wallet, isLoading: walletLoading} = useQuery({
     queryKey: ['pointWallet'],
     queryFn: getPointWallet,
   })
   
-  // 포인트 내역 조회 — 실제 API 데이터 사용
+  // 예치금 내역 조회 — 실제 API 데이터 사용
   const {data: history} = useQuery({
     queryKey: ['pointHistory'],
     queryFn: getPointHistory,
@@ -752,14 +754,14 @@ function PointsTab() {
   
   return (
     <div className="flex flex-col gap-4">
-      {/* 포인트 카드 */}
+      {/* 예치금 카드 */}
       <div className="grid grid-cols-2 gap-3">
-        {/* 정산 포인트 (출금 가능) — col-span-2로 전체 너비 표시 */}
+        {/* 출금 가능 예치금 — col-span-2로 전체 너비 표시 */}
         <div className="col-span-2 rounded-2xl p-4"
              style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={16} color="var(--color-success)"/>
-            <span className="text-xs font-semibold" style={{color: 'var(--color-text-sub)'}}>정산 포인트</span>
+            <span className="text-xs font-semibold" style={{color: 'var(--color-text-sub)'}}>출금 가능 예치금</span>
           </div>
           {walletLoading ? (
             <div className="h-8 rounded animate-pulse" style={{background: 'var(--color-surface-raised)'}}/>
@@ -771,7 +773,7 @@ function PointsTab() {
           )}
           <p className="text-[12px] mt-2" style={{color: 'var(--color-text-hint)'}}>판매 대금 (출금 가능)</p>
         </div>
-        {/* 정산 대기 포인트 */}
+        {/* 정산 대기 예치금 */}
         <div
           className="col-span-2 rounded-2xl p-4 flex items-center justify-between"
           style={{background: 'rgba(255,149,0,.07)', border: '1px solid rgba(255,149,0,.25)'}}
@@ -802,7 +804,7 @@ function PointsTab() {
       {/* 출금 요청 폼 */}
       <div className="rounded-2xl p-5"
            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
-        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>정산 포인트 출금</h3>
+        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>예치금 출금</h3>
         <div className="flex flex-col gap-2 mb-3">
           {/* 금액 */}
           <div className="flex gap-2">
@@ -967,13 +969,13 @@ function PointsTab() {
         </div>
       )}
       
-      {/* 포인트 내역 — 실제 API 데이터 (GET /api/users/me/points/history) */}
+      {/* 예치금 내역 — 실제 API 데이터 (GET /api/users/me/points/history) */}
       <div>
-        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>포인트 내역</h3>
+        <h3 className="font-bold text-sm mb-3" style={{color: 'var(--color-text-main)'}}>예치금 내역</h3>
         {(!history || history.length === 0) ? (
           <div className="py-8 text-center">
             <Coins size={28} color="var(--color-border)" className="mx-auto mb-2" strokeWidth={1.5}/>
-            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>포인트 내역이 없습니다.</p>
+            <p className="text-sm" style={{color: 'var(--color-text-hint)'}}>예치금 내역이 없습니다.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -996,7 +998,7 @@ function PointsTab() {
                   </div>
                   <div>
                     <p className="text-sm" style={{color: 'var(--color-text-main)'}}>
-                      {h.type === 'EARN' ? '판매 정산 적립' : '포인트 출금'}
+                      {h.type === 'EARN' ? '판매 정산 예치' : '예치금 출금'}
                     </p>
                     <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
                       {new Date(h.createdAt).toLocaleDateString('ko-KR')}
@@ -1277,7 +1279,7 @@ function SettingsTab() {
       {[
         {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
         {icon: <Bell size={18}/>, label: '알림 설정', sub: '거래·커뮤니티 알림'},
-        {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·포인트 요약'},
+        {icon: <BarChart2 size={18}/>, label: '내 활동 통계', sub: '거래·후기·예치금 요약'},
         {icon: <HelpCircle size={18}/>, label: '고객 지원', sub: 'FAQ·1:1 문의'},
       ].map(item => (
         <button
@@ -1322,7 +1324,7 @@ const TABS = [
   {key: 'trades', label: '거래 내역', icon: <Package size={16}/>},
   {key: 'listings', label: '판매 중', icon: <BarChart2 size={16}/>},
   {key: 'likes', label: '찜 목록', icon: <Heart size={16}/>},
-  {key: 'points', label: '포인트', icon: <Coins size={16}/>},
+  {key: 'points', label: '예치금', icon: <Coins size={16}/>},
   {key: 'reports', label: '신고 내역', icon: <Flag size={16}/>},
   {key: 'settings', label: '설정', icon: <Settings size={16}/>},
 ]

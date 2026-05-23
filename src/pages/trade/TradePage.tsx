@@ -9,7 +9,7 @@
  *
  * 거래 상태별 액션 흐름:
  *   REQUESTED  → 판매자: 수락(acceptTrade) / 구매자: 대기
- *   ACCEPTED   → 구매자: 결제(/payment/:id) / 판매자: 대기
+ *   ACCEPTED   → 직거래: 채팅 조율 + 거래 완료 / 택배: 결제(/payment/:id)
  *   PAID       → 판매자: 배송 정보 입력(startShipping) / 구매자: 대기
  *   IN_PROGRESS → 구매자: 구매 확정(confirmTrade) / 판매자: 배송 중 안내
  *   RECEIVED   → 구매자: 구매 확정 / 판매자: 확정 대기
@@ -47,8 +47,11 @@ import {getCouriers} from '../../features/delivery/api/deliveryApi'
 import type {ChatMessage} from '../../features/chat/api/chatApi'
 import {createChatRoom, getChatRooms, getMessages} from '../../features/chat/api/chatApi'
 import {useStompChat} from '../../features/chat/hooks/useStompChat'
+import {useStompTradeRealtime} from '../../features/trade/hooks/useStompTradeRealtime'
 import {formatPrice} from '../../utils/format'
+import {getDisplayChatMessageContent, shouldMaskChatMessageContent} from '../../utils/chatModeration'
 import {resolveImageUrl} from '../../utils/image'
+import {getTradeStatusDisplayLabel} from '../../utils/tradeStatusDisplay'
 import useAuthStore from '../../store/authStore'
 import type {TradeStatus} from '../../types/listing'
 
@@ -104,6 +107,14 @@ const STATUS_META: Record<TradeStatus, StatusMeta> = {
   DISPUTED: {label: '분쟁 진행 중', color: 'var(--color-accent)', bg: 'rgba(255,46,77,.08)'},
 }
 
+function getStatusMeta(status: TradeStatus, deliveryType: TradeResponse['deliveryType']): StatusMeta {
+  const baseMeta = STATUS_META[status]
+  return {
+    ...baseMeta,
+    label: getTradeStatusDisplayLabel(status, deliveryType),
+  }
+}
+
 // ── 타임라인 정의 ──────────────────────────────────────────────────────────────
 
 interface TimelineStep {
@@ -111,7 +122,7 @@ interface TimelineStep {
   label: string
 }
 
-const TIMELINE_STEPS: TimelineStep[] = [
+const DELIVERY_TIMELINE_STEPS: TimelineStep[] = [
   {key: 'REQUESTED', label: '거래 요청'},
   {key: 'PAID', label: '결제 완료'},
   {key: 'IN_PROGRESS', label: '배송 중'},
@@ -119,8 +130,27 @@ const TIMELINE_STEPS: TimelineStep[] = [
   {key: 'CONFIRMED', label: '거래 확정'},
 ]
 
+const DIRECT_TIMELINE_STEPS: TimelineStep[] = [
+  {key: 'REQUESTED', label: '거래요청'},
+  {key: 'ACCEPTED', label: '거래중'},
+  {key: 'CONFIRMED', label: '거래완료'},
+]
+
 /** TradeStatus → 타임라인 단계 인덱스 */
-function statusToStep(status: TradeStatus): number {
+function statusToStep(status: TradeStatus, deliveryType: TradeResponse['deliveryType']): number {
+  if (deliveryType === 'DIRECT') {
+    const directMap: Partial<Record<TradeStatus, number>> = {
+      REQUESTED: 0,
+      ACCEPTED: 1,
+      PAID: 1,
+      IN_PROGRESS: 1,
+      RECEIVED: 1,
+      CONFIRMED: 2,
+      COMPLETED: 2,
+    }
+    return directMap[status] ?? 0
+  }
+
   const map: Partial<Record<TradeStatus, number>> = {
     REQUESTED: 0, ACCEPTED: 0,
     PAID: 1,
@@ -215,12 +245,19 @@ function ensureKakaoPostcodeScript(): Promise<KakaoPostcodeConstructor> {
 
 // ── 타임라인 컴포넌트 ─────────────────────────────────────────────────────────
 
-function TradeTimeline({status}: { status: TradeStatus }) {
-  const activeIdx = statusToStep(status)
+function TradeTimeline({
+  status,
+  deliveryType,
+}: {
+  status: TradeStatus
+  deliveryType: TradeResponse['deliveryType']
+}) {
+  const steps = deliveryType === 'DIRECT' ? DIRECT_TIMELINE_STEPS : DELIVERY_TIMELINE_STEPS
+  const activeIdx = statusToStep(status, deliveryType)
   const isSpecial = status === 'CANCELED' || status === 'DISPUTED'
   
   if (isSpecial) {
-    const meta = STATUS_META[status]
+    const meta = getStatusMeta(status, deliveryType)
     return (
       <div
         className="flex items-center gap-3 py-3 px-4 rounded-xl"
@@ -238,16 +275,22 @@ function TradeTimeline({status}: { status: TradeStatus }) {
   
   return (
     <div className="flex items-start gap-0">
-      {TIMELINE_STEPS.map((step, i) => {
+      {steps.map((step, i) => {
         const isDone = i < activeIdx
         const isCurrent = i === activeIdx
-        const icons = [
-          <Clock size={15} key="clock"/>,
-          <Package size={15} key="pkg"/>,
-          <Truck size={15} key="truck"/>,
-          <MapPin size={15} key="map"/>,
-          <ShieldCheck size={15} key="shield"/>,
-        ]
+        const icons = deliveryType === 'DIRECT'
+          ? [
+            <Clock size={15} key="clock"/>,
+            <MessageCircle size={15} key="message"/>,
+            <CheckCircle2 size={15} key="check"/>,
+          ]
+          : [
+            <Clock size={15} key="clock"/>,
+            <Package size={15} key="pkg"/>,
+            <Truck size={15} key="truck"/>,
+            <MapPin size={15} key="map"/>,
+            <ShieldCheck size={15} key="shield"/>,
+          ]
         return (
           <div key={step.key} className="flex items-center flex-1">
             <div className="flex flex-col items-center flex-shrink-0" style={{width: 52}}>
@@ -279,7 +322,7 @@ function TradeTimeline({status}: { status: TradeStatus }) {
                 {step.label}
               </span>
             </div>
-            {i < TIMELINE_STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className="flex-1 h-0.5 mx-1 mb-5 transition-colors"
                 style={{
@@ -779,7 +822,7 @@ function ActionPanel({
       queryClient.invalidateQueries({queryKey: ['trade', String(trade.tradeId)]})
       setTimeout(() => navigate(`/trade/${trade.tradeId}/review`), 1500)
     } catch {
-      setConfirmError('구매 확정 처리 중 오류가 발생했습니다.')
+      setConfirmError(trade.deliveryType === 'DIRECT' ? '거래 완료 처리 중 오류가 발생했습니다.' : '구매 확정 처리 중 오류가 발생했습니다.')
     } finally {
       setConfirming(false)
     }
@@ -858,6 +901,7 @@ function ActionPanel({
   
   // ── CONFIRMED / COMPLETED ────────────────────────────────────────────────────
   if (trade.status === 'CONFIRMED' || trade.status === 'COMPLETED') {
+    const isDirectTrade = trade.deliveryType === 'DIRECT'
     return (
       <div className="flex flex-col gap-3">
         <div
@@ -866,19 +910,19 @@ function ActionPanel({
         >
           <CheckCircle2 size={32} style={{color: 'var(--color-success)'}}/>
           <div className="text-center">
-            <p
-              className="font-bold text-base"
-              style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
-            >
-              {trade.status === 'COMPLETED' ? '거래 완료' : '구매 확정 완료'}
-            </p>
-            <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>
-              {trade.status === 'COMPLETED'
-                ? '정산이 완료된 거래입니다.'
-                : '판매자에게 대금이 지급됩니다.'}
-            </p>
+              <p
+                className="font-bold text-base"
+                style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+              >
+                {trade.status === 'COMPLETED' || isDirectTrade ? '거래 완료' : '구매 확정 완료'}
+              </p>
+              <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>
+                {trade.status === 'COMPLETED'
+                  ? isDirectTrade ? '직거래가 정상적으로 마무리되었습니다.' : '정산이 완료된 거래입니다.'
+                  : isDirectTrade ? '매너 평가와 거래 내역이 반영되었습니다.' : '판매자에게 대금이 지급됩니다.'}
+              </p>
+            </div>
           </div>
-        </div>
         {isBuyer && !trade.hasReview && (
           <Link
             to={`/trade/${trade.tradeId}/review`}
@@ -894,7 +938,7 @@ function ActionPanel({
             이미 매너 평가를 작성했습니다.
           </p>
         )}
-        {!isBuyer && (
+        {!isBuyer && !isDirectTrade && (
           <div className="flex flex-col gap-2.5">
             <div
               className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
@@ -906,10 +950,10 @@ function ActionPanel({
                   className="text-sm font-bold mb-0.5"
                   style={{color: 'var(--color-gold)', fontFamily: "'Giants','Pretendard',sans-serif"}}
                 >
-                  정산 포인트가 지급되었습니다!
+                  정산 예치금이 지급되었습니다!
                 </p>
                 <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
-                  마이페이지 &gt; 포인트 내역에서 출금을 신청하실 수 있습니다.
+                  마이페이지 &gt; 예치금 내역에서 출금을 신청하실 수 있습니다.
                 </p>
               </div>
             </div>
@@ -929,6 +973,25 @@ function ActionPanel({
             <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
               정산까지 영업일 기준 1~3일 소요됩니다.
             </p>
+          </div>
+        )}
+        {!isBuyer && isDirectTrade && (
+          <div
+            className="flex items-start gap-3 px-4 py-3.5 rounded-2xl"
+            style={{background: 'rgba(0,179,110,.08)', border: '1px solid rgba(0,179,110,.24)'}}
+          >
+            <MessageCircle size={15} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
+            <div>
+              <p
+                className="text-sm font-bold mb-0.5"
+                style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+              >
+                직거래가 완료되었습니다
+              </p>
+              <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+                구매자 평가가 완료되면 거래 내역에서 최종 상태를 확인하실 수 있습니다.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -951,7 +1014,9 @@ function ActionPanel({
                 판매자 수락 대기 중
               </p>
               <p className="text-xs mt-1 leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
-                판매자가 거래를 수락하면 결제를 진행할 수 있습니다.
+                {trade.deliveryType === 'DIRECT'
+                  ? '판매자가 거래를 수락하면 채팅으로 장소, 시간, 상품 상태를 조율할 수 있습니다.'
+                  : '판매자가 거래를 수락하면 결제를 진행할 수 있습니다.'}
               </p>
             </div>
           </div>
@@ -1039,7 +1104,9 @@ function ActionPanel({
           </div>
         )}
         <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
-          수락하면 구매자가 결제를 진행할 수 있습니다.
+          {trade.deliveryType === 'DIRECT'
+            ? '수락 후에는 구매자와 채팅으로 직거래를 진행하고, 완료 전까지 거래 취소가 가능합니다.'
+            : '수락하면 구매자가 결제를 진행할 수 있습니다.'}
         </p>
       </div>
     )
@@ -1048,6 +1115,100 @@ function ActionPanel({
   // ── ACCEPTED ─────────────────────────────────────────────────────────────────
   if (trade.status === 'ACCEPTED') {
     if (isBuyer) {
+      if (trade.deliveryType === 'DIRECT') {
+        return (
+          <div className="flex flex-col gap-3">
+            {confirmed && (
+              <div
+                className="flex flex-col items-center gap-3 py-7 rounded-2xl"
+                style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
+              >
+                <CheckCircle2 size={32} style={{color: 'var(--color-success)'}}/>
+                <p
+                  className="font-bold text-base"
+                  style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                >
+                  거래 완료 처리 중입니다
+                </p>
+                <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                  판매자 매너 평가 화면으로 이동합니다...
+                </p>
+              </div>
+            )}
+
+            {!confirmed && (
+              <>
+                <div
+                  className="flex items-start gap-3 p-4 rounded-2xl"
+                  style={{background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)'}}
+                >
+                  <MessageCircle size={15} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
+                  <div>
+                    <p className="text-sm font-semibold" style={{color: 'var(--color-info)'}}>
+                      직거래 진행 중
+                    </p>
+                    <p className="text-xs mt-1 leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+                      판매자와 채팅으로 장소, 시간, 상품 상태를 충분히 확인한 뒤 거래를 마무리해 주세요.
+                    </p>
+                  </div>
+                </div>
+
+                {showWarning && (
+                  <div
+                    className="flex items-start gap-2 px-4 py-3 rounded-xl"
+                    style={{background: 'rgba(255,149,0,.08)', border: '1px solid rgba(255,149,0,.25)'}}
+                  >
+                    <AlertCircle size={14} style={{color: 'var(--color-warning)', flexShrink: 0, marginTop: 1}}/>
+                    <p className="text-xs leading-relaxed" style={{color: 'var(--color-warning)'}}>
+                      거래 완료 후에는 취소할 수 없습니다. 직거래가 끝났다면 판매자 매너 평가로 이어집니다.
+                    </p>
+                  </div>
+                )}
+
+                {confirmError && (
+                  <div
+                    className="flex items-start gap-2 px-4 py-3 rounded-xl"
+                    style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+                  >
+                    <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+                    <p className="text-xs" style={{color: 'var(--color-accent)'}}>{confirmError}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (!showWarning) {
+                      setShowWarning(true)
+                    } else {
+                      handleConfirm()
+                    }
+                  }}
+                  disabled={confirming}
+                  className="w-full py-4 rounded-xl font-bold text-base text-white flex items-center justify-center gap-2 transition-all"
+                  style={{background: 'var(--color-accent)'}}
+                >
+                  {confirming
+                    ? <><Loader2 size={17} className="animate-spin"/>완료 처리 중...</>
+                    : showWarning
+                      ? <><CheckCircle2 size={17}/>네, 거래를 완료합니다</>
+                      : <><CheckCircle2 size={17}/>거래 완료하기</>}
+                </button>
+
+                {showWarning && (
+                  <button
+                    onClick={() => setShowWarning(false)}
+                    className="w-full py-3 rounded-xl font-medium text-sm transition-colors"
+                    style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)'}}
+                  >
+                    돌아가기
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )
+      }
+
       return (
         <div className="flex flex-col gap-3">
           {/* 택배 거래일 때 배송지 입력/수정 */}
@@ -1103,10 +1264,12 @@ function ActionPanel({
           <Clock size={15} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
           <div>
             <p className="text-sm font-semibold" style={{color: 'var(--color-info)'}}>
-              구매자 결제 대기 중
+              {trade.deliveryType === 'DIRECT' ? '직거래 조율 진행 중' : '구매자 결제 대기 중'}
             </p>
             <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
-              구매자가 결제를 완료하면 배송 정보를 입력해주세요.
+              {trade.deliveryType === 'DIRECT'
+                ? '구매자와 채팅으로 장소, 시간, 상품 상태를 충분히 조율해 주세요.'
+                : '구매자가 결제를 완료하면 배송 정보를 입력해주세요.'}
             </p>
           </div>
         </div>
@@ -1179,13 +1342,13 @@ function ActionPanel({
           className="flex items-start gap-3 p-4 rounded-2xl"
           style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
         >
-          <MapPin size={15} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
+          <MessageCircle size={15} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
           <div>
             <p className="text-sm font-semibold" style={{color: 'var(--color-success)'}}>
-              결제 완료 — 직거래 진행
+              직거래 진행 중
             </p>
             <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
-              구매자와 채팅으로 만남 장소를 조율해주세요.
+              구매자와 채팅으로 장소, 시간, 상품 상태를 끝까지 확인해 주세요.
             </p>
           </div>
         </div>
@@ -1211,6 +1374,119 @@ function ActionPanel({
   
   // ── IN_PROGRESS / RECEIVED ───────────────────────────────────────────────────
   if (trade.status === 'IN_PROGRESS' || trade.status === 'RECEIVED') {
+    if (trade.deliveryType === 'DIRECT') {
+      if (isBuyer) {
+        return (
+          <div className="flex flex-col gap-3">
+            {confirmed && (
+              <div
+                className="flex flex-col items-center gap-3 py-7 rounded-2xl"
+                style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
+              >
+                <CheckCircle2 size={32} style={{color: 'var(--color-success)'}}/>
+                <p
+                  className="font-bold text-base"
+                  style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+                >
+                  거래 완료 처리 중입니다
+                </p>
+                <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                  판매자 매너 평가 화면으로 이동합니다...
+                </p>
+              </div>
+            )}
+
+            {!confirmed && (
+              <>
+                <div
+                  className="flex items-start gap-3 p-4 rounded-2xl"
+                  style={{background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)'}}
+                >
+                  <MessageCircle size={15} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
+                  <div>
+                    <p className="text-sm font-semibold" style={{color: 'var(--color-info)'}}>
+                      직거래 진행 중
+                    </p>
+                    <p className="text-xs mt-1 leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
+                      채팅으로 최종 거래 내용을 확인한 뒤 거래 완료를 진행해 주세요.
+                    </p>
+                  </div>
+                </div>
+
+                {showWarning && (
+                  <div
+                    className="flex items-start gap-2 px-4 py-3 rounded-xl"
+                    style={{background: 'rgba(255,149,0,.08)', border: '1px solid rgba(255,149,0,.25)'}}
+                  >
+                    <AlertCircle size={14} style={{color: 'var(--color-warning)', flexShrink: 0, marginTop: 1}}/>
+                    <p className="text-xs leading-relaxed" style={{color: 'var(--color-warning)'}}>
+                      거래 완료 후에는 취소할 수 없습니다. 직거래가 끝났다면 판매자 매너 평가로 이어집니다.
+                    </p>
+                  </div>
+                )}
+
+                {confirmError && (
+                  <div
+                    className="flex items-start gap-2 px-4 py-3 rounded-xl"
+                    style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+                  >
+                    <AlertCircle size={13} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+                    <p className="text-xs" style={{color: 'var(--color-accent)'}}>{confirmError}</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    if (!showWarning) {
+                      setShowWarning(true)
+                    } else {
+                      handleConfirm()
+                    }
+                  }}
+                  disabled={confirming}
+                  className="w-full py-4 rounded-xl font-bold text-base text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60"
+                  style={{background: 'var(--color-accent)'}}
+                >
+                  {confirming
+                    ? <><Loader2 size={17} className="animate-spin"/>완료 처리 중...</>
+                    : showWarning
+                      ? <><CheckCircle2 size={17}/>네, 거래를 완료합니다</>
+                      : <><CheckCircle2 size={17}/>거래 완료하기</>}
+                </button>
+
+                {showWarning && (
+                  <button
+                    onClick={() => setShowWarning(false)}
+                    className="w-full py-3 rounded-xl font-medium text-sm transition-colors"
+                    style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)'}}
+                  >
+                    돌아가기
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )
+      }
+
+      return (
+        <div
+          className="flex items-start gap-3 p-4 rounded-2xl"
+          style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
+        >
+          <MessageCircle size={16} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
+          <div>
+            <p className="text-sm font-semibold" style={{color: 'var(--color-success)'}}>
+              직거래 진행 중
+            </p>
+            <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
+              구매자가 거래 완료를 누르기 전까지는 거래 취소가 가능합니다.
+            </p>
+          </div>
+        </div>
+      )
+    }
+
     if (isBuyer) {
       return (
         <div className="flex flex-col gap-3">
@@ -1387,6 +1663,8 @@ function EmbeddedChatInner({
         {messages.map(msg => {
           const isMe = msg.senderId === myMemberId
           const isSystem = msg.type === 'SYSTEM'
+          const displayContent = getDisplayChatMessageContent(msg)
+          const isMaskedHighRisk = shouldMaskChatMessageContent(msg)
           
           if (isSystem) {
             return (
@@ -1420,13 +1698,15 @@ function EmbeddedChatInner({
                   opacity: msg.messageId < 0 ? 0.6 : 1, // 낙관적 메시지
                 }}
               >
-                {msg.content}
+                {displayContent}
               </div>
-              
+               
               {/* AI 위험 탐지 경고 배너 */}
               {msg.moderation && msg.moderation.riskLevel !== 'LOW' && (() => {
                 const isHigh = msg.moderation!.riskLevel === 'HIGH'
-                const text = msg.moderation!.suggestion ?? msg.moderation!.reason ?? '주의가 필요한 메시지입니다.'
+                const text = isHigh && isMaskedHighRisk
+                  ? '유해성이 높은 내용이 감지되어 메시지 본문을 마스킹했습니다.'
+                  : (msg.moderation!.suggestion ?? msg.moderation!.reason ?? '주의가 필요한 메시지입니다.')
                 return (
                   <div
                     className="mt-1 max-w-[82%] flex items-start gap-1.5 px-2.5 py-1.5 rounded-xl"
@@ -1613,6 +1893,8 @@ export default function TradePage() {
     enabled: !isNaN(tradeId),
     staleTime: 30_000,
   })
+
+  useStompTradeRealtime({tradeId: Number.isNaN(tradeId) ? null : tradeId})
   
   // 구매자/판매자 판별
   const isBuyer = trade ? user?.id === trade.buyer.memberId : true
@@ -1654,7 +1936,7 @@ export default function TradePage() {
     )
   }
   
-  const statusMeta = STATUS_META[trade.status]
+  const statusMeta = getStatusMeta(trade.status, trade.deliveryType)
   
   // ── 거래 정보 패널 JSX (좌측 / 모바일 거래현황 탭) ─────────────────────────
   const tradePanelContent = (
@@ -1666,25 +1948,35 @@ export default function TradePage() {
       >
         <TradeProductCard trade={trade}/>
         <div className="mt-5 mb-2">
-          <TradeTimeline status={trade.status}/>
+          <TradeTimeline status={trade.status} deliveryType={trade.deliveryType}/>
         </div>
         <ShippingInfo trade={trade}/>
       </div>
       
-      {/* 에스크로 안내 (CANCELED/COMPLETED 제외) */}
+      {/* 거래 방식별 안내 배너 (CANCELED/COMPLETED 제외) */}
       {trade.status !== 'CANCELED' && trade.status !== 'COMPLETED' && (
         <div
           className="flex items-start gap-3 p-4 rounded-2xl"
-          style={{background: 'rgba(0,33,71,.05)', border: '1px solid rgba(0,33,71,.1)'}}
+          style={{
+            background: trade.deliveryType === 'DIRECT' ? 'rgba(14,165,233,.06)' : 'rgba(0,33,71,.05)',
+            border: trade.deliveryType === 'DIRECT'
+              ? '1px solid rgba(14,165,233,.2)'
+              : '1px solid rgba(0,33,71,.1)',
+          }}
         >
-          <ShieldCheck size={16} style={{color: 'var(--color-primary)', flexShrink: 0, marginTop: 2}}/>
+          {trade.deliveryType === 'DIRECT' ? (
+            <MessageCircle size={16} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 2}}/>
+          ) : (
+            <ShieldCheck size={16} style={{color: 'var(--color-primary)', flexShrink: 0, marginTop: 2}}/>
+          )}
           <div>
             <p className="text-sm font-semibold mb-0.5" style={{color: 'var(--color-text-main)'}}>
-              에스크로 보호 중
+              {trade.deliveryType === 'DIRECT' ? '직거래 진행 안내' : '안전결제 보호 중'}
             </p>
             <p className="text-xs leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
-              {formatPrice(trade.tradePrice)}이 RE:FORM에 안전하게 보관되어 있습니다.
-              구매 확정 시 판매자에게 즉시 지급됩니다.
+              {trade.deliveryType === 'DIRECT'
+                ? '판매자와 장소, 시간, 상품 상태를 충분히 확인한 뒤 직거래를 진행해 주세요.'
+                : `${formatPrice(trade.tradePrice)}이 RE:FORM에 안전하게 보관되어 있습니다. 구매 확정 시 판매자에게 즉시 지급됩니다.`}
             </p>
           </div>
         </div>

@@ -32,11 +32,15 @@ import {
   WifiOff,
 } from 'lucide-react'
 import {formatPrice} from '../../utils/format'
+import {getDisplayChatMessageContent, shouldMaskChatMessageContent} from '../../utils/chatModeration'
 import {resolveImageUrl} from '../../utils/image'
 import {useStompChat} from '../../features/chat/hooks/useStompChat'
+import {useStompTradeRealtime} from '../../features/trade/hooks/useStompTradeRealtime'
 import useAuthStore from '../../store/authStore'
 import type {ChatMessage, ChatRoomDetail, ChatRoomSummary, TradeStatus,} from '../../features/chat/api/chatApi'
 import {getChatRoomDetail, getChatRooms, getMessages,} from '../../features/chat/api/chatApi'
+import {getTrade, type TradeResponse} from '../../features/trade/api/tradeApi'
+import {getTradeStatusDisplayLabel} from '../../utils/tradeStatusDisplay'
 
 // ── 아바타 색상 팔레트 — memberId 기반 결정론적 배정 ──────────────────────────
 const AVATAR_COLORS = [
@@ -72,18 +76,6 @@ function formatChatTime(isoString: string): string {
 }
 
 // ── 거래 상태 레이블 / 색상 ─────────────────────────────────────────────────────
-const TRADE_STATUS_LABEL: Record<TradeStatus, string> = {
-  REQUESTED: '거래 요청됨',
-  ACCEPTED: '거래 수락됨',
-  PAID: '결제 완료',
-  IN_PROGRESS: '배송 중',
-  RECEIVED: '배송 완료',
-  CONFIRMED: '구매 확정',
-  COMPLETED: '거래 완료',
-  CANCELED: '거래 취소',
-  DISPUTED: '분쟁 처리 중',
-}
-
 const TRADE_STATUS_COLOR: Partial<Record<TradeStatus, string>> = {
   REQUESTED: 'var(--color-info)',
   ACCEPTED: 'var(--color-success)',
@@ -318,6 +310,8 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
   })
   // messageId < 0 → 낙관적(전송 중) 메시지
   const isPending = msg.messageId < 0
+  const displayContent = getDisplayChatMessageContent(msg)
+  const isMaskedHighRisk = shouldMaskChatMessageContent(msg)
   
   /**
    * moderation 경고 배너 렌더링
@@ -338,7 +332,9 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
           <AlertTriangle size={12} style={{color: textColor, flexShrink: 0, marginTop: 1}}/>
           <div style={{color: textColor}}>
             <span className="font-bold mr-1">{isHigh ? '[위험]' : '[주의]'}</span>
-            {mod.suggestion ?? mod.reason ?? '주의가 필요한 내용이 감지되었습니다.'}
+            {isHigh && isMaskedHighRisk
+              ? '유해성이 높은 내용이 감지되어 메시지 본문을 마스킹했습니다.'
+              : (mod.suggestion ?? mod.reason ?? '주의가 필요한 내용이 감지되었습니다.')}
           </div>
         </div>
       )
@@ -368,7 +364,7 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
               }
           }
         >
-          {msg.content}
+          {displayContent}
         </div>
         <span
           className="text-[13px] flex-shrink-0 pb-0.5"
@@ -396,14 +392,16 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
  * chatId가 바뀌면 부모의 key prop으로 전체 remount 됨.
  */
 function ChatRoomPanelInner({
-                              chatId,
-                              detail,
-                              myMemberId,
-                              initialMessages,
-                              onBack,
-                            }: {
+  chatId,
+  detail,
+  linkedTrade,
+  myMemberId,
+  initialMessages,
+  onBack,
+}: {
   chatId: number
   detail: ChatRoomDetail | null
+  linkedTrade: TradeResponse | null
   myMemberId: number
   initialMessages: ChatMessage[]
   onBack: () => void
@@ -417,6 +415,7 @@ function ChatRoomPanelInner({
     myMemberId,
     initialMessages,
   })
+  const {lastEvent} = useStompTradeRealtime({chatId})
   
   // 상대방 정보 계산 (내가 buyer면 상대는 seller, 아니면 buyer)
   const opponent = useMemo(() => {
@@ -425,7 +424,9 @@ function ChatRoomPanelInner({
   }, [detail, myMemberId])
   
   // 거래 상태 (null: 거래 미연결)
-  const tradeStatus = detail?.tradeStatus ?? null
+  const tradeStatus = linkedTrade?.status ?? lastEvent?.status ?? detail?.tradeStatus ?? null
+  const tradeDeliveryType = linkedTrade?.deliveryType ?? lastEvent?.deliveryType ?? null
+  const activeTradeId = linkedTrade?.tradeId ?? detail?.tradeId ?? null
   
   // 아바타 색상
   const avatarColor = opponent ? getAvatarColor(opponent.memberId) : '#1A3051'
@@ -619,7 +620,7 @@ function ChatRoomPanelInner({
                     background: `${TRADE_STATUS_COLOR[tradeStatus] ?? 'var(--color-text-sub)'}1A`,
                   }}
                 >
-                  {TRADE_STATUS_LABEL[tradeStatus]}
+                  {getTradeStatusDisplayLabel(tradeStatus, tradeDeliveryType)}
                 </span>
               )}
             </div>
@@ -629,19 +630,29 @@ function ChatRoomPanelInner({
           </div>
           
           {/* 결제하기 버튼 (ACCEPTED 상태 + tradeId 있을 때) */}
-          {tradeStatus === 'ACCEPTED' && detail.tradeId && (
-            <Link
-              to={`/payment/${detail.tradeId}`}
-              className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:text-white flex-shrink-0 transition-opacity hover:opacity-90"
-              style={{background: 'var(--color-accent)'}}
-            >
-              결제하기
-            </Link>
+          {tradeStatus === 'ACCEPTED' && activeTradeId && (
+            tradeDeliveryType === 'DIRECT' ? (
+              <Link
+                to={`/trade/${activeTradeId}/confirm`}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:text-white flex-shrink-0 transition-opacity hover:opacity-90"
+                style={{background: 'var(--color-accent)'}}
+              >
+                거래 진행
+              </Link>
+            ) : (
+              <Link
+                to={`/payment/${activeTradeId}`}
+                className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:text-white flex-shrink-0 transition-opacity hover:opacity-90"
+                style={{background: 'var(--color-accent)'}}
+              >
+                결제하기
+              </Link>
+            )
           )}
           {/* 구매 확정 버튼 (RECEIVED 상태 + tradeId 있을 때) */}
-          {tradeStatus === 'RECEIVED' && detail.tradeId && (
+          {tradeStatus === 'RECEIVED' && activeTradeId && tradeDeliveryType !== 'DIRECT' && (
             <Link
-              to={`/trade/${detail.tradeId}/confirm`}
+              to={`/trade/${activeTradeId}/confirm`}
               className="px-4 py-2 rounded-xl text-sm font-bold text-white hover:text-white flex-shrink-0 transition-opacity hover:opacity-90"
               style={{background: 'var(--color-success)'}}
             >
@@ -651,8 +662,8 @@ function ChatRoomPanelInner({
         </div>
       )}
       
-      {/* ── 에스크로 보호 배너 (PAID / IN_PROGRESS 상태) ────────────────── */}
-      {(tradeStatus === 'PAID' || tradeStatus === 'IN_PROGRESS') && (
+      {/* ── 안전결제 보호 배너 (PAID / IN_PROGRESS 상태) ────────────────── */}
+      {(tradeStatus === 'PAID' || tradeStatus === 'IN_PROGRESS') && tradeDeliveryType !== 'DIRECT' && (
         <div
           className="px-5 py-2.5 flex items-center gap-2 flex-shrink-0"
           style={{
@@ -662,7 +673,7 @@ function ChatRoomPanelInner({
         >
           <Shield size={13} style={{color: 'var(--color-success)', flexShrink: 0}}/>
           <p className="text-xs" style={{color: 'var(--color-success)'}}>
-            에스크로 보호 중 — 구매 확정 전까지 결제금은 RE:FORM이 안전하게 보관합니다.
+            안전결제 보호 중 — 구매 확정 전까지 결제금은 RE:FORM이 안전하게 보관합니다.
           </p>
         </div>
       )}
@@ -769,6 +780,13 @@ function ChatRoomPanel({
     queryFn: () => getChatRoomDetail(chatId),
     staleTime: 30_000,   // 30초 캐시
   })
+
+  const {data: linkedTrade} = useQuery({
+    queryKey: ['trade', String(detail?.tradeId ?? '')],
+    queryFn: () => getTrade(detail!.tradeId!),
+    enabled: !!detail?.tradeId,
+    staleTime: 30_000,
+  })
   
   // 메시지 이력 (최근 30개, createdAt desc → 역정렬 후 initialMessages 주입)
   const {data: msgPage, isLoading: msgLoading} = useQuery({
@@ -799,6 +817,7 @@ function ChatRoomPanel({
     <ChatRoomPanelInner
       chatId={chatId}
       detail={detail ?? null}
+      linkedTrade={linkedTrade ?? null}
       myMemberId={myMemberId}
       initialMessages={initialMessages}
       onBack={onBack}

@@ -10,6 +10,7 @@
  */
 import {formatPrice} from '../../utils/format'
 import {resolveImageUrl} from '../../utils/image'
+import axios from 'axios'
 import {useRef, useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
@@ -48,6 +49,48 @@ const DELIVERY_OPTIONS: { key: DeliveryType; label: string; desc: string }[] = [
   {key: 'DIRECT', label: '직거래', desc: '대면 거래만'},
   {key: 'BOTH', label: '모두', desc: '택배 + 직거래'},
 ]
+
+/**
+ * axios 에러 응답에서 사용자에게 보여줄 문구를 최대한 안전하게 추출한다.
+ * 서버가 JSON/문자열/화이트라벨 HTML을 섞어 내려도 프론트에서는 일관된 문구를 표시한다.
+ */
+function getApiErrorMessage(error: unknown, fallback: string): string {
+  if (!axios.isAxiosError(error)) {
+    return fallback
+  }
+
+  const responseData = error.response?.data
+
+  if (typeof responseData === 'string') {
+    // Spring 화이트라벨 HTML 응답은 그대로 노출하지 않고 일반화된 안내로 치환한다.
+    if (responseData.includes('<html') || responseData.includes('Whitelabel Error Page')) {
+      return '서버 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'
+    }
+    return responseData.trim() || fallback
+  }
+
+  if (responseData && typeof responseData === 'object') {
+    const message = 'message' in responseData && typeof responseData.message === 'string'
+      ? responseData.message
+      : null
+    const errorMessage = 'error' in responseData && typeof responseData.error === 'string'
+      ? responseData.error
+      : null
+
+    if (message && message.trim()) return message
+    if (errorMessage && errorMessage.trim()) return errorMessage
+  }
+
+  if (error.code === 'ECONNABORTED') {
+    return '서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.'
+  }
+
+  if (!error.response) {
+    return '서버와 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+  }
+
+  return fallback
+}
 
 // ── 폼 타입 ───────────────────────────────────────────────────────────────────
 
@@ -162,6 +205,7 @@ export default function ListingEditPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitDone, setSubmitDone] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [errors, setErrors] = useState<Partial<Record<keyof EditForm, string>>>({})
   
   /**
@@ -191,6 +235,7 @@ export default function ListingEditPage() {
    * AVAILABLE 이외의 상태(IN_PROGRESS, COMPLETED 등)면 가격·배송방식 잠금
    */
   const locked = !!detail && detail.status !== 'ON_SALE'
+  const canEditListing = !!detail && detail.status === 'ON_SALE'
   
   // ── 이미지 관련 ───────────────────────────────────────────────────────────
   
@@ -246,6 +291,14 @@ export default function ListingEditPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitError(null)
+    if (!detail || !postId) {
+      setSubmitError('수정할 판매글 정보를 다시 불러온 뒤 시도해 주세요.')
+      return
+    }
+    if (!canEditListing) {
+      setSubmitError('판매 중인 판매글만 수정할 수 있습니다. 거래 관리 화면에서 현재 상태를 확인해 주세요.')
+      return
+    }
     if (!validate()) return
     setIsSubmitting(true)
     try {
@@ -272,24 +325,30 @@ export default function ListingEditPage() {
       })
       
       setSubmitDone(true)
-      // 수정 완료 후 상세 페이지 캐시 무효화 — staleTime이 남아있어도 최신 데이터 표시
-      await queryClient.invalidateQueries({queryKey: ['listingDetail', postId]})
+      // 수정 직후 상세/목록 캐시를 함께 무효화해 이전 데이터가 남지 않도록 맞춘다.
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: ['listing', postId]}),
+        queryClient.invalidateQueries({queryKey: ['relatedListings']}),
+      ])
       setTimeout(() => navigate(`/listing/${id}`), 1200)
     } catch (err) {
       /* 에러 시 submitting 해제 + 에러 메시지 표시 */
       setIsSubmitting(false)
-      const msg = err instanceof Error ? err.message : '저장에 실패했습니다.'
-      setSubmitError(msg.includes('Network') || !msg ? '서버와 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.' : '수정 저장에 실패했습니다. 다시 시도해 주세요.')
+      setSubmitError(getApiErrorMessage(err, '수정 저장에 실패했습니다. 다시 시도해 주세요.'))
     }
   }
   
   async function handleDelete() {
+    if (!detail || !canEditListing) {
+      setSubmitError('판매 중인 판매글만 삭제할 수 있습니다.')
+      return
+    }
     setShowDeleteModal(false)
     try {
       await deleteListing(postId)
       navigate('/', {replace: true})
-    } catch {
-      /* 삭제 실패 무시 — 추후 토스트 연동 가능 */
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, '삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
     }
   }
   
@@ -327,9 +386,10 @@ export default function ListingEditPage() {
         <button
           type="button"
           onClick={() => setShowDeleteModal(true)}
+          disabled={!canEditListing}
           className="flex items-center gap-1.5 px-3 h-9 rounded-[8px] text-[14px] font-medium transition-colors
             border border-[var(--color-border)] hover:border-[var(--color-accent)]
-            hover:text-[var(--color-accent)] text-[var(--color-text-hint)]"
+            hover:text-[var(--color-accent)] text-[var(--color-text-hint)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Trash2 size={14} strokeWidth={1.75}/>
           삭제
@@ -830,9 +890,9 @@ export default function ListingEditPage() {
           </Link>
           <button
             type="submit"
-            disabled={isSubmitting || submitDone}
+            disabled={isSubmitting || submitDone || !canEditListing}
             className="px-8 h-[48px] rounded-[10px] text-[15px] font-semibold text-white transition-opacity
-              hover:opacity-90 disabled:opacity-60 flex items-center gap-2 bg-primary"
+              hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 bg-primary"
           >
             {submitDone ? (
               <>
@@ -843,6 +903,11 @@ export default function ListingEditPage() {
               <>
                 <Loader2 size={16} className="animate-spin"/>
                 저장 중...
+              </>
+            ) : !canEditListing ? (
+              <>
+                <Lock size={16} strokeWidth={2}/>
+                수정 불가
               </>
             ) : (
               '수정 저장'

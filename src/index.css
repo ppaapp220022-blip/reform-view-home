@@ -104,7 +104,7 @@
     --prim-navy3: 52 63 91; /* #343F5B — 밝은 네이비 */
 
     /* Brand: Point 컬러 */
-    --prim-red: 255 46 77; /* #FF2E4D — 포인트 레드 */
+    --prim-red: 255 46 77; /* #FF2E4D — 강조 레드 */
 
     /* Brand: Sub 컬러 */
     --prim-gold: 255 184 0; /* #FFB800 — 골드 */
@@ -193,6 +193,22 @@
     --color-info-bg: #E0F2FE;
     --color-info-border: rgba(var(--prim-info), 0.40);
     --color-info-text: #0369A1;
+
+    /* Vendor: Google sign-in button
+       - Google 브랜드 가이드의 light theme 색상값을 그대로 보존한다.
+       - 로그인 페이지에서만 사용하지만, 라이트/다크 전환을 안정적으로 맞추기 위해
+         전역 토큰으로 선언해 두고 컴포넌트에서는 이 semantic token만 참조한다. */
+    --color-google-button-bg: #FFFFFF;
+    --color-google-button-border: #747775;
+    --color-google-button-text: #1F1F1F;
+    --color-google-button-hover: #F8F9FA;
+
+    /* Vendor: Kakao login button
+       - 카카오 로그인은 light/dark 공통으로 동일한 브랜드 색상을 사용한다.
+       - 컨테이너/텍스트를 토큰화해 로그인 페이지에서 공식 가이드를 안정적으로 재사용한다. */
+    --color-kakao-button-bg: #FEE500;
+    --color-kakao-button-text: rgba(0, 0, 0, 0.85);
+    --color-kakao-button-hover: #F7DE00;
 }
 
 
@@ -251,6 +267,16 @@
         --color-info-bg: rgba(56, 189, 248, 0.12);
         --color-info-border: rgba(56, 189, 248, 0.30);
         --color-info-text: #38BDF8;
+
+        /* Vendor: Google sign-in button dark theme */
+        --color-google-button-bg: #131314;
+        --color-google-button-border: #8E918F;
+        --color-google-button-text: #E3E3E3;
+        --color-google-button-hover: #1E1F20;
+
+        --color-kakao-button-bg: #FEE500;
+        --color-kakao-button-text: rgba(0, 0, 0, 0.85);
+        --color-kakao-button-hover: #F7DE00;
     }
 }
 
@@ -301,6 +327,16 @@
     --color-info-bg: rgba(56, 189, 248, 0.12);
     --color-info-border: rgba(56, 189, 248, 0.30);
     --color-info-text: #38BDF8;
+
+    /* Vendor: Google sign-in button dark theme */
+    --color-google-button-bg: #131314;
+    --color-google-button-border: #8E918F;
+    --color-google-button-text: #E3E3E3;
+    --color-google-button-hover: #1E1F20;
+
+    --color-kakao-button-bg: #FEE500;
+    --color-kakao-button-text: rgba(0, 0, 0, 0.85);
+    --color-kakao-button-hover: #F7DE00;
 }
 
 
