@@ -10,8 +10,8 @@
  * 데이터: 목 데이터 (백엔드 미연동)
  */
 import {useState} from 'react'
-import {Link} from 'react-router-dom'
-import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, SlidersHorizontal, X} from 'lucide-react'
+import {Link, useNavigate} from 'react-router-dom'
+import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, X} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {formatPrice} from '../utils/format'
 import {resolveImageUrl} from '../utils/image'
@@ -60,8 +60,6 @@ const SORT_OPTIONS = [
 // ── 유틸 ──────────────────────────────────────────────────────────────────────
 
 
-
-
 // ── 상품 카드 (SearchPage와 동일한 스타일) ───────────────────────────────────
 
 /**
@@ -69,10 +67,10 @@ const SORT_OPTIONS = [
  * isWished: wishedOverride 적용 후 최종 찜 상태
  */
 function ProductCard({
-  item,
-  isWished,
-  onLike,
-}: {
+                       item,
+                       isWished,
+                       onLike,
+                     }: {
   item: PostCard
   isWished: boolean
   onLike: (postId: number) => void
@@ -114,7 +112,7 @@ function ProductCard({
           {/* 등급 배지 */}
           <ConditionBadge grade={item.grade} size="sm" className="absolute top-2 left-2"/>
         </div>
-
+        
         {/* 정보 영역 */}
         <div className="p-3">
           <p className="text-[13px] mb-0.5" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
@@ -132,7 +130,7 @@ function ProductCard({
           </div>
         </div>
       </Link>
-
+      
       {/* 찜 버튼 — Link 바깥 (article 위에 absolute) */}
       <button
         onClick={() => onLike(item.postId)}
@@ -235,7 +233,11 @@ function HeroSection() {
             <div className="absolute inset-0"
                  style={{backgroundImage: 'repeating-linear-gradient(115deg,rgba(255,255,255,.07) 0 2px,transparent 2px 16px)'}}/>
             <span className="absolute inset-0 flex items-end justify-center pb-4"
-                  style={{fontFamily:"'IAMAPLAYER',Giants,sans-serif",fontSize:64,color:'rgba(255,255,255,.25)'}}>7</span>
+                  style={{
+                    fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                    fontSize: 64,
+                    color: 'rgba(255,255,255,.25)'
+                  }}>7</span>
           </div>
           <div
             className="absolute right-6 -bottom-4 w-28 h-36 rounded-2xl overflow-hidden"
@@ -249,7 +251,6 @@ function HeroSection() {
     </div>
   )
 }
-
 
 
 // ── 필터 섹션 (SearchPage와 동일한 구조) ─────────────────────────────────────
@@ -279,8 +280,8 @@ function FilterSection({title, children, collapsible, open, onToggle}: {
           {title}
         </span>
         {collapsible && (open
-          ? <ChevronUp size={14} color="var(--color-text-hint)"/>
-          : <ChevronDown size={14} color="var(--color-text-hint)"/>
+            ? <ChevronUp size={14} color="var(--color-text-hint)"/>
+            : <ChevronDown size={14} color="var(--color-text-hint)"/>
         )}
       </button>
       {(!collapsible || open) && children}
@@ -293,13 +294,13 @@ function FilterSection({title, children, collapsible, open, onToggle}: {
  * 데스크탑 사이드바 & 모바일 드로어 양쪽에서 공용
  */
 function FilterContent({
-  sport, setSport,
-  grade, setGrade,
-  size, setSize,
-  delivery, setDelivery,
-  maxPrice, setMaxPrice,
-  onReset,
-}: {
+                         sport, setSport,
+                         grade, setGrade,
+                         size, setSize,
+                         delivery, setDelivery,
+                         maxPrice, setMaxPrice,
+                         onReset,
+                       }: {
   sport: Sport | 'all'
   setSport: (v: Sport | 'all') => void
   grade: Grade | 'all'
@@ -328,7 +329,7 @@ function FilterContent({
           <RotateCcw size={12}/>초기화
         </button>
       </div>
-
+      
       {/* 종목 */}
       <FilterSection title="SPORT">
         <div className="flex flex-col gap-0.5">
@@ -353,7 +354,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 컨디션 */}
       <FilterSection title="CONDITION">
         <div className="grid grid-cols-4 gap-1.5">
@@ -373,7 +374,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 사이즈 */}
       <FilterSection title="SIZE">
         <div className="flex flex-wrap gap-1.5">
@@ -393,7 +394,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 거래 방식 */}
       <FilterSection title="TRADE">
         <div className="flex flex-col gap-0.5">
@@ -418,7 +419,7 @@ function FilterContent({
           ))}
         </div>
       </FilterSection>
-
+      
       {/* 가격 범위 */}
       <FilterSection title="PRICE">
         <p
@@ -452,37 +453,62 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState(300)         // 슬라이더: 10~300 (×1000원)
   const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular'>('latest')
   const [page, setPage] = useState(0)                   // 0-based 페이지
-
+  
   /* ── UI 상태 ── */
   const [filterOpen, setFilterOpen] = useState(false)   // 모바일 필터 드로어
-
+  const [searchInput, setSearchInput] = useState('')     // 키워드 검색창
+  const navigate = useNavigate()
+  
   /* ── 찜 낙관적 UI (postId → 최종 찜 여부 오버라이드) ── */
   const [wishedOverride, setWishedOverride] = useState<Map<number, boolean>>(new Map())
-
+  
   /* ── 필터 변경 시 page 0 초기화 래퍼 ── */
-  function setSportR(v: Sport | 'all') { setSport(v); setPage(0) }
-  function setGradeR(v: Grade | 'all') { setGrade(v); setPage(0) }
-  function setSizeR(v: string)         { setSize(v);  setPage(0) }
-  function setDeliveryR(v: DeliveryType | 'all') { setDelivery(v); setPage(0) }
-  function setMaxPriceR(v: number)     { setMaxPrice(v); setPage(0) }
-
+  function setSportR(v: Sport | 'all') {
+    setSport(v);
+    setPage(0)
+  }
+  
+  function setGradeR(v: Grade | 'all') {
+    setGrade(v);
+    setPage(0)
+  }
+  
+  function setSizeR(v: string) {
+    setSize(v);
+    setPage(0)
+  }
+  
+  function setDeliveryR(v: DeliveryType | 'all') {
+    setDelivery(v);
+    setPage(0)
+  }
+  
+  function setMaxPriceR(v: number) {
+    setMaxPrice(v);
+    setPage(0)
+  }
+  
   /* ── 필터 전체 초기화 ── */
   function resetFilter() {
-    setSport('all'); setGrade('all'); setSize('전체')
-    setDelivery('all'); setMaxPrice(300); setPage(0)
+    setSport('all');
+    setGrade('all');
+    setSize('전체')
+    setDelivery('all');
+    setMaxPrice(300);
+    setPage(0)
   }
-
+  
   /* ── API 파라미터 ── */
   const queryParams = {
-    sport:     sport    !== 'all'  ? sport    : undefined,
-    condition: grade    !== 'all'  ? grade    : undefined,
-    tradeType: delivery !== 'all'  ? delivery : undefined,
-    maxPrice:  maxPrice < 300      ? maxPrice * 1000 : undefined,
+    sport: sport !== 'all' ? sport : undefined,
+    condition: grade !== 'all' ? grade : undefined,
+    tradeType: delivery !== 'all' ? delivery : undefined,
+    maxPrice: maxPrice < 300 ? maxPrice * 1000 : undefined,
     sort,
     page,
     size: 20,
   }
-
+  
   /* ── 판매글 목록 조회 ── */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['listings', queryParams],
@@ -490,15 +516,15 @@ export default function HomePage() {
     staleTime: 30_000,
     placeholderData: prev => prev,   // 필터 바뀌어도 이전 결과 유지
   })
-
+  
   /* ── 사이즈 클라이언트 필터 + 찜 오버라이드 병합 ── */
   const allItems: PostCard[] = data?.content ?? []
   const results: PostCard[] = size !== '전체'
     ? allItems.filter(item => item.size === size)
     : allItems
-
+  
   const totalPages = data?.totalPages ?? 1
-
+  
   /* ── 찜 토글 ── */
   async function toggleLike(postId: number) {
     const current = wishedOverride.has(postId)
@@ -511,34 +537,34 @@ export default function HomePage() {
       setWishedOverride(prev => new Map(prev).set(postId, current))
     }
   }
-
+  
   function isItemWished(item: PostCard): boolean {
     return wishedOverride.has(item.postId)
       ? wishedOverride.get(item.postId)!
       : item.isWished
   }
-
+  
   /* ── 활성 필터 수 (모바일 배지용) ── */
   const activeFilterCount = [
     sport !== 'all', grade !== 'all',
     size !== '전체', delivery !== 'all', maxPrice < 300,
   ].filter(Boolean).length
-
+  
   /* ── FilterContent에 전달할 props ── */
   const filterProps = {
     sport, setSport: setSportR,
     grade, setGrade: setGradeR,
-    size,  setSize:  setSizeR,
+    size, setSize: setSizeR,
     delivery, setDelivery: setDeliveryR,
     maxPrice, setMaxPrice: setMaxPriceR,
     onReset: resetFilter,
   }
-
+  
   return (
     <div style={{background: 'var(--color-bg)'}}>
       {/* ── 히어로 ── */}
       <HeroSection/>
-
+      
       {/* ── 모바일 필터 드로어 오버레이 ── */}
       {filterOpen && (
         <div
@@ -576,11 +602,50 @@ export default function HomePage() {
           </button>
         </div>
       </div>
-
+      
       {/* ── 본문 ── */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6">
+        
+        {/* 키워드 검색창 — /search 로 이동 */}
+        <form
+          onSubmit={e => {
+            e.preventDefault()
+            const q = searchInput.trim()
+            navigate(q ? `/search?q=${encodeURIComponent(q)}` : '/search')
+          }}
+          className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-2xl"
+          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        >
+          <Search size={16} strokeWidth={1.75} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
+          <input
+            type="text"
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            placeholder="유니폼, 구단, 선수명으로 검색..."
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{color: 'var(--color-text-main)'}}
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => setSearchInput('')}
+              aria-label="검색어 지우기"
+              style={{color: 'var(--color-text-hint)'}}
+            >
+              <X size={14}/>
+            </button>
+          )}
+          <button
+            type="submit"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white flex-shrink-0"
+            style={{background: 'var(--color-primary)'}}
+          >
+            검색
+          </button>
+        </form>
+        
         <div className="flex gap-6">
-
+          
           {/* 데스크탑 필터 사이드바 */}
           <aside
             className="hidden md:block flex-shrink-0 rounded-2xl overflow-hidden sticky self-start"
@@ -594,7 +659,7 @@ export default function HomePage() {
           >
             <FilterContent {...filterProps}/>
           </aside>
-
+          
           {/* 결과 영역 */}
           <div className="flex-1 min-w-0">
             {/* 정렬 + 모바일 필터 버튼 */}
@@ -630,13 +695,16 @@ export default function HomePage() {
                   </span>개 상품
                 </span>
               </div>
-
+              
               {/* 정렬 버튼 */}
               <div className="flex gap-1.5 flex-wrap">
                 {SORT_OPTIONS.map(o => (
                   <button
                     key={o.key}
-                    onClick={() => { setSort(o.key as typeof sort); setPage(0) }}
+                    onClick={() => {
+                      setSort(o.key as typeof sort);
+                      setPage(0)
+                    }}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={{
                       background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',
@@ -649,14 +717,14 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-
+            
             {/* 로딩 */}
             {isLoading && (
               <div className="flex justify-center py-20">
                 <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
               </div>
             )}
-
+            
             {/* 에러 */}
             {isError && !isLoading && (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -666,7 +734,7 @@ export default function HomePage() {
                 <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>잠시 후 다시 시도해주세요.</p>
               </div>
             )}
-
+            
             {/* 상품 그리드 or 빈 상태 */}
             {!isLoading && !isError && (
               results.length === 0 ? (
@@ -696,7 +764,7 @@ export default function HomePage() {
                 </div>
               )
             )}
-
+            
             {/* 페이지네이션 */}
             {!isLoading && totalPages > 1 && (
               <Pagination

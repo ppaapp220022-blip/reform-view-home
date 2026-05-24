@@ -197,7 +197,8 @@ function PostDetailModal({
                 </span>
                 {post.reportCount > 0 && (
                   <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 text-accent" style={{background: 'rgba(255,46,77,.1)'}}
+                    className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 text-accent"
+                    style={{background: 'rgba(255,46,77,.1)'}}
                   >
                     <AlertTriangle size={11}/>
                     신고 {post.reportCount}건
@@ -211,7 +212,8 @@ function PostDetailModal({
                   className="flex flex-col gap-3 p-4 rounded-2xl bg-surface-raised border border-border"
                 >
                   <p
-                    className="text-sm font-bold text-text-main" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
+                    className="text-sm font-bold text-text-main"
+                    style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
                   >
                     게시글 조치
                   </p>
@@ -358,23 +360,25 @@ export default function AdminListingPage() {
     <div className="p-6 md:p-8 min-h-screen bg-bg">
       
       {/* 페이지 헤더 */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{background: 'rgba(0,33,71,.1)', color: 'var(--color-primary)'}}
+        >
+          <FileText size={18}/>
+        </div>
         <div>
-          <h1
-            className="text-xl font-bold text-text-main" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}
-          >
+          <h1 className="text-xl font-bold" style={{fontFamily: "'Giants','Pretendard',sans-serif"}}>
             게시글 관리
           </h1>
-          <p className="text-sm mt-0.5 text-text-hint">
-            총 {data?.totalElements ?? 0}개 게시글
+          <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+            총 {data?.totalElements ?? 0}개 게시글 · 신고순 정렬
           </p>
         </div>
       </div>
       
       {/* 필터 바 */}
-      <div
-        className="flex flex-wrap gap-3 mb-5 p-4 rounded-2xl bg-surface border border-border"
-      >
+      <div className="flex flex-wrap gap-3 mb-5">
         {/* 키워드 검색 */}
         <form onSubmit={handleSearch} className="flex items-center gap-2 flex-1" style={{minWidth: 200}}>
           <div className="relative flex-1">
@@ -481,7 +485,7 @@ export default function AdminListingPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{borderCollapse: 'collapse'}}>
               <thead>
-              <tr className="border-b border-border bg-surface-raised">
+              <tr className="border-b border-border bg-surface-sunken">
                 {['ID', '제목·판매자', '가격', '상태', '신고', '등록일', ''].map(h => (
                   <th
                     key={h}
@@ -496,15 +500,13 @@ export default function AdminListingPage() {
               {posts.map(post => (
                 <tr
                   key={post.postId}
-                  className="border-b transition-colors border-border"
+                  className="border-b transition-colors border-border hover:bg-surface-raised cursor-pointer"
+                  onClick={() => setSelectedPostId(post.postId)}
                 >
-                  <td className="px-4 py-3 text-xs text-text-hint">
+                  <td className="px-4 py-3 text-xs text-text-hint whitespace-nowrap">
                     <span style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>{post.postId}</span>
                   </td>
-                  <td
-                    className="px-4 py-3 cursor-pointer hover:opacity-70"
-                    onClick={() => setSelectedPostId(post.postId)}
-                  >
+                  <td className="px-4 py-3">
                     <p className="text-sm font-medium line-clamp-1 text-text-main" style={{maxWidth: 260}}>
                       {post.title}
                     </p>
@@ -512,10 +514,10 @@ export default function AdminListingPage() {
                       {post.sellerNickname} · {post.sport}
                     </p>
                   </td>
-                  <td className="px-4 py-3 text-sm text-text-sub" style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                  <td className="px-4 py-3 text-sm text-text-sub whitespace-nowrap">
                     {formatPrice(post.price)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                       <span
                         className="text-xs font-bold px-2 py-1 rounded-full"
                         style={{
@@ -526,10 +528,11 @@ export default function AdminListingPage() {
                         {STATUS_LABELS[post.status]}
                       </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {post.reportCount > 0 ? (
                       <span
-                        className="text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit text-accent" style={{background: 'rgba(255,46,77,.1)'}}
+                        className="text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 w-fit text-accent"
+                        style={{background: 'rgba(255,46,77,.1)'}}
                       >
                           <AlertTriangle size={10}/>
                         {post.reportCount}
@@ -538,11 +541,11 @@ export default function AdminListingPage() {
                       <span className="text-xs text-text-hint">0</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-text-hint">
+                  <td className="px-4 py-3 text-xs text-text-hint whitespace-nowrap">
                     {post.createdAt.slice(0, 10)}
                   </td>
                   {/* 빠른 숨김 버튼 */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     {post.status === 'ON_SALE' && (
                       <button
                         onClick={e => {
@@ -550,7 +553,8 @@ export default function AdminListingPage() {
                           quickHide(post.postId)
                         }}
                         disabled={isHiding}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-warning" style={{background: 'rgba(255,149,0,.1)'}}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-warning"
+                        style={{background: 'rgba(255,149,0,.1)'}}
                         title="즉시 숨김"
                       >
                         <EyeOff size={11}/>
@@ -563,7 +567,8 @@ export default function AdminListingPage() {
                           e.stopPropagation();
                           setSelectedPostId(post.postId)
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-text-hint" style={{background: 'rgba(0,0,0,.05)'}}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80 text-text-hint"
+                        style={{background: 'rgba(0,0,0,.05)'}}
                         title="상세 보기"
                       >
                         <Eye size={11}/>

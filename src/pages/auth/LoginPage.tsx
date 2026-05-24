@@ -348,7 +348,7 @@ export default function LoginPage() {
             <h1 className="text-[22px] font-medium text-[var(--color-text-main)] mb-1">
               로그인
             </h1>
-            <p className="text-[14px] text-[var(--color-text-sub)] mb-8">
+            <p className="text-[14px] text-[var(--color-text-sub)] mb-5">
               계정이 없으신가요?{' '}
               <Link
                 to="/register"
@@ -357,6 +357,37 @@ export default function LoginPage() {
                 회원가입
               </Link>
             </p>
+            
+            {/* 포트폴리오용 테스트 계정 안내 */}
+            <div
+              className="mb-6 px-4 py-3 rounded-[10px] border text-[13px] leading-relaxed"
+              style={{
+                background: 'rgba(0,33,71,0.06)',
+                borderColor: 'var(--color-border)',
+              }}
+            >
+              <p className="font-medium text-[var(--color-text-sub)] mb-1">
+                테스트 계정
+              </p>
+              <p className="text-[var(--color-text-hint)]">
+                이메일:{' '}
+                <span
+                  className="font-medium text-[var(--color-text-sub)]"
+                  style={{fontFamily: "'Pretendard',Giants,sans-serif"}}
+                >
+                  admin@reform.com
+                </span>
+              </p>
+              <p className="text-[var(--color-text-hint)]">
+                비밀번호:{' '}
+                <span
+                  className="font-medium text-[var(--color-text-sub)]"
+                  style={{fontFamily: "'Pretendard',Giants,sans-serif"}}
+                >
+                  1234
+                </span>
+              </p>
+            </div>
             
             {/* 소셜 로그인 버튼 */}
             <div className="flex flex-col gap-[10px] mb-6">

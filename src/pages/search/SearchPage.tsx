@@ -17,8 +17,8 @@ import {Link, useSearchParams} from 'react-router-dom'
 import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, X,} from 'lucide-react'
 import Pagination from '../../components/ui/Pagination'
 import {useQuery} from '@tanstack/react-query'
-import {getListings, toggleWish} from '../../features/listing/api/listingApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
+import {getListings, toggleWish} from '../../features/listing/api/listingApi'
 import {resolveImageUrl} from '../../utils/image'
 import ConditionBadge from '../../components/ui/ConditionBadge'
 import type {DeliveryType, Grade, Sport} from '../../types/listing'
@@ -60,20 +60,19 @@ const SORT_OPTIONS = [
 // ── 등급/유틸 ─────────────────────────────────────────────────────────────────
 
 
-
 // ── 컴포넌트 ──────────────────────────────────────────────────────────────────
 
 /** 상품 카드 — PostCard(API) 기반 */
 function ProductCard({
-  item,
-  isWished,
-  onLike,
-}: {
+                       item,
+                       isWished,
+                       onLike,
+                     }: {
   item: PostCard
   isWished: boolean
   onLike: (postId: number) => void
 }) {
-
+  
   const imgSrc = resolveImageUrl(item.thumbnailUrl)
   return (
     <article
@@ -382,15 +381,30 @@ export default function SearchPage() {
   /* 필터 변경 시 page를 0으로 리셋하는 래퍼 setter */
   const filterProps = {
     sport,
-    setSport: (v: Sport | 'all') => { setSport(v); setPage(0) },
+    setSport: (v: Sport | 'all') => {
+      setSport(v);
+      setPage(0)
+    },
     grade,
-    setGrade: (v: Grade | 'all') => { setGrade(v); setPage(0) },
+    setGrade: (v: Grade | 'all') => {
+      setGrade(v);
+      setPage(0)
+    },
     size,
-    setSize: (v: string) => { setSize(v); setPage(0) },
+    setSize: (v: string) => {
+      setSize(v);
+      setPage(0)
+    },
     delivery,
-    setDelivery: (v: DeliveryType | 'all') => { setDelivery(v); setPage(0) },
+    setDelivery: (v: DeliveryType | 'all') => {
+      setDelivery(v);
+      setPage(0)
+    },
     maxPrice,
-    setMaxPrice: (v: number) => { setMaxPrice(v); setPage(0) },
+    setMaxPrice: (v: number) => {
+      setMaxPrice(v);
+      setPage(0)
+    },
     onReset: resetFilter,
   }
   
@@ -434,39 +448,45 @@ export default function SearchPage() {
       </div>
       
       <div className="max-w-[1280px] mx-auto px-4 md:px-7 py-6">
-        {/* 검색바 */}
-        <div className="flex gap-3 mb-6">
-          <div
-            className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
-          >
-            <Search size={18} color="var(--color-text-hint)" className="flex-shrink-0"/>
-            <input
-              type="text"
-              value={inputVal}
-              onChange={e => setInputVal(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="팀, 종목, 상품명 검색..."
-              className="flex-1 bg-transparent text-sm outline-none"
-              style={{color: 'var(--color-text-main)'}}
-            />
-            {inputVal && (
-              <button onClick={() => {
+        {/* 검색바 — HomePage와 동일한 구조/스타일 */}
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSearch()
+          }}
+          className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-2xl"
+          style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+        >
+          <Search size={16} strokeWidth={1.75} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
+          <input
+            type="text"
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            placeholder="팀, 종목, 상품명 검색..."
+            className="flex-1 bg-transparent text-sm outline-none"
+            style={{color: 'var(--color-text-main)'}}
+          />
+          {inputVal && (
+            <button
+              type="button"
+              onClick={() => {
                 setInputVal('');
                 setQuery('')
-              }} aria-label="지우기">
-                <X size={16} color="var(--color-text-hint)"/>
-              </button>
-            )}
-          </div>
+              }}
+              aria-label="지우기"
+              style={{color: 'var(--color-text-hint)'}}
+            >
+              <X size={14}/>
+            </button>
+          )}
           <button
-            onClick={handleSearch}
-            className="px-5 py-3 rounded-xl font-bold text-sm text-white flex-shrink-0 transition-colors"
+            type="submit"
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white flex-shrink-0"
             style={{background: 'var(--color-primary)'}}
           >
             검색
           </button>
-        </div>
+        </form>
         
         <div className="flex gap-6">
           {/* 데스크탑 필터 사이드바 */}
@@ -522,7 +542,10 @@ export default function SearchPage() {
                 {SORT_OPTIONS.map(o => (
                   <button
                     key={o.key}
-                    onClick={() => { setSort(o.key as 'latest' | 'price_asc' | 'price_desc' | 'popular'); setPage(0) }}
+                    onClick={() => {
+                      setSort(o.key as 'latest' | 'price_asc' | 'price_desc' | 'popular');
+                      setPage(0)
+                    }}
                     className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
                     style={{
                       background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',

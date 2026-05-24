@@ -51,23 +51,23 @@ function resolveNotificationPath(linkUrl: string | null): string | null {
   if (!linkUrl) return null
   const raw = linkUrl.trim()
   if (!raw) return null
-
+  
   try {
     const parsed = raw.startsWith('http://') || raw.startsWith('https://')
       ? new URL(raw)
       : new URL(raw, window.location.origin)
-
+    
     let normalizedPath = parsed.pathname
     if (!normalizedPath.startsWith('/')) {
       normalizedPath = `/${normalizedPath}`
     }
-
+    
     // 리뷰 링크는 현재 라우터 기준 /trade/:id/review 로 통일한다.
     const reviewMatch = normalizedPath.match(/^\/reviews?\/(\d+)$/)
     if (reviewMatch) {
       return `/trade/${reviewMatch[1]}/review`
     }
-
+    
     // 쿼리 문자열이 있으면 그대로 유지해 채팅방 직접 진입을 살린다.
     return `${normalizedPath}${parsed.search}${parsed.hash}`
   } catch (error) {
@@ -490,7 +490,6 @@ export default function GNB() {
               로그인
             </Link>
           )}
-          <ThemeToggle/>
         </div>
       </div>
       

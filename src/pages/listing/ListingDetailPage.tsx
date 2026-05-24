@@ -774,15 +774,28 @@ export default function ListingDetailPage() {
                   </button>
                   {reportMenuOpen && (
                     <div
-                      className="absolute right-0 top-10 z-50 rounded-xl py-1 w-32 shadow-lg bg-surface border border-border">
-                      <button
-                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] text-accent"
-                        onClick={() => {
-                          setReportMenuOpen(false);
-                          setReportModalOpen(true)
-                        }}>
-                        <Flag size={14}/>신고하기
-                      </button>
+                      className="absolute right-0 top-10 z-50 rounded-xl py-1 w-36 shadow-lg bg-surface border border-border">
+                      {isOwnListing ? (
+                        /* 내 판매글 — 수정하기 */
+                        <button
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] text-text-main"
+                          onClick={() => {
+                            setReportMenuOpen(false)
+                            navigate(`/listing/${listing.postId}/edit`)
+                          }}>
+                          <Pencil size={14}/>수정하기
+                        </button>
+                      ) : (
+                        /* 남의 판매글 — 신고하기 */
+                        <button
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-[var(--color-surface-raised)] text-accent"
+                          onClick={() => {
+                            setReportMenuOpen(false)
+                            setReportModalOpen(true)
+                          }}>
+                          <Flag size={14}/>신고하기
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

@@ -37,26 +37,34 @@ import {
   Flag,
   Heart,
   HelpCircle,
+  Laptop,
   LogOut,
+  MessageSquare,
+  Monitor,
   Package,
   Settings,
   Shield,
+  Smartphone,
   Star,
+  Trash2,
   TrendingUp,
+  Wifi,
 } from 'lucide-react'
 import type {Grade, TradeStatus} from '../../types/listing'
 import type {ReportItem} from '../../features/report/api/reportApi'
 import {getMyReports, REPORT_REASON_LABEL, REPORT_STATUS_LABEL} from '../../features/report/api/reportApi'
-import type {SportType} from '../../features/mypage/api/memberApi'
+import type {ReviewItem, SportType} from '../../features/mypage/api/memberApi'
 import {
   getInterestSetting,
   getMyProfile,
+  getMyReviews,
   saveInterestSetting,
   updateMyProfile,
-  uploadProfileImage,
+  uploadProfileImage
 } from '../../features/mypage/api/memberApi'
 import useAuthStore from '../../store/authStore'
-import {logout as logoutApi} from '../../features/auth/api/authApi'
+import type {AuthSession} from '../../features/auth/api/authApi'
+import {logout as logoutApi, logoutAll, logoutSession, readSessions} from '../../features/auth/api/authApi'
 import {getMyTrades} from '../../features/trade/api/tradeApi'
 import type {PostCard} from '../../features/listing/api/listingApi'
 import {getListings, getMyWishes} from '../../features/listing/api/listingApi'
@@ -1024,6 +1032,168 @@ function PointsTab() {
 }
 
 /** 신고 내역 탭 — 실제 API 연동 */
+
+/* 별점 렌더링 (1~5) — ReviewsTab에서 사용 */
+function Stars({score}: { score: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map(n => (
+        <Star
+          key={n}
+          size={13}
+          style={{
+            color: n <= score ? 'var(--color-gold)' : 'var(--color-border)',
+            fill: n <= score ? 'var(--color-gold)' : 'none',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * ReviewsTab — 받은 매너 리뷰 탭
+ * GET /api/users/me/reviews
+ */
+function ReviewsTab() {
+  const {data, isLoading} = useQuery({
+    queryKey: ['myReviews'],
+    queryFn: () => getMyReviews({page: 0, size: 20}),
+    staleTime: 60_000,
+  })
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-3">
+        {[1, 2, 3].map(i => (
+          <div
+            key={i}
+            className="rounded-xl p-4 animate-pulse"
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          >
+            <div className="flex gap-3">
+              <div className="w-9 h-9 rounded-full flex-shrink-0"
+                   style={{background: 'var(--color-surface-raised)'}}/>
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="h-3 rounded w-1/3" style={{background: 'var(--color-surface-raised)'}}/>
+                <div className="h-3 rounded w-2/3" style={{background: 'var(--color-surface-raised)'}}/>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  
+  if (!data?.content.length) {
+    return (
+      <div
+        className="flex flex-col items-center py-16 gap-3 rounded-2xl"
+        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+      >
+        <MessageSquare size={32} style={{color: 'var(--color-text-hint)'}}/>
+        <p className="text-sm font-semibold" style={{color: 'var(--color-text-hint)'}}>
+          아직 받은 후기가 없어요
+        </p>
+        <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+          거래 완료 후 상대방이 남긴 매너 후기가 여기에 표시됩니다.
+        </p>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="flex flex-col gap-3">
+      {/* 평균 점수 요약 */}
+      {(() => {
+        const avg = data.content.reduce((sum: number, r: ReviewItem) => sum + r.score, 0) / data.content.length
+        return (
+          <div
+            className="flex items-center gap-4 px-5 py-4 rounded-xl"
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          >
+            <div className="flex flex-col items-center gap-1">
+              <span
+                className="text-3xl font-bold"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: 'var(--color-gold)'}}
+              >
+                {avg.toFixed(1)}
+              </span>
+              <Stars score={Math.round(avg)}/>
+            </div>
+            <div className="w-px self-stretch" style={{background: 'var(--color-border)'}}/>
+            <div>
+              <p className="text-sm font-bold" style={{color: 'var(--color-text-main)'}}>매너 점수</p>
+              <p className="text-xs mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+                총 {data.content.length}개의 거래 후기
+              </p>
+            </div>
+          </div>
+        )
+      })()}
+      
+      {/* 후기 목록 */}
+      {data.content.map((review: ReviewItem) => {
+        /* 리뷰 작성자 — 내가 판매자면 buyer가 작성, 내가 구매자면 seller가 작성 */
+        const author = review.buyer
+        const initials = author.nickname.slice(0, 2).toUpperCase()
+        const avatarUrl = author.profileImageUrl
+        
+        return (
+          <div
+            key={review.mannerId}
+            className="flex flex-col gap-2.5 px-4 py-4 rounded-xl"
+            style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+          >
+            {/* 작성자 + 별점 */}
+            <div className="flex items-center gap-3">
+              <div
+                className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
+                style={{background: 'var(--color-primary)'}}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt={author.nickname} className="w-full h-full object-cover"/>
+                  : initials
+                }
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+                  {author.nickname}
+                </p>
+                <Stars score={review.score}/>
+              </div>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-bold"
+                style={{
+                  background: 'var(--color-gold)',
+                  color: 'var(--color-primary)',
+                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                }}
+              >
+                {review.score}.0
+              </span>
+            </div>
+            
+            {/* 후기 내용 */}
+            {review.content && (
+              <p
+                className="text-sm leading-relaxed px-1"
+                style={{color: 'var(--color-text-sub)'}}
+              >
+                {review.content}
+              </p>
+            )}
+            
+            {/* 날짜 */}
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+              {new Date(review.createdAt).toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric'})}
+            </p>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function MyReportsTab() {
   const {data, isLoading, isError} = useQuery({
     queryKey: ['myReports'],
@@ -1146,12 +1316,25 @@ function SettingsTab() {
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
   const [savingInterest, setSavingInterest] = useState(false)
   
+  /* 세션 관리 UI open 여부 */
+  const [sessionsOpen, setSessionsOpen] = useState(false)
+  const [loggingOutSession, setLoggingOutSession] = useState<string | null>(null)
+  const [loggingOutAll, setLoggingOutAll] = useState(false)
+  
   /* 현재 저장된 관심 설정 조회 */
   const {data: interestData} = useQuery({
     queryKey: ['interestSetting'],
     queryFn: getInterestSetting,
     staleTime: 60_000,
     enabled: interestOpen,   // 패널 열릴 때만 fetch
+  })
+  
+  /* 현재 로그인 세션 목록 조회 */
+  const {data: sessions, refetch: refetchSessions} = useQuery({
+    queryKey: ['authSessions'],
+    queryFn: readSessions,
+    staleTime: 30_000,
+    enabled: sessionsOpen,   // 패널 열릴 때만 fetch
   })
   
   /* 패널이 열릴 때 기존 값으로 초기화 */
@@ -1188,6 +1371,31 @@ function SettingsTab() {
     } finally {
       logout()
       navigate('/login')
+    }
+  }
+  
+  /* 특정 세션 로그아웃 */
+  async function handleLogoutSession(sessionId: string) {
+    setLoggingOutSession(sessionId)
+    try {
+      await logoutSession(sessionId)
+      await refetchSessions()
+    } catch {
+      // 실패 시 그냥 무시 (UI 유지)
+    } finally {
+      setLoggingOutSession(null)
+    }
+  }
+  
+  /* 전체 세션 로그아웃 (다른 기기 포함) */
+  async function handleLogoutAll() {
+    setLoggingOutAll(true)
+    try {
+      await logoutAll()
+      logout()
+      navigate('/login')
+    } catch {
+      setLoggingOutAll(false)
     }
   }
   
@@ -1275,6 +1483,139 @@ function SettingsTab() {
         )}
       </div>
       
+      
+      {/* ── 세션 관리 ────────────────────────────────────────────── */}
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+      >
+        {/* 헤더 버튼 */}
+        <button
+          className="flex items-center gap-4 px-4 py-3.5 w-full text-left transition-colors"
+          onClick={() => setSessionsOpen(p => !p)}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+               style={{background: 'var(--color-surface-raised)', color: 'var(--color-primary)'}}>
+            <Wifi size={18}/>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>로그인 기기 관리</p>
+            <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+              현재 로그인된 기기 확인 및 원격 로그아웃
+            </p>
+          </div>
+          <ChevronRight
+            size={16}
+            color="var(--color-text-hint)"
+            style={{transform: sessionsOpen ? 'rotate(90deg)' : 'none', transition: 'transform .2s'}}
+          />
+        </button>
+        
+        {/* 세션 목록 패널 */}
+        {sessionsOpen && (
+          <div className="border-t" style={{borderColor: 'var(--color-border)'}}>
+            {!sessions ? (
+              <div className="flex justify-center py-6">
+                <Clock size={18} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+              </div>
+            ) : sessions.length === 0 ? (
+              <p className="text-xs px-4 py-4" style={{color: 'var(--color-text-hint)'}}>
+                조회된 세션이 없습니다.
+              </p>
+            ) : (
+              <div className="flex flex-col divide-y" style={{borderColor: 'var(--color-border)'}}>
+                {sessions.map((sess: AuthSession) => {
+                  /* UserAgent 파싱 — 기기 종류 추정 */
+                  const ua = sess.userAgent ?? ''
+                  const isMobile = /Mobile|Android|iPhone/.test(ua)
+                  const DeviceIcon = isMobile ? Smartphone : (ua.includes('Windows') || ua.includes('Mac') ? Monitor : Laptop)
+                  return (
+                    <div
+                      key={sess.sessionId}
+                      className="flex items-center gap-3 px-4 py-3"
+                      style={{
+                        background: sess.isCurrent ? 'rgba(0,33,71,.04)' : 'transparent',
+                      }}
+                    >
+                      <DeviceIcon
+                        size={18}
+                        style={{
+                          color: sess.isCurrent ? 'var(--color-primary)' : 'var(--color-text-hint)',
+                          flexShrink: 0
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>
+                            {sess.ip ?? '알 수 없는 IP'}
+                          </p>
+                          {sess.isCurrent && (
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                              style={{background: 'rgba(0,179,110,.12)', color: 'var(--color-success)'}}
+                            >
+                              현재 기기
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] truncate mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+                          {sess.userAgent ?? '-'}
+                        </p>
+                        <p className="text-[11px] mt-0.5" style={{color: 'var(--color-text-hint)'}}>
+                          {sess.createdAt ? new Date(sess.createdAt).toLocaleString('ko-KR', {
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : '-'}
+                        </p>
+                      </div>
+                      {/* 현재 기기가 아닌 경우만 개별 로그아웃 */}
+                      {!sess.isCurrent && (
+                        <button
+                          onClick={() => handleLogoutSession(sess.sessionId)}
+                          disabled={loggingOutSession === sess.sessionId}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-colors disabled:opacity-50"
+                          style={{
+                            background: 'rgba(255,46,77,.08)',
+                            color: 'var(--color-accent)',
+                            border: '1px solid rgba(255,46,77,.2)'
+                          }}
+                        >
+                          {loggingOutSession === sess.sessionId
+                            ? <Clock size={11} className="animate-spin"/>
+                            : <Trash2 size={11}/>
+                          }
+                          로그아웃
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+                {/* 전체 기기 로그아웃 */}
+                {sessions.length > 1 && (
+                  <div className="px-4 py-3">
+                    <button
+                      onClick={handleLogoutAll}
+                      disabled={loggingOutAll}
+                      className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                      style={{
+                        background: 'rgba(255,46,77,.08)',
+                        color: 'var(--color-accent)',
+                        border: '1px solid rgba(255,46,77,.2)'
+                      }}
+                    >
+                      {loggingOutAll ? <Clock size={12} className="animate-spin"/> : <LogOut size={12}/>}
+                      모든 기기에서 로그아웃
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      
       {/* 나머지 설정 항목 */}
       {[
         {icon: <Shield size={18}/>, label: '보안 설정', sub: '비밀번호·2FA'},
@@ -1325,6 +1666,7 @@ const TABS = [
   {key: 'listings', label: '판매 중', icon: <BarChart2 size={16}/>},
   {key: 'likes', label: '찜 목록', icon: <Heart size={16}/>},
   {key: 'points', label: '예치금', icon: <Coins size={16}/>},
+  {key: 'reviews', label: '받은 후기', icon: <Star size={16}/>},
   {key: 'reports', label: '신고 내역', icon: <Flag size={16}/>},
   {key: 'settings', label: '설정', icon: <Settings size={16}/>},
 ]
@@ -1398,6 +1740,7 @@ export default function MyPage() {
             {activeTab === 'listings' && <MyListingsTab/>}
             {activeTab === 'likes' && <LikesTab/>}
             {activeTab === 'points' && <PointsTab/>}
+            {activeTab === 'reviews' && <ReviewsTab/>}
             {activeTab === 'reports' && <MyReportsTab/>}
             {activeTab === 'settings' && <SettingsTab/>}
           </div>

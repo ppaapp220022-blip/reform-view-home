@@ -41,7 +41,14 @@ import {
   XCircle,
 } from 'lucide-react'
 import type {TradeResponse} from '../../features/trade/api/tradeApi'
-import {acceptTrade, cancelTrade, confirmTrade, getTrade, startShipping, updateDelivery,} from '../../features/trade/api/tradeApi'
+import {
+  acceptTrade,
+  cancelTrade,
+  confirmTrade,
+  getTrade,
+  startShipping,
+  updateDelivery,
+} from '../../features/trade/api/tradeApi'
 import type {Courier} from '../../features/delivery/api/deliveryApi'
 import {getCouriers} from '../../features/delivery/api/deliveryApi'
 import type {ChatMessage} from '../../features/chat/api/chatApi'
@@ -76,7 +83,7 @@ interface KakaoPostcodeInstance {
 }
 
 interface KakaoPostcodeConstructor {
-  new (options: { oncomplete: (data: KakaoPostcodeData) => void }): KakaoPostcodeInstance
+  new(options: { oncomplete: (data: KakaoPostcodeData) => void }): KakaoPostcodeInstance
 }
 
 declare global {
@@ -150,7 +157,7 @@ function statusToStep(status: TradeStatus, deliveryType: TradeResponse['delivery
     }
     return directMap[status] ?? 0
   }
-
+  
   const map: Partial<Record<TradeStatus, number>> = {
     REQUESTED: 0, ACCEPTED: 0,
     PAID: 1,
@@ -163,15 +170,15 @@ function statusToStep(status: TradeStatus, deliveryType: TradeResponse['delivery
 
 function buildExtraAddress(data: KakaoPostcodeData): string {
   let extraAddress = ''
-
+  
   if (data.bname && /[동로가]$/.test(data.bname)) {
     extraAddress += data.bname
   }
-
+  
   if (data.buildingName && data.apartment === 'Y') {
     extraAddress += extraAddress ? `, ${data.buildingName}` : data.buildingName
   }
-
+  
   return extraAddress ? `(${extraAddress})` : ''
 }
 
@@ -182,25 +189,25 @@ function getPrimaryAddress(data: KakaoPostcodeData): string {
 function combineDeliveryAddress(baseAddress: string, detailAddress: string): string {
   const trimmedBaseAddress = baseAddress.trim()
   const trimmedDetailAddress = detailAddress.trim()
-
+  
   if (!trimmedBaseAddress) return ''
   if (!trimmedDetailAddress) return trimmedBaseAddress
-
+  
   return `${trimmedBaseAddress} · ${trimmedDetailAddress}`
 }
 
 function splitDeliveryAddress(address: string | null): { baseAddress: string; detailAddress: string } {
   const trimmedAddress = address?.trim() ?? ''
-
+  
   if (!trimmedAddress) {
     return {baseAddress: '', detailAddress: ''}
   }
-
+  
   const separatorIndex = trimmedAddress.lastIndexOf(' · ')
   if (separatorIndex === -1) {
     return {baseAddress: trimmedAddress, detailAddress: ''}
   }
-
+  
   return {
     baseAddress: trimmedAddress.slice(0, separatorIndex).trim(),
     detailAddress: trimmedAddress.slice(separatorIndex + 3).trim(),
@@ -211,14 +218,14 @@ function ensureKakaoPostcodeScript(): Promise<KakaoPostcodeConstructor> {
   if (typeof window === 'undefined') {
     return Promise.reject(new Error('window is not available'))
   }
-
+  
   if (window.kakao?.Postcode) {
     return Promise.resolve(window.kakao.Postcode)
   }
-
+  
   return new Promise((resolve, reject) => {
     const existingScript = document.getElementById(KAKAO_POSTCODE_SCRIPT_ID) as HTMLScriptElement | null
-
+    
     const handleReady = () => {
       if (window.kakao?.Postcode) {
         resolve(window.kakao.Postcode)
@@ -226,13 +233,13 @@ function ensureKakaoPostcodeScript(): Promise<KakaoPostcodeConstructor> {
       }
       reject(new Error('Kakao postcode script loaded without Postcode constructor'))
     }
-
+    
     if (existingScript) {
       existingScript.addEventListener('load', handleReady, {once: true})
       existingScript.addEventListener('error', () => reject(new Error('Failed to load Kakao postcode script')), {once: true})
       return
     }
-
+    
     const script = document.createElement('script')
     script.id = KAKAO_POSTCODE_SCRIPT_ID
     script.src = KAKAO_POSTCODE_SCRIPT_SRC
@@ -246,9 +253,9 @@ function ensureKakaoPostcodeScript(): Promise<KakaoPostcodeConstructor> {
 // ── 타임라인 컴포넌트 ─────────────────────────────────────────────────────────
 
 function TradeTimeline({
-  status,
-  deliveryType,
-}: {
+                         status,
+                         deliveryType,
+                       }: {
   status: TradeStatus
   deliveryType: TradeResponse['deliveryType']
 }) {
@@ -441,15 +448,15 @@ function DeliveryAddressForm({
   const [detailAddress, setDetailAddress] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSearchingAddress, setIsSearchingAddress] = useState(false)
-
+  
   const composedAddress = combineDeliveryAddress(baseAddress, detailAddress)
-
+  
   useEffect(() => {
     const nextAddress = splitDeliveryAddress(currentAddress)
     setBaseAddress(nextAddress.baseAddress)
     setDetailAddress(nextAddress.detailAddress)
   }, [currentAddress])
-
+  
   const {mutate: submitAddress, isPending} = useMutation({
     mutationFn: () => updateDelivery(tradeId, {deliveryAddress: composedAddress}),
     onSuccess() {
@@ -462,11 +469,11 @@ function DeliveryAddressForm({
       setError('배송지 저장 중 오류가 발생했습니다.')
     },
   })
-
+  
   const handleAddressSearch = useCallback(async () => {
     setError(null)
     setIsSearchingAddress(true)
-
+    
     try {
       const Postcode = await ensureKakaoPostcodeScript()
       const postcode = new Postcode({
@@ -478,7 +485,7 @@ function DeliveryAddressForm({
             primaryAddress,
             extraAddress,
           ].filter(Boolean).join(' ')
-
+          
           setBaseAddress(nextBaseAddress)
           setExpanded(true)
           setTimeout(() => {
@@ -494,7 +501,7 @@ function DeliveryAddressForm({
       setIsSearchingAddress(false)
     }
   }, [])
-
+  
   const resetForm = useCallback(() => {
     const nextAddress = splitDeliveryAddress(currentAddress)
     setBaseAddress(nextAddress.baseAddress)
@@ -502,7 +509,7 @@ function DeliveryAddressForm({
     setError(null)
     setExpanded(false)
   }, [currentAddress])
-
+  
   return (
     <div
       className="rounded-2xl overflow-hidden"
@@ -527,7 +534,7 @@ function DeliveryAddressForm({
           {expanded ? '닫기' : (currentAddress ? '수정' : '입력')}
         </span>
       </button>
-
+      
       {/* 입력 폼 */}
       {expanded && (
         <div className="px-4 pb-4 border-t" style={{borderColor: 'var(--color-border)'}}>
@@ -545,7 +552,11 @@ function DeliveryAddressForm({
               }
             </button>
             <div className="flex-1 rounded-xl px-3 py-2.5 text-xs leading-relaxed"
-                 style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}>
+                 style={{
+                   background: 'var(--color-surface-raised)',
+                   color: 'var(--color-text-sub)',
+                   border: '1px solid var(--color-border)'
+                 }}>
               검색 주소와 상세주소를 나눠 입력하고 저장할 때만 하나로 합칩니다.
             </div>
           </div>
@@ -910,19 +921,19 @@ function ActionPanel({
         >
           <CheckCircle2 size={32} style={{color: 'var(--color-success)'}}/>
           <div className="text-center">
-              <p
-                className="font-bold text-base"
-                style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
-              >
-                {trade.status === 'COMPLETED' || isDirectTrade ? '거래 완료' : '구매 확정 완료'}
-              </p>
-              <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>
-                {trade.status === 'COMPLETED'
-                  ? isDirectTrade ? '직거래가 정상적으로 마무리되었습니다.' : '정산이 완료된 거래입니다.'
-                  : isDirectTrade ? '매너 평가와 거래 내역이 반영되었습니다.' : '판매자에게 대금이 지급됩니다.'}
-              </p>
-            </div>
+            <p
+              className="font-bold text-base"
+              style={{color: 'var(--color-success)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+            >
+              {trade.status === 'COMPLETED' || isDirectTrade ? '거래 완료' : '구매 확정 완료'}
+            </p>
+            <p className="text-sm mt-1" style={{color: 'var(--color-text-sub)'}}>
+              {trade.status === 'COMPLETED'
+                ? isDirectTrade ? '직거래가 정상적으로 마무리되었습니다.' : '정산이 완료된 거래입니다.'
+                : isDirectTrade ? '매너 평가와 거래 내역이 반영되었습니다.' : '판매자에게 대금이 지급됩니다.'}
+            </p>
           </div>
+        </div>
         {isBuyer && !trade.hasReview && (
           <Link
             to={`/trade/${trade.tradeId}/review`}
@@ -1096,7 +1107,11 @@ function ActionPanel({
               <button
                 onClick={() => setRejectConfirming(false)}
                 className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
-                style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  color: 'var(--color-text-sub)',
+                  border: '1px solid var(--color-border)'
+                }}
               >
                 돌아가기
               </button>
@@ -1135,7 +1150,7 @@ function ActionPanel({
                 </p>
               </div>
             )}
-
+            
             {!confirmed && (
               <>
                 <div
@@ -1152,7 +1167,7 @@ function ActionPanel({
                     </p>
                   </div>
                 </div>
-
+                
                 {showWarning && (
                   <div
                     className="flex items-start gap-2 px-4 py-3 rounded-xl"
@@ -1164,7 +1179,7 @@ function ActionPanel({
                     </p>
                   </div>
                 )}
-
+                
                 {confirmError && (
                   <div
                     className="flex items-start gap-2 px-4 py-3 rounded-xl"
@@ -1174,7 +1189,7 @@ function ActionPanel({
                     <p className="text-xs" style={{color: 'var(--color-accent)'}}>{confirmError}</p>
                   </div>
                 )}
-
+                
                 <button
                   onClick={() => {
                     if (!showWarning) {
@@ -1193,7 +1208,7 @@ function ActionPanel({
                       ? <><CheckCircle2 size={17}/>네, 거래를 완료합니다</>
                       : <><CheckCircle2 size={17}/>거래 완료하기</>}
                 </button>
-
+                
                 {showWarning && (
                   <button
                     onClick={() => setShowWarning(false)}
@@ -1208,7 +1223,7 @@ function ActionPanel({
           </div>
         )
       }
-
+      
       return (
         <div className="flex flex-col gap-3">
           {/* 택배 거래일 때 배송지 입력/수정 */}
@@ -1320,7 +1335,11 @@ function ActionPanel({
               <button
                 onClick={() => setRejectConfirming(false)}
                 className="flex-1 py-2.5 rounded-xl font-semibold text-sm"
-                style={{background: 'var(--color-surface-raised)', color: 'var(--color-text-sub)', border: '1px solid var(--color-border)'}}
+                style={{
+                  background: 'var(--color-surface-raised)',
+                  color: 'var(--color-text-sub)',
+                  border: '1px solid var(--color-border)'
+                }}
               >
                 돌아가기
               </button>
@@ -1395,7 +1414,7 @@ function ActionPanel({
                 </p>
               </div>
             )}
-
+            
             {!confirmed && (
               <>
                 <div
@@ -1412,7 +1431,7 @@ function ActionPanel({
                     </p>
                   </div>
                 </div>
-
+                
                 {showWarning && (
                   <div
                     className="flex items-start gap-2 px-4 py-3 rounded-xl"
@@ -1424,7 +1443,7 @@ function ActionPanel({
                     </p>
                   </div>
                 )}
-
+                
                 {confirmError && (
                   <div
                     className="flex items-start gap-2 px-4 py-3 rounded-xl"
@@ -1434,7 +1453,7 @@ function ActionPanel({
                     <p className="text-xs" style={{color: 'var(--color-accent)'}}>{confirmError}</p>
                   </div>
                 )}
-
+                
                 <button
                   onClick={() => {
                     if (!showWarning) {
@@ -1453,7 +1472,7 @@ function ActionPanel({
                       ? <><CheckCircle2 size={17}/>네, 거래를 완료합니다</>
                       : <><CheckCircle2 size={17}/>거래 완료하기</>}
                 </button>
-
+                
                 {showWarning && (
                   <button
                     onClick={() => setShowWarning(false)}
@@ -1468,7 +1487,7 @@ function ActionPanel({
           </div>
         )
       }
-
+      
       return (
         <div
           className="flex items-start gap-3 p-4 rounded-2xl"
@@ -1486,7 +1505,7 @@ function ActionPanel({
         </div>
       )
     }
-
+    
     if (isBuyer) {
       return (
         <div className="flex flex-col gap-3">
@@ -1690,9 +1709,8 @@ function EmbeddedChatInner({
               <div
                 className="max-w-[82%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed"
                 style={{
-                  background: isMe ? 'var(--color-primary)' : 'rgba(255,184,0,.10)',
-                  color: isMe ? '#fff' : 'var(--color-text-main)',
-                  border: isMe ? undefined : '1px solid rgba(255,184,0,.22)',
+                  background: isMe ? 'var(--color-primary)' : 'var(--color-gold)',
+                  color: isMe ? '#fff' : 'var(--color-primary)',
                   borderBottomRightRadius: isMe ? 4 : undefined,
                   borderBottomLeftRadius: isMe ? undefined : 4,
                   opacity: msg.messageId < 0 ? 0.6 : 1, // 낙관적 메시지
@@ -1700,7 +1718,7 @@ function EmbeddedChatInner({
               >
                 {displayContent}
               </div>
-               
+              
               {/* AI 위험 탐지 경고 배너 */}
               {msg.moderation && msg.moderation.riskLevel !== 'LOW' && (() => {
                 const isHigh = msg.moderation!.riskLevel === 'HIGH'
@@ -1893,7 +1911,7 @@ export default function TradePage() {
     enabled: !isNaN(tradeId),
     staleTime: 30_000,
   })
-
+  
   useStompTradeRealtime({tradeId: Number.isNaN(tradeId) ? null : tradeId})
   
   // 구매자/판매자 판별

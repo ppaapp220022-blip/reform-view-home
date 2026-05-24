@@ -39,3 +39,65 @@ export function resolveImageUrl(url: string | null | undefined): string | null {
   // bare filename("6-1.jpg") 또는 잘못된 형식 → 무효
   return null
 }
+
+/**
+ * flattenImageToWhite — 투명 배경 이미지를 흰색 배경으로 합성
+ *
+ * PNG 등 알파 채널이 있는 이미지를 업로드하면
+ * 다크모드 배경색이 비쳐 보이는 문제를 방지한다.
+ * canvas로 흰색 배경 위에 이미지를 합성한 뒤 JPEG Blob으로 반환.
+ *
+ * @param file - 원본 이미지 File 객체
+ * @returns 흰색 배경으로 합성된 JPEG File (실패 시 원본 반환)
+ */
+export function flattenImageToWhite(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')
+      
+      if (!ctx) {
+        // canvas 미지원 환경 fallback — 원본 그대로 사용
+        resolve(file)
+        return
+      }
+      
+      // 1단계: 흰색 배경 채우기
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      
+      // 2단계: 원본 이미지 합성 (알파 블렌딩)
+      ctx.drawImage(img, 0, 0)
+      
+      // 3단계: JPEG Blob으로 변환 (품질 92%)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file) // 변환 실패 시 원본 사용
+            return
+          }
+          // 확장자를 .jpg로 통일
+          const baseName = file.name.replace(/\.[^.]+$/, '')
+          const flatFile = new File([blob], `${baseName}.jpg`, {type: 'image/jpeg'})
+          resolve(flatFile)
+        },
+        'image/jpeg',
+        0.92,
+      )
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      resolve(file) // 로드 실패 시 원본 사용
+    }
+    
+    img.src = objectUrl
+  })
+}

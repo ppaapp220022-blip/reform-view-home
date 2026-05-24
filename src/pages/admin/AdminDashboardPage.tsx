@@ -4,8 +4,8 @@
  * 구성:
  *   StatCard       — 핵심 KPI (관리자 대시보드 요약 API)
  *   RecentReports  — 최근 신고 목록 (빠른 처리 링크)
-  *   RiskSnapshot   — 최근 위험 탐지 결과 (게시글/채팅)
-  *   RecentMembers  — 최근 가입 회원 목록
+ *   RiskSnapshot   — 최근 위험 탐지 결과 (게시글/채팅)
+ *   RecentMembers  — 최근 가입 회원 목록
  *   RecentTrades   — 관리자 대시보드 최근 거래 요약
  *   QuickActions   — 관리 바로가기
  *
@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
     staleTime: 15_000,
     refetchInterval: 30_000,
   })
-
+  
   const dashboardStats = [
     {
       label: '총 회원',
@@ -160,7 +160,7 @@ export default function AdminDashboardPage() {
       color: 'var(--color-warning)',
     },
   ] as const
-
+  
   return (
     <div className="max-w-[1200px] mx-auto px-4 py-8">
       
@@ -274,7 +274,7 @@ export default function AdminDashboardPage() {
             <SectionHeader title="최근 가입 회원"/>
             <RecentMembersSection/>
           </div>
-
+          
           {/* 위험 탐지 스냅샷 — 실제 AdminRiskController 연동 */}
           <div
             className="rounded-[12px] p-5"
@@ -317,7 +317,7 @@ export default function AdminDashboardPage() {
                     key={item.to}
                     to={item.to}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-[8px] transition-colors
-                      border border-[var(--color-border)] hover:border-[var(--color-primary)]
+                      border border-[var(--color-primary)] hover:border-[var(--color-accent)]
                       bg-[var(--color-surface-raised)] hover:bg-[var(--color-surface)]"
                   >
                     <Icon size={15} style={{color: 'var(--color-primary)'}} strokeWidth={1.75}/>
@@ -349,10 +349,20 @@ export default function AdminDashboardPage() {
             </p>
             <div className="flex flex-col gap-3">
               {[
-                {label: '대시보드 집계', value: dashboardSummary ? '연결됨' : '불러오는 중', icon: BarChart2, color: 'var(--color-primary)'},
+                {
+                  label: '대시보드 집계',
+                  value: dashboardSummary ? '연결됨' : '불러오는 중',
+                  icon: BarChart2,
+                  color: 'var(--color-primary)'
+                },
                 {label: '신고 목록', value: '연결됨', icon: Flag, color: 'var(--color-accent)'},
                 {label: '출금 요청', value: '연결됨', icon: Banknote, color: 'var(--color-success)'},
-                {label: '분쟁 목록', value: dashboardSummary ? '연결됨' : '불러오는 중', icon: AlertOctagon, color: 'var(--color-warning)'},
+                {
+                  label: '분쟁 목록',
+                  value: dashboardSummary ? '연결됨' : '불러오는 중',
+                  icon: AlertOctagon,
+                  color: 'var(--color-warning)'
+                },
               ].map((item) => {
                 const Icon = item.icon
                 return (
@@ -416,7 +426,11 @@ function RecentReportsSection() {
   })
   
   const processMutation = useMutation({
-    mutationFn: ({reportId, action, adminMemo}: { reportId: number; action: ReportItem['status']; adminMemo?: string }) =>
+    mutationFn: ({reportId, action, adminMemo}: {
+      reportId: number;
+      action: ReportItem['status'];
+      adminMemo?: string
+    }) =>
       processAdminReport(reportId, {action, adminMemo}),
     onSuccess: () => void qc.invalidateQueries({queryKey: ['adminReports']}),
   })
@@ -468,7 +482,7 @@ function RecentReportsSection() {
           const meta = REPORT_STATUS_META[r.status]
           return (
             <tr key={r.reportId} style={{borderBottom: '1px solid var(--color-border)'}}>
-              <td className="py-3 pr-3">
+              <td className="py-3 pr-3 whitespace-nowrap">
                 <span className="px-1.5 py-0.5 rounded-[4px] text-[12px] font-medium"
                       style={{
                         background: r.targetType === 'POST' ? 'rgba(14,165,233,0.1)' : 'rgba(255,184,0,0.1)',
@@ -477,27 +491,27 @@ function RecentReportsSection() {
                   {r.targetType === 'POST' ? '판매글' : '커뮤니티'}
                 </span>
               </td>
-              <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+              <td className="py-3 pr-3 whitespace-nowrap" style={{color: 'var(--color-text-sub)'}}>
                 {REPORT_REASON_LABEL[r.reason]}
               </td>
               <td className="py-3 pr-3 whitespace-nowrap"
                   style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 12}}>
                 {r.createdAt.slice(5, 16)}
               </td>
-              <td className="py-3 pr-3">
+              <td className="py-3 pr-3 whitespace-nowrap">
                 <span className="px-2 py-0.5 rounded-full text-[13px] font-medium"
                       style={{background: meta.bg, color: meta.color}}>
                   {meta.label}
                 </span>
               </td>
-              <td className="py-3">
+              <td className="py-3 whitespace-nowrap">
                 {r.status === 'PENDING' ? (
                   <div className="flex gap-1">
                     <button
                       onClick={() => {
                         const memo = window.prompt('경고 처리 메모를 입력하세요. 비워두면 메모 없이 처리됩니다.', '')
                         if (memo === null) return
-
+                        
                         processMutation.mutate({
                           reportId: r.reportId,
                           action: 'WARNING',
@@ -513,7 +527,7 @@ function RecentReportsSection() {
                       onClick={() => {
                         const memo = window.prompt('삭제 처리 메모를 입력하세요. 비워두면 메모 없이 처리됩니다.', '')
                         if (memo === null) return
-
+                        
                         processMutation.mutate({
                           reportId: r.reportId,
                           action: 'DELETED',
@@ -624,10 +638,10 @@ function RecentMembersSection() {
 
 /** 최근 거래 요약 섹션 — 관리자 대시보드 집계 API 연동 */
 function RecentTradesSection({
-  summary,
-  isLoading,
-  isError,
-}: {
+                               summary,
+                               isLoading,
+                               isError,
+                             }: {
   summary?: AdminDashboardSummary
   isLoading: boolean
   isError: boolean
@@ -645,7 +659,7 @@ function RecentTradesSection({
       </div>
     )
   }
-
+  
   if (isError) {
     return (
       <div className="py-6 text-center">
@@ -654,7 +668,7 @@ function RecentTradesSection({
       </div>
     )
   }
-
+  
   const recentTrades = summary?.recentTrades ?? []
   if (recentTrades.length === 0) {
     return (
@@ -666,7 +680,7 @@ function RecentTradesSection({
       </div>
     )
   }
-
+  
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-[14px]" style={{borderCollapse: 'collapse'}}>
@@ -686,7 +700,7 @@ function RecentTradesSection({
         <tbody>
         {recentTrades.map((trade) => (
           <tr key={trade.tradeId} style={{borderBottom: '1px solid var(--color-border)'}}>
-            <td className="py-3 pr-3">
+            <td className="py-3 pr-3 whitespace-nowrap">
               <Link
                 to={`/trade/${trade.tradeId}`}
                 className="font-medium transition-colors hover:text-[var(--color-accent)]"
@@ -695,19 +709,19 @@ function RecentTradesSection({
                 {trade.postTitle}
               </Link>
             </td>
-            <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+            <td className="py-3 pr-3 whitespace-nowrap" style={{color: 'var(--color-text-sub)'}}>
               {trade.buyerNickname}
             </td>
-            <td className="py-3 pr-3" style={{color: 'var(--color-text-sub)'}}>
+            <td className="py-3 pr-3 whitespace-nowrap" style={{color: 'var(--color-text-sub)'}}>
               {trade.sellerNickname}
             </td>
             <td
               className="py-3 pr-3 whitespace-nowrap"
-              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+              style={{color: 'var(--color-primary)'}}
             >
               {formatPrice(trade.price)}
             </td>
-            <td className="py-3">
+            <td className="py-3 whitespace-nowrap">
               <span
                 className="px-2 py-0.5 rounded-full text-[13px] font-medium"
                 style={{
@@ -821,7 +835,7 @@ export function WithdrawManagementSection() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-bold"
-                       style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                       style={{color: 'var(--color-text-main)'}}>
                       {formatPrice(item.requestAmount)}
                     </p>
                     <p className="text-xs mt-0.5" style={{color: 'var(--color-text-sub)'}}>
@@ -905,7 +919,7 @@ export function WithdrawManagementSection() {
                    style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
                 <div>
                   <p className="text-sm font-semibold"
-                     style={{color: 'var(--color-text-main)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                     style={{color: 'var(--color-text-main)'}}>
                     {formatPrice(item.requestAmount)}
                   </p>
                   <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
@@ -945,7 +959,7 @@ function RiskSnapshotSection() {
     queryFn: () => getAdminChatRisks({riskLevel: 'HIGH', page: 0, size: 3}),
     staleTime: 30_000,
   })
-
+  
   if (isPostRiskLoading || isChatRiskLoading) {
     return (
       <div className="flex flex-col gap-3">
@@ -959,7 +973,7 @@ function RiskSnapshotSection() {
       </div>
     )
   }
-
+  
   if (isPostRiskError && isChatRiskError) {
     return (
       <div className="py-6 text-center">
@@ -968,10 +982,10 @@ function RiskSnapshotSection() {
       </div>
     )
   }
-
+  
   const riskyPosts = postRiskPage?.content ?? []
   const riskyChats = chatRiskPage?.content ?? []
-
+  
   return (
     <div className="flex flex-col gap-4">
       <RiskBucket
@@ -988,7 +1002,7 @@ function RiskSnapshotSection() {
           </Link>
         )}
       />
-
+      
       <RiskBucket
         title="위험 채팅"
         emptyMessage="탐지된 HIGH 위험 채팅이 없습니다."
@@ -1004,11 +1018,11 @@ function RiskSnapshotSection() {
 }
 
 function RiskBucket({
-  title,
-  items,
-  emptyMessage,
-  renderAction,
-}: {
+                      title,
+                      items,
+                      emptyMessage,
+                      renderAction,
+                    }: {
   title: string
   items: AdminRiskItem[]
   emptyMessage: string
@@ -1022,7 +1036,7 @@ function RiskBucket({
           {title}
         </p>
       </div>
-
+      
       {items.length === 0 ? (
         <div
           className="rounded-[10px] px-3 py-3 text-[13px]"

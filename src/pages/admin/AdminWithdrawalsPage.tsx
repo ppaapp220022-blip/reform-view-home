@@ -132,7 +132,7 @@ function WithdrawRow({item}: {
         {/* 금액 */}
         <span
           className="font-bold"
-          style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+          style={{color: 'var(--color-primary)'}}
         >
           {formatPrice(item.requestAmount)}
         </span>

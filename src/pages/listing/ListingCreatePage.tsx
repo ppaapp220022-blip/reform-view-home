@@ -13,18 +13,9 @@
  */
 import {formatPrice} from '../../utils/format'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {
-  deletePostDraft,
-  getPostDraft,
-  savePostDraft,
-  type DraftModeration,
-} from '../../features/listing/api/draftApi'
-import {
-  createListing,
-  suggestListingFromImage,
-  uploadListingImages,
-} from '../../features/listing/api/listingApi'
-import {resolveImageUrl} from '../../utils/image'
+import {deletePostDraft, type DraftModeration, getPostDraft, savePostDraft,} from '../../features/listing/api/draftApi'
+import {createListing, suggestListingFromImage, uploadListingImages,} from '../../features/listing/api/listingApi'
+import {flattenImageToWhite, resolveImageUrl} from '../../utils/image'
 import {inspectListingModeration} from '../../utils/listingModeration'
 import ConditionBadge from '../../components/ui/ConditionBadge'
 import {AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Loader2, Sparkles, Upload, X,} from 'lucide-react'
@@ -35,8 +26,8 @@ import type {DeliveryType, Grade, Sport} from '../../types/listing'
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
 const SPORT_OPTIONS: { key: Sport; label: string }[] = [
-  {key: 'SOCCER', label: '축구'},
   {key: 'BASEBALL', label: '야구'},
+  {key: 'SOCCER', label: '축구'},
   {key: 'BASKETBALL', label: '농구'},
   {key: 'VOLLEYBALL', label: '배구'},
   {key: 'ESPORTS', label: 'e스포츠'},
@@ -115,9 +106,9 @@ interface DraftRestoreState {
  * - 저장 전 단계라 시간 표시는 고정 문구로 두고, 나머지는 현재 폼 상태를 그대로 반영한다.
  */
 function ListingPreviewCard({
-  form,
-  images,
-}: {
+                              form,
+                              images,
+                            }: {
   form: ListingForm
   images: DraftImageItem[]
 }) {
@@ -128,7 +119,7 @@ function ListingPreviewCard({
   const previewTeam = form.team.trim() || `${sportLabel} · 팀 미정`
   const previewPrice = form.price ? formatPrice(Number(form.price)) : '₩0'
   const previewMeta = [deliveryLabel, form.size || null].filter(Boolean).join(' · ')
-
+  
   return (
     <div
       className="rounded-xl overflow-hidden relative mx-auto w-full max-w-[220px] transition-shadow"
@@ -160,9 +151,9 @@ function ListingPreviewCard({
             </span>
           </>
         )}
-
+        
         <ConditionBadge grade={form.grade} size="sm" className="absolute top-2 left-2"/>
-
+        
         <span
           className="absolute bottom-2 left-2 rounded-full px-2 py-1 text-[11px] font-semibold"
           style={{
@@ -173,7 +164,7 @@ function ListingPreviewCard({
           {deliveryLabel}
         </span>
       </div>
-
+      
       <div className="p-3">
         <p className="text-[13px] mb-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>
           {previewTeam}
@@ -371,7 +362,7 @@ function FormInput({
 /** 유해성 검사에서 감지된 표현 목록 */
 function ModerationHitList({hits}: { hits: string[] }) {
   if (hits.length === 0) return null
-
+  
   return (
     <div className="flex flex-col gap-2">
       <p className="text-[11px] font-semibold" style={{color: 'var(--color-text-hint)'}}>
@@ -506,7 +497,7 @@ function AiPanel({
         </div>
       </div>
       
-          {/* 라이브 프리뷰 */}
+      {/* 라이브 프리뷰 */}
       <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-2 px-4 py-3"
              style={{background: 'var(--color-surface-raised)', borderBottom: '1px solid var(--color-border)'}}>
@@ -527,7 +518,7 @@ export default function ListingCreatePage() {
   const navigate = useNavigate()
   
   const [form, setForm] = useState<ListingForm>({
-    title: '', sport: 'SOCCER', team: '', jerseyNumber: '',
+    title: '', sport: 'BASEBALL', team: '', jerseyNumber: '',
     size: 'M', grade: 'A', deliveryType: 'BOTH', price: '', description: '', tradeArea: '',
   })
   const [images, setImages] = useState<DraftImageItem[]>([])
@@ -554,7 +545,7 @@ export default function ListingCreatePage() {
   const update = useCallback(<K extends keyof ListingForm>(key: K, val: ListingForm[K]) => {
     setForm(prev => ({...prev, [key]: val}))
   }, [])
-
+  
   /**
    * 초안 자동 복원 전 기준이 되는 현재 로컬 입력 상태를 ref로 유지한다.
    *
@@ -653,7 +644,7 @@ export default function ListingCreatePage() {
       .catch(() => { /* 초안 없으면 무시 */
       })
   }, [isAuthenticated])
-
+  
   /**
    * 초안 자동 복원 상태를 토글한다.
    *
@@ -670,11 +661,11 @@ export default function ListingCreatePage() {
     if (!draftRestoreState) {
       return
     }
-
+    
     const nextSnapshot = draftRestoreState.isApplied
       ? draftRestoreState.beforeRestore
       : draftRestoreState.restored
-
+    
     setForm({...nextSnapshot.form})
     setImages(nextSnapshot.images.map((image) => ({...image})))
     setDraftModeration(nextSnapshot.moderation)
@@ -724,21 +715,24 @@ export default function ListingCreatePage() {
     update('title', title)
     update('description', description)
   }
-
+  
   async function handleAddImages(files: File[]) {
     if (!files.length) return
-
-    const nextItems: DraftImageItem[] = files.map((file, index) => ({
+    
+    // 투명 배경(PNG 등)을 흰색 배경 JPEG로 변환해 다크모드 투명도 문제 방지
+    const flattenedFiles = await Promise.all(files.map(flattenImageToWhite))
+    
+    const nextItems: DraftImageItem[] = flattenedFiles.map((file, index) => ({
       id: `local-${Date.now()}-${index}`,
       previewUrl: URL.createObjectURL(file),
       uploadedUrl: null,
       file,
     }))
-
+    
     setImages((prev) => [...prev, ...nextItems])
-
+    
     try {
-      const uploadedUrls = await uploadListingImages(files)
+      const uploadedUrls = await uploadListingImages(flattenedFiles)
       setImages((prev) => {
         let cursor = 0
         return prev.map((image) => {
@@ -756,7 +750,7 @@ export default function ListingCreatePage() {
       setSubmitError('이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.')
     }
   }
-
+  
   function removeImage(idx: number) {
     setImages((prev) => {
       const target = prev[idx]
@@ -841,19 +835,19 @@ export default function ListingCreatePage() {
   const draftRestoreActionLabel = draftRestoreState?.isApplied ? '실행 취소' : '복원하기'
   const missingSubmitRequirements = useMemo(() => {
     const requirements: string[] = []
-
+    
     if (!form.title.trim()) {
       requirements.push('상품명을 입력해주세요.')
     }
-
+    
     if (!form.price.trim()) {
       requirements.push('가격을 입력해주세요.')
     }
-
+    
     if (!images.some((image) => !!image.uploadedUrl)) {
       requirements.push('사진을 1장 이상 업로드해주세요.')
     }
-
+    
     return requirements
   }, [form.price, form.title, images])
   
@@ -949,7 +943,7 @@ export default function ListingCreatePage() {
                 <FormInput
                   label="상품명" required
                   value={form.title} onChange={v => update('title', v)}
-                  placeholder="예: 맨체스터 유나이티드 23/24 홈 어센틱"
+                  placeholder="예: KIA 타이거즈 2024 홈 유니폼"
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <FormSelect
@@ -961,7 +955,7 @@ export default function ListingCreatePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <FormInput
                     label="팀명" value={form.team} onChange={v => update('team', v)}
-                    placeholder="예: 맨체스터 유나이티드"
+                    placeholder="예: KIA 타이거즈"
                   />
                   <FormInput
                     label="등번호" value={form.jerseyNumber} onChange={v => update('jerseyNumber', v)}
@@ -1076,7 +1070,7 @@ export default function ListingCreatePage() {
                 images={images}
               />
             </div>
-
+            
             {/* 상품 설명 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -1166,7 +1160,7 @@ export default function ListingCreatePage() {
                 </div>
               </div>
             ) : null}
-
+            
             {/* 등록 실패 에러 메시지 */}
             {submitError && (
               <div

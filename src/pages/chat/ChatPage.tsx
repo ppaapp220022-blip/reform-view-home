@@ -301,7 +301,7 @@ function SidebarPanel({
 /**
  * MessageBubble — 단일 채팅 메시지 말풍선
  *   isMine=true → 오른쪽 정렬 / primary 배경
- *   isMine=false → 왼쪽 정렬 / surface-raised 배경
+ *   isMine=false → 왼쪽 정렬 / gold(#FFB800) 솔리드 배경
  */
 function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
   const time = new Date(msg.createdAt).toLocaleTimeString('ko-KR', {
@@ -356,10 +356,9 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
                 borderBottomRightRadius: 4,
               }
               : {
-                /* gold subtle 틴트 — #FFB800(--color-gold) 10% 불투명도 */
-                background: 'rgba(255,184,0,.10)',
-                color: 'var(--color-text-main)',
-                border: '1px solid rgba(255,184,0,.22)',
+                /* MVP VERIFIED 뱃지 컬러와 동일한 솔리드 골드 배경, 보더 없음 */
+                background: 'var(--color-gold)',
+                color: 'var(--color-primary)',
                 borderBottomLeftRadius: 4,
               }
           }
@@ -392,13 +391,13 @@ function MessageBubble({msg, isMine}: { msg: ChatMessage; isMine: boolean }) {
  * chatId가 바뀌면 부모의 key prop으로 전체 remount 됨.
  */
 function ChatRoomPanelInner({
-  chatId,
-  detail,
-  linkedTrade,
-  myMemberId,
-  initialMessages,
-  onBack,
-}: {
+                              chatId,
+                              detail,
+                              linkedTrade,
+                              myMemberId,
+                              initialMessages,
+                              onBack,
+                            }: {
   chatId: number
   detail: ChatRoomDetail | null
   linkedTrade: TradeResponse | null
@@ -780,7 +779,7 @@ function ChatRoomPanel({
     queryFn: () => getChatRoomDetail(chatId),
     staleTime: 30_000,   // 30초 캐시
   })
-
+  
   const {data: linkedTrade} = useQuery({
     queryKey: ['trade', String(detail?.tradeId ?? '')],
     queryFn: () => getTrade(detail!.tradeId!),

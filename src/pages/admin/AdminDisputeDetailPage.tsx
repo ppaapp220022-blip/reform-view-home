@@ -85,7 +85,7 @@ const RESOLUTION_TYPE_LABEL: Record<string, string> = {
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '정보 없음'
-
+  
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
   return parsed.toLocaleString('ko-KR')
@@ -105,11 +105,11 @@ function InfoRow({label, value}: { label: string; value: string }) {
 }
 
 function PartyCard({
-  title,
-  nickname,
-  email,
-  memberId,
-}: {
+                     title,
+                     nickname,
+                     email,
+                     memberId,
+                   }: {
   title: string
   nickname: string
   email: string
@@ -143,7 +143,7 @@ function PartyCard({
           회원 상세
         </Link>
       </div>
-
+      
       <div className="flex items-center gap-2">
         <Mail size={13} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.75}/>
         <span className="text-[13px]" style={{color: 'var(--color-text-sub)'}}>
@@ -161,13 +161,13 @@ export default function AdminDisputeDetailPage() {
   const [adminMemo, setAdminMemo] = useState('')
   const [submitDone, setSubmitDone] = useState(false)
   const [submitError, setSubmitError] = useState('')
-
+  
   const {data: dispute, isLoading, isError} = useQuery({
     queryKey: ['adminDispute', id],
     queryFn: () => getAdminDispute(Number(id)),
     enabled: !!id,
   })
-
+  
   const processMutation = useMutation({
     mutationFn: (request: AdminDisputeActionRequest) => processAdminDispute(Number(id), request),
     onSuccess: async () => {
@@ -178,10 +178,10 @@ export default function AdminDisputeDetailPage() {
       ])
     },
   })
-
+  
   async function handleSubmit() {
     if (!selectedAction) return
-
+    
     setSubmitError('')
     try {
       await processMutation.mutateAsync({
@@ -194,7 +194,7 @@ export default function AdminDisputeDetailPage() {
       setSubmitError('분쟁 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')
     }
   }
-
+  
   if (isLoading) {
     return (
       <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
@@ -205,7 +205,7 @@ export default function AdminDisputeDetailPage() {
       </div>
     )
   }
-
+  
   if (isError || !dispute) {
     return (
       <div className="max-w-[960px] mx-auto px-4 py-8 flex justify-center items-center min-h-[50vh]">
@@ -217,11 +217,11 @@ export default function AdminDisputeDetailPage() {
       </div>
     )
   }
-
+  
   const selectedOption = DISPUTE_ACTION_OPTIONS.find((item) => item.action === selectedAction) ?? null
   const statusMeta = TRADE_STATUS_META[dispute.status]
   const isResolved = dispute.status !== 'DISPUTED'
-
+  
   return (
     <div className="max-w-[960px] mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -249,7 +249,7 @@ export default function AdminDisputeDetailPage() {
           </p>
         </div>
       </div>
-
+      
       {submitDone && (
         <div
           className="mb-5 px-4 py-3 rounded-[10px] flex items-center gap-2"
@@ -261,7 +261,7 @@ export default function AdminDisputeDetailPage() {
           </p>
         </div>
       )}
-
+      
       <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-6">
         <div className="flex flex-col gap-5">
           <div
@@ -295,12 +295,12 @@ export default function AdminDisputeDetailPage() {
               </div>
               <p
                 className="text-[22px] font-bold flex-shrink-0"
-                style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                style={{color: 'var(--color-primary)'}}
               >
                 {formatPrice(dispute.price)}
               </p>
             </div>
-
+            
             <div className="rounded-[10px] px-4 py-3" style={{background: 'var(--color-surface-sunken)'}}>
               <InfoRow label="거래 생성" value={formatDateTime(dispute.createdAt)}/>
               <InfoRow label="분쟁 접수" value={formatDateTime(dispute.disputedAt)}/>
@@ -314,7 +314,7 @@ export default function AdminDisputeDetailPage() {
               <InfoRow label="연장 종료 시각" value={formatDateTime(dispute.extendedUntil)}/>
             </div>
           </div>
-
+          
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
@@ -332,7 +332,7 @@ export default function AdminDisputeDetailPage() {
               {dispute.buyerClaim?.trim() || '구매자 이의 내용이 제공되지 않았습니다.'}
             </div>
           </div>
-
+          
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
@@ -350,7 +350,7 @@ export default function AdminDisputeDetailPage() {
               {dispute.sellerClaim?.trim() || '판매자가 등록한 소명 내용이 없습니다.'}
             </div>
           </div>
-
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <PartyCard
               title="구매자"
@@ -365,7 +365,7 @@ export default function AdminDisputeDetailPage() {
               memberId={dispute.sellerMemberId}
             />
           </div>
-
+          
           <div
             className="rounded-[12px] p-5"
             style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
@@ -376,7 +376,7 @@ export default function AdminDisputeDetailPage() {
                 배송 정보
               </h3>
             </div>
-
+            
             {dispute.deliveryType === 'DIRECT' ? (
               <div
                 className="rounded-[10px] px-4 py-4 text-[13px]"
@@ -399,7 +399,7 @@ export default function AdminDisputeDetailPage() {
             )}
           </div>
         </div>
-
+        
         <div>
           <div
             className="rounded-[12px] p-5 sticky top-24"
@@ -411,7 +411,7 @@ export default function AdminDisputeDetailPage() {
                 관리자 처리
               </p>
             </div>
-
+            
             <div
               className="mb-4 rounded-[10px] px-4 py-3"
               style={{background: 'var(--color-surface-sunken)', border: '1px solid var(--color-border)'}}
@@ -423,7 +423,7 @@ export default function AdminDisputeDetailPage() {
                 관리자는 구매자 분쟁 사유와 판매자 소명을 비교한 뒤 구매 확정 또는 환불 중 하나로 처리합니다.
               </p>
             </div>
-
+            
             {submitError && (
               <div
                 className="mb-4 px-3 py-2.5 rounded-[10px] text-[13px] leading-relaxed"
@@ -436,7 +436,7 @@ export default function AdminDisputeDetailPage() {
                 {submitError}
               </div>
             )}
-
+            
             <div className="flex flex-col gap-2.5 mb-4">
               {DISPUTE_ACTION_OPTIONS.map((option) => {
                 const isSelected = selectedAction === option.action
@@ -475,7 +475,7 @@ export default function AdminDisputeDetailPage() {
                 )
               })}
             </div>
-
+            
             <div className="mb-4">
               <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
                 관리자 메모
@@ -489,7 +489,7 @@ export default function AdminDisputeDetailPage() {
                 className="w-full rounded-[8px] px-3 py-2.5 text-[13px] resize-none outline-none transition-colors bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-primary)] disabled:opacity-60"
               />
             </div>
-
+            
             <button
               type="button"
               onClick={handleSubmit}
@@ -508,13 +508,13 @@ export default function AdminDisputeDetailPage() {
                 </>
               )}
             </button>
-
+            
             {!selectedAction && !isResolved && (
               <p className="text-[13px] text-center mt-2" style={{color: 'var(--color-text-hint)'}}>
                 처리 방향을 먼저 선택해 주세요
               </p>
             )}
-
+            
             <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
               <p className="text-[13px] font-medium mb-1" style={{color: 'var(--color-text-sub)'}}>
                 최근 처리 기록
@@ -523,7 +523,8 @@ export default function AdminDisputeDetailPage() {
                 {dispute.adminMemo?.trim() || '저장된 처리 메모가 없습니다.'}
               </p>
               <p className="text-[12px] mt-2" style={{color: 'var(--color-text-hint)'}}>
-                처리 결과: {dispute.resolutionType ? (RESOLUTION_TYPE_LABEL[dispute.resolutionType] ?? dispute.resolutionType) : '정보 없음'}
+                처리
+                결과: {dispute.resolutionType ? (RESOLUTION_TYPE_LABEL[dispute.resolutionType] ?? dispute.resolutionType) : '정보 없음'}
               </p>
               <p className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
                 연장 종료: {formatDateTime(dispute.extendedUntil)}
