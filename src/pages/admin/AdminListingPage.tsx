@@ -465,7 +465,7 @@ export default function AdminListingPage() {
       
       {/* 테이블 */}
       <div
-        className="rounded-2xl overflow-hidden bg-surface border border-border"
+        className="rounded-2xl overflow-hidden bg-surface"
       >
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
@@ -485,7 +485,7 @@ export default function AdminListingPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{borderCollapse: 'collapse'}}>
               <thead>
-              <tr className="border-b border-border bg-surface-sunken">
+              <tr className="bg-surface-sunken">
                 {['ID', '제목·판매자', '가격', '상태', '신고', '등록일', ''].map(h => (
                   <th
                     key={h}
@@ -500,7 +500,7 @@ export default function AdminListingPage() {
               {posts.map(post => (
                 <tr
                   key={post.postId}
-                  className="border-b transition-colors border-border hover:bg-surface-raised cursor-pointer"
+                  className="transition-colors hover:bg-surface-raised cursor-pointer"
                   onClick={() => setSelectedPostId(post.postId)}
                 >
                   <td className="px-4 py-3 text-xs text-text-hint whitespace-nowrap">

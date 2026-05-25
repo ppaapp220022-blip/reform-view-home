@@ -264,11 +264,11 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
   
   return (
     <div
-      className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50 bg-surface border border-border"
+      className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50 bg-surface"
     >
       {/* 헤더 */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-border"
+        className="flex items-center justify-between px-4 py-3"
       >
         <div className="flex items-center gap-2">
           <h3
@@ -320,7 +320,6 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                 onClick={() => handleClick(noti)}
                 className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-surface-raised)]"
                 style={{
-                  borderBottom: '1px solid var(--color-border)',
                   background: noti.isRead ? 'transparent' : 'rgba(255,46,77,.03)',
                 }}
               >
@@ -366,7 +365,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
       
       {/* 푸터 */}
       <div
-        className="px-4 py-2.5 text-center border-t border-border"
+        className="px-4 py-2.5 text-center"
       >
         <Link
           to="/mypage"

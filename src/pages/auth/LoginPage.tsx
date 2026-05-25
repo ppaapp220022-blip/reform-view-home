@@ -96,13 +96,15 @@ interface CodeFormProps {
   isPending: boolean
   errorMessage: string | null   // 파싱된 에러 문자열 직접 수신 (mutation 상태 의존 제거)
   onBack: () => void
+  verificationCode?: string     // 백엔드 dev 모드 코드 (있으면 UI에 표시)
+  challengeId?: string          // 코드 미수신 시 로그 grep용 challengeId 표시
 }
 
 /**
  * 6자리 인증코드 입력 UI
  * 각 digit을 개별 input으로 렌더링, 자동 포커스 이동
  */
-function CodeForm({email, onSubmit, isPending, errorMessage, onBack}: CodeFormProps) {
+function CodeForm({email, onSubmit, isPending, errorMessage, onBack, verificationCode, challengeId}: CodeFormProps) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const refs = useRef<(HTMLInputElement | null)[]>([])
   
@@ -140,6 +142,46 @@ function CodeForm({email, onSubmit, isPending, errorMessage, onBack}: CodeFormPr
           로 인증코드 6자리를 발송했습니다. 이메일을 확인해 주세요.
         </p>
       </div>
+      
+      {/* Dev 편의 힌트 — 백엔드가 코드를 응답에 포함하면 코드 직접 표시, 없으면 challengeId 표시 */}
+      {(verificationCode || challengeId) && (
+        <div
+          className="flex items-center justify-between mb-5 px-4 py-3 rounded-[10px]"
+          style={{background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.12)'}}
+        >
+          {/* DEV 라벨 */}
+          <span
+            className="text-[11px] font-bold px-1.5 py-0.5 rounded mr-3 flex-shrink-0"
+            style={{background: '#1a1a1a', color: '#fff', letterSpacing: '0.05em'}}
+          >
+            DEV
+          </span>
+          {verificationCode ? (
+            /* 백엔드가 코드를 직접 반환한 경우 — 코드 크고 진하게 */
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-[13px]" style={{color: '#555'}}>
+                인증코드
+              </span>
+              <span
+                className="text-[26px] font-bold tracking-[0.25em]"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: '#111'}}
+              >
+                {verificationCode}
+              </span>
+            </div>
+          ) : (
+            /* 코드 미수신 시 — challengeId로 서버 로그 grep */
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] mb-0.5" style={{color: '#888'}}>
+                코드가 없으면 서버 로그에서 아래 ID로 검색
+              </p>
+              <code className="text-[11px] break-all" style={{color: '#444'}}>
+                {challengeId}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* 6자리 digit 입력 */}
       <div className="flex gap-2 mb-5 justify-center">
@@ -336,6 +378,8 @@ export default function LoginPage() {
               onSubmit={handleStep2Submit}
               isPending={step2.isPending}
               errorMessage={step2Error}
+              verificationCode={challenge.verificationCode}
+              challengeId={challenge.challengeId}
               onBack={() => {
                 step1.reset();
                 setStep2Error(null)
