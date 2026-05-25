@@ -13,7 +13,7 @@
 import {useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
 import {useMutation, useQuery} from '@tanstack/react-query'
-import {AlertCircle, Award, CheckCircle2, ChevronLeft, Loader2, Star} from 'lucide-react'
+import {AlertCircle, Award, ChevronLeft, Loader2, Star} from 'lucide-react'
 import {createReview, getTrade} from '../../features/trade/api/tradeApi'
 import useAuthStore from '../../store/authStore'
 
@@ -145,8 +145,7 @@ function DoneScreen({navigate}: { navigate: (path: string) => void }) {
         </h2>
         <p className="text-sm leading-relaxed" style={{color: 'var(--color-text-sub)'}}>
           매너 평가가 완료되었습니다.<br/>
-          활동 포인트 <span style={{color: 'var(--color-info)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>+200P</span>가
-          적립되었습니다.
+          소중한 후기가 거래 신뢰도에 반영됩니다.
         </p>
       </div>
       
@@ -375,18 +374,6 @@ export default function ReviewPage() {
               />
             </div>
           )}
-          
-          {/* 포인트 안내 */}
-          <div
-            className="flex items-center gap-3 px-4 py-3 rounded-xl"
-            style={{background: 'rgba(14,165,233,.06)', border: '1px solid rgba(14,165,233,.2)'}}
-          >
-            <CheckCircle2 size={16} color="var(--color-info)" className="flex-shrink-0"/>
-            <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
-              매너 평가 작성 시 활동 포인트 <span
-              style={{color: 'var(--color-info)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>+200P</span> 적립!
-            </p>
-          </div>
           
           {/* 제출 에러 */}
           {submitError && (

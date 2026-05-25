@@ -43,9 +43,9 @@ export interface ProfileResponse {
   mannerScore: number              // BigDecimal → number
   role: Role
   status: MemberStatus
-  pointBalance: number             // 총 보유 포인트
-  pointWithdrawable: number        // 출금 가능 포인트
-  pointPending: number             // 정산 대기 포인트
+  pointBalance: number             // 총 보유 예치금
+  pointWithdrawable: number        // 출금 가능 예치금
+  pointPending: number             // 정산 대기 예치금
   totalSales: number               // 완료 판매 건수
   totalPurchases: number           // 완료 구매 건수
   interest: InterestSettingResponse | null

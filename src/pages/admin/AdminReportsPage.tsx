@@ -11,7 +11,7 @@ import {useState} from 'react'
 import {Link} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {ChevronLeft, ChevronRight, Flag, Loader2} from 'lucide-react'
-import type {ReportStatus} from '../../features/admin/api/adminApi'
+import type {AdminReportActionRequest, ReportStatus} from '../../features/admin/api/adminApi'
 import {getAdminReports, processAdminReport} from '../../features/admin/api/adminApi'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ function ActionButtons({reportId, currentStatus}: { reportId: number; currentSta
   const qc = useQueryClient()
   
   const mutation = useMutation({
-    mutationFn: (action: ReportStatus) => processAdminReport(reportId, {action}),
+    mutationFn: (request: AdminReportActionRequest) => processAdminReport(reportId, request),
     onSuccess: () => void qc.invalidateQueries({queryKey: ['admin-reports']}),
   })
   
@@ -72,7 +72,17 @@ function ActionButtons({reportId, currentStatus}: { reportId: number; currentSta
           key={action}
           onClick={e => {
             e.preventDefault()   // Link 클릭 막기
-            mutation.mutate(action)
+            /**
+             * 목록 인라인 처리에서도 백엔드가 추가로 받는 adminMemo를 함께 보낼 수 있게 한다.
+             * 취소를 누르면 빠른 처리를 중단하고, 빈 문자열은 메모 없음으로 취급한다.
+             */
+            const memo = window.prompt(`${STATUS_LABELS[action]} 처리 메모를 입력하세요. 비워두면 메모 없이 처리됩니다.`, '')
+            if (memo === null) return
+
+            mutation.mutate({
+              action,
+              adminMemo: memo.trim() || undefined,
+            })
           }}
           disabled={mutation.isPending}
           className="text-[11px] font-semibold px-2 py-0.5 rounded-lg transition-opacity disabled:opacity-50"

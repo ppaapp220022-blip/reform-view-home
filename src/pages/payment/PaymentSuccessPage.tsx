@@ -168,9 +168,9 @@ export default function PaymentSuccessPage() {
           </div>
         )}
         
-        {/* 에스크로 안내 */}
+        {/* 안전결제 안내 */}
         <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
-          RE:FORM 에스크로 안전결제 — 상품 수령 확인 후 판매자에게 정산됩니다.
+          RE:FORM 안전결제 — 상품 수령 확인 후 판매자에게 정산됩니다.
         </p>
         
         {/* CTA 버튼 */}

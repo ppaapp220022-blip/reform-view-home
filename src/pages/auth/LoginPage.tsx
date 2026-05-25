@@ -23,7 +23,7 @@ import type {AxiosError} from 'axios'
 /** 카카오 'K' 말풍선 아이콘 */
 function KakaoIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 22 22" fill="none" aria-hidden="true">
       <path
         fillRule="evenodd"
         clipRule="evenodd"
@@ -37,22 +37,24 @@ function KakaoIcon() {
 /** 구글 'G' 컬러 아이콘 */
 function GoogleIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      {/* Google dark theme 예시처럼 다크 배경에서도 로고 내부가 묻히지 않게 흰 바탕을 깐다. */}
+      <circle cx="9" cy="9" r="8.5" fill="#FFFFFF"/>
       <path
-        d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 0 1-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35Z"
+        d="M17.64 9.2045c0-.6382-.0573-1.2518-.1636-1.8409H9v3.4818h4.8436a4.14 4.14 0 0 1-1.7954 2.7164v2.2582h2.9081c1.7018-1.5664 2.6837-3.8764 2.6837-6.6155Z"
         fill="#4285F4"
       />
       <path
-        d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.604 0-4.809-1.759-5.595-4.123H1.064v2.59A9.996 9.996 0 0 0 10 20Z"
+        d="M9 18c2.43 0 4.4673-.8059 5.9563-2.1791l-2.9081-2.2582c-.8059.54-1.8368.8591-3.0482.8591-2.3432 0-4.3282-1.5827-5.0368-3.7091H1.9568v2.3318C3.4377 15.9864 6.0082 18 9 18Z"
         fill="#34A853"
       />
       <path
-        d="M4.405 11.9A6.015 6.015 0 0 1 4.09 10c0-.663.114-1.308.314-1.9V5.51H1.064A9.996 9.996 0 0 0 0 10c0 1.614.386 3.14 1.064 4.49l3.34-2.59Z"
-        fill="#FBBC04"
+        d="M3.9632 10.7127A5.4091 5.4091 0 0 1 3.6818 9c0-.5932.1023-1.1691.2814-1.7127V4.9555H1.9568A8.9972 8.9972 0 0 0 1 9c0 1.4523.3477 2.8277.9568 4.0445l2.0064-2.3318Z"
+        fill="#FBBC05"
       />
       <path
-        d="M10 3.977c1.468 0 2.786.505 3.822 1.496l2.868-2.868C14.959.99 12.695 0 10 0A9.996 9.996 0 0 0 1.064 5.51l3.34 2.59C5.192 5.736 7.396 3.977 10 3.977Z"
-        fill="#E94235"
+        d="M9 3.5795c1.3214 0 2.5077.4541 3.4404 1.3459l2.5805-2.5804C13.4632.8918 11.426 0 9 0 6.0082 0 3.4377 2.0136 1.9568 4.9555l2.0064 2.3318C4.6718 5.1623 6.6568 3.5795 9 3.5795Z"
+        fill="#EA4335"
       />
     </svg>
   )
@@ -94,13 +96,15 @@ interface CodeFormProps {
   isPending: boolean
   errorMessage: string | null   // 파싱된 에러 문자열 직접 수신 (mutation 상태 의존 제거)
   onBack: () => void
+  verificationCode?: string     // 백엔드 dev 모드 코드 (있으면 UI에 표시)
+  challengeId?: string          // 코드 미수신 시 로그 grep용 challengeId 표시
 }
 
 /**
  * 6자리 인증코드 입력 UI
  * 각 digit을 개별 input으로 렌더링, 자동 포커스 이동
  */
-function CodeForm({email, onSubmit, isPending, errorMessage, onBack}: CodeFormProps) {
+function CodeForm({email, onSubmit, isPending, errorMessage, onBack, verificationCode, challengeId}: CodeFormProps) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const refs = useRef<(HTMLInputElement | null)[]>([])
   
@@ -138,6 +142,46 @@ function CodeForm({email, onSubmit, isPending, errorMessage, onBack}: CodeFormPr
           로 인증코드 6자리를 발송했습니다. 이메일을 확인해 주세요.
         </p>
       </div>
+      
+      {/* Dev 편의 힌트 — 백엔드가 코드를 응답에 포함하면 코드 직접 표시, 없으면 challengeId 표시 */}
+      {(verificationCode || challengeId) && (
+        <div
+          className="flex items-center justify-between mb-5 px-4 py-3 rounded-[10px]"
+          style={{background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.12)'}}
+        >
+          {/* DEV 라벨 */}
+          <span
+            className="text-[11px] font-bold px-1.5 py-0.5 rounded mr-3 flex-shrink-0"
+            style={{background: '#1a1a1a', color: '#fff', letterSpacing: '0.05em'}}
+          >
+            DEV
+          </span>
+          {verificationCode ? (
+            /* 백엔드가 코드를 직접 반환한 경우 — 코드 크고 진하게 */
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-[13px]" style={{color: '#555'}}>
+                인증코드
+              </span>
+              <span
+                className="text-[26px] font-bold tracking-[0.25em]"
+                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", color: '#111'}}
+              >
+                {verificationCode}
+              </span>
+            </div>
+          ) : (
+            /* 코드 미수신 시 — challengeId로 서버 로그 grep */
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] mb-0.5" style={{color: '#888'}}>
+                코드가 없으면 서버 로그에서 아래 ID로 검색
+              </p>
+              <code className="text-[11px] break-all" style={{color: '#444'}}>
+                {challengeId}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* 6자리 digit 입력 */}
       <div className="flex gap-2 mb-5 justify-center">
@@ -301,7 +345,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-4">
           <FeatureItem
             icon={<ShieldCheck size={18} strokeWidth={1.75} color="rgba(255,255,255,0.7)"/>}
-            title="에스크로 안전결제"
+            title="안전결제"
             desc="거래 완료 전까지 RE:FORM이 보관"
           />
           <FeatureItem
@@ -312,7 +356,7 @@ export default function LoginPage() {
           <FeatureItem
             icon={<CreditCard size={18} strokeWidth={1.75} color="rgba(255,255,255,0.7)"/>}
             title="간편 정산"
-            desc="포인트 출금, 빠르고 명확하게"
+            desc="예치금 출금, 빠르고 명확하게"
           />
         </div>
       </aside>
@@ -334,6 +378,8 @@ export default function LoginPage() {
               onSubmit={handleStep2Submit}
               isPending={step2.isPending}
               errorMessage={step2Error}
+              verificationCode={challenge.verificationCode}
+              challengeId={challenge.challengeId}
               onBack={() => {
                 step1.reset();
                 setStep2Error(null)
@@ -346,7 +392,7 @@ export default function LoginPage() {
             <h1 className="text-[22px] font-medium text-[var(--color-text-main)] mb-1">
               로그인
             </h1>
-            <p className="text-[14px] text-[var(--color-text-sub)] mb-8">
+            <p className="text-[14px] text-[var(--color-text-sub)] mb-5">
               계정이 없으신가요?{' '}
               <Link
                 to="/register"
@@ -356,33 +402,70 @@ export default function LoginPage() {
               </Link>
             </p>
             
+            {/* 포트폴리오용 테스트 계정 안내 */}
+            <div
+              className="mb-6 px-4 py-3 rounded-[10px] border text-[13px] leading-relaxed"
+              style={{
+                background: 'rgba(0,33,71,0.06)',
+                borderColor: 'var(--color-border)',
+              }}
+            >
+              <p className="font-medium text-[var(--color-text-sub)] mb-1">
+                테스트 계정
+              </p>
+              <p className="text-[var(--color-text-hint)]">
+                이메일:{' '}
+                <span
+                  className="font-medium text-[var(--color-text-sub)]"
+                  style={{fontFamily: "'Pretendard',Giants,sans-serif"}}
+                >
+                  admin@reform.com
+                </span>
+              </p>
+              <p className="text-[var(--color-text-hint)]">
+                비밀번호:{' '}
+                <span
+                  className="font-medium text-[var(--color-text-sub)]"
+                  style={{fontFamily: "'Pretendard',Giants,sans-serif"}}
+                >
+                  1234
+                </span>
+              </p>
+            </div>
+            
             {/* 소셜 로그인 버튼 */}
             <div className="flex flex-col gap-[10px] mb-6">
               {/* 카카오 */}
               <button
                 type="button"
                 onClick={redirectToKakao}
-                className="w-full h-[52px] rounded-[10px] border-0 flex items-center gap-3 px-5 text-[14px] font-medium transition-opacity hover:opacity-90 active:opacity-75"
+                className="w-full h-[52px] rounded-[12px] flex items-center justify-center gap-[10px] px-3 text-[14px] leading-[20px] font-medium transition-colors hover:bg-[var(--color-kakao-button-hover)] active:opacity-90"
                 style={{
-                  /* 카카오 브랜드 전용 색상 — CSS 변수/Tailwind 불가 */
-                  background: '#FEE500',
-                  color: '#191919',
+                  /* 카카오 공식 가이드에 맞춰 브랜드 고정색과 radius를 유지하되,
+                     토큰으로 빼서 라이트/다크 테마 전환 구조 안에서 재사용한다. */
+                  background: 'var(--color-kakao-button-bg)',
+                  color: 'var(--color-kakao-button-text)',
                 }}
               >
                 <KakaoIcon/>
-                카카오로 계속하기
+                카카오 로그인
               </button>
               
               {/* 구글 */}
               <button
                 type="button"
                 onClick={redirectToGoogle}
-                className="w-full h-[52px] rounded-[10px] flex items-center gap-3 px-5 text-[14px] font-medium
-                  bg-[var(--color-surface)] text-[var(--color-text-main)]
-                  border border-[var(--color-border)] transition-colors hover:bg-[var(--color-surface-raised)]"
+                className="w-full h-[52px] rounded-[12px] flex items-center justify-center gap-[10px] px-3 text-[14px] leading-[20px] font-medium transition-colors hover:bg-[var(--color-google-button-hover)] active:opacity-90"
+                style={{
+                  /* Google 브랜드 가이드의 light/dark 테마 값을 index.css 토큰으로 끌어와
+                     현재 로그인 페이지 테마 전환과 한 세트로 움직이게 만든다. */
+                  background: 'var(--color-google-button-bg)',
+                  color: 'var(--color-google-button-text)',
+                  border: '1px solid var(--color-google-button-border)',
+                }}
               >
                 <GoogleIcon/>
-                Google로 계속하기
+                Google로 로그인
               </button>
             </div>
             

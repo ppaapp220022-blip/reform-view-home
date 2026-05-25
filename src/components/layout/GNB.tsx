@@ -37,6 +37,45 @@ interface NotificationItem {
 
 // 알림 데이터는 useQuery로 조회 (MOCK 제거됨)
 
+/**
+ * 알림 linkUrl을 현재 프론트 라우터에 맞는 내부 경로로 정규화한다.
+ *
+ * 방어하려는 케이스:
+ * - 예전 데이터가 `trade/12`처럼 슬래시 없이 저장된 경우
+ * - 절대 URL 전체가 저장된 경우
+ * - 리뷰 관련 링크가 `/review/:id`, `/reviews/:id`로 저장된 경우
+ *
+ * 반환값이 null이면 안전한 내부 라우트로 해석할 수 없는 값이므로 이동하지 않는다.
+ */
+function resolveNotificationPath(linkUrl: string | null): string | null {
+  if (!linkUrl) return null
+  const raw = linkUrl.trim()
+  if (!raw) return null
+  
+  try {
+    const parsed = raw.startsWith('http://') || raw.startsWith('https://')
+      ? new URL(raw)
+      : new URL(raw, window.location.origin)
+    
+    let normalizedPath = parsed.pathname
+    if (!normalizedPath.startsWith('/')) {
+      normalizedPath = `/${normalizedPath}`
+    }
+    
+    // 리뷰 링크는 현재 라우터 기준 /trade/:id/review 로 통일한다.
+    const reviewMatch = normalizedPath.match(/^\/reviews?\/(\d+)$/)
+    if (reviewMatch) {
+      return `/trade/${reviewMatch[1]}/review`
+    }
+    
+    // 쿼리 문자열이 있으면 그대로 유지해 채팅방 직접 진입을 살린다.
+    return `${normalizedPath}${parsed.search}${parsed.hash}`
+  } catch (error) {
+    console.warn('[Notification] 잘못된 linkUrl 형식:', linkUrl, error)
+    return raw.startsWith('/') ? raw : `/${raw}`
+  }
+}
+
 // 알림 타입별 아이콘 + 색상
 const NOTI_META: Record<NotificationType, { icon: React.ReactNode; color: string; bg: string }> = {
   TRADE: {icon: <ShoppingBag size={14}/>, color: 'var(--color-primary)', bg: 'rgba(0,33,71,.1)'},
@@ -214,17 +253,22 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
   
   function handleClick(noti: NotificationItem) {
     if (!noti.isRead) markOneMutation.mutate(noti.notiId)
-    if (noti.linkUrl) navigate(noti.linkUrl)
+    const destination = resolveNotificationPath(noti.linkUrl)
+    if (destination) {
+      navigate(destination)
+    } else {
+      console.warn('[Notification] 이동 가능한 linkUrl이 없습니다:', noti)
+    }
     onClose()
   }
   
   return (
     <div
-      className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50 bg-surface border border-border"
+      className="absolute right-0 top-full mt-2 w-[340px] rounded-2xl overflow-hidden shadow-card z-50 bg-surface"
     >
       {/* 헤더 */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-border"
+        className="flex items-center justify-between px-4 py-3"
       >
         <div className="flex items-center gap-2">
           <h3
@@ -276,7 +320,6 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
                 onClick={() => handleClick(noti)}
                 className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--color-surface-raised)]"
                 style={{
-                  borderBottom: '1px solid var(--color-border)',
                   background: noti.isRead ? 'transparent' : 'rgba(255,46,77,.03)',
                 }}
               >
@@ -322,7 +365,7 @@ function NotificationDropdown({onClose}: { onClose: () => void }) {
       
       {/* 푸터 */}
       <div
-        className="px-4 py-2.5 text-center border-t border-border"
+        className="px-4 py-2.5 text-center"
       >
         <Link
           to="/mypage"
@@ -446,7 +489,6 @@ export default function GNB() {
               로그인
             </Link>
           )}
-          <ThemeToggle/>
         </div>
       </div>
       

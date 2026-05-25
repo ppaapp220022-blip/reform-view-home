@@ -37,6 +37,8 @@ export interface LoginRequest {
 export interface LoginChallengeResponse {
   challengeId: string
   email: string
+  expiresInSeconds?: number   // 백엔드 LoginChallengeResponseDTO.expiresInSeconds
+  verificationCode?: string   // 백엔드 dev 모드에서 코드 직접 반환 시 표시용 (선택적)
 }
 
 /**

@@ -7,9 +7,10 @@
  *   TradeHistory    — 해당 회원의 거래 내역
  *   ReportHistory   — 해당 회원이 받은 신고 내역
  *
- * 데이터: 목 데이터 (추후 GET /admin/members/:id 연동)
+ * 데이터:
+ *   - 회원 기본 정보, 마지막 로그인, 최근 거래, 받은 신고를 관리자 회원 상세 API로 조회한다.
+ *   - 최신 관리자 회원 액션은 WARN / SUSPEND / UNSUSPEND / WITHDRAW를 지원한다.
  */
-import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
@@ -34,6 +35,7 @@ import {getAdminMember, processAdminMember} from '../../features/admin/api/admin
 // ── 타입 ─────────────────────────────────────────────────────────────────────
 // AdminMemberDetail, ReportItem 은 adminApi.ts에서 import
 type MemberStatus = AdminMemberDetail['status']
+type MemberTradeStatus = AdminMemberDetail['recentTrades'][number]['status']
 
 // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
@@ -41,14 +43,6 @@ const STATUS_META: Record<MemberStatus, { label: string; color: string; bg: stri
   ACTIVE: {label: '활성', color: 'var(--color-success)', bg: 'rgba(0,179,110,0.1)'},
   SUSPENDED: {label: '정지', color: 'var(--color-accent)', bg: 'rgba(255,46,77,0.1)'},
   WITHDRAWN: {label: '탈퇴', color: 'var(--color-text-hint)', bg: 'var(--color-surface-sunken)'},
-}
-
-const TRADE_STATUS_KO: Record<string, { label: string; color: string }> = {
-  COMPLETED: {label: '완료', color: 'var(--color-success)'},
-  IN_PROGRESS: {label: '배송 중', color: 'var(--color-primary)'},
-  DISPUTED: {label: '분쟁', color: 'var(--color-accent)'},
-  CANCELED: {label: '취소', color: 'var(--color-text-hint)'},
-  CONFIRMED: {label: '수령 확인', color: 'var(--color-success)'},
 }
 
 const REPORT_REASON_LABEL: Record<string, string> = {
@@ -81,9 +75,9 @@ const ACTION_CONFIG: Record<AdminAction, {
   suspend: {label: '정지', confirmLabel: '계정 정지', color: 'var(--color-accent)', desc: '계정을 즉시 정지합니다. 로그인 및 거래가 차단됩니다.'},
   unsuspend: {
     label: '정지 해제',
-    confirmLabel: '정지 해제',
-    color: 'var(--color-success)',
-    desc: '계정 정지를 해제하고 정상 이용 상태로 복구합니다.'
+    confirmLabel: '정지 해제 실행',
+    color: 'var(--color-info)',
+    desc: '정지 상태를 해제하고 계정을 다시 활성 상태로 되돌립니다.'
   },
   withdraw: {
     label: '강제 탈퇴',
@@ -91,6 +85,26 @@ const ACTION_CONFIG: Record<AdminAction, {
     color: 'var(--color-accent)',
     desc: '회원을 강제 탈퇴 처리합니다. 이 작업은 되돌릴 수 없습니다.'
   },
+}
+
+const TRADE_STATUS_LABEL: Record<MemberTradeStatus, string> = {
+  REQUESTED: '요청',
+  ACCEPTED: '수락',
+  PAID: '결제 완료',
+  IN_PROGRESS: '진행 중',
+  RECEIVED: '수령 완료',
+  CONFIRMED: '구매 확정',
+  COMPLETED: '거래 완료',
+  CANCELED: '취소',
+  DISPUTED: '분쟁',
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '정보 없음'
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleString('ko-KR')
 }
 
 function ActionModal({
@@ -145,6 +159,7 @@ export default function AdminMemberDetailPage() {
   const {id} = useParams<{ id: string }>()
   const qc = useQueryClient()
   const [pendingAction, setPendingAction] = useState<AdminAction | null>(null)
+  const [actionReason, setActionReason] = useState('')
   const [actionDone, setActionDone] = useState<string | null>(null)
   
   // 회원 상세 조회
@@ -157,11 +172,17 @@ export default function AdminMemberDetailPage() {
   // 회원 제재 처리
   const actionMutation = useMutation({
     mutationFn: (action: AdminAction) => {
-      const apiAction = action === 'warn' ? 'WARN'
-        : action === 'suspend' ? 'SUSPEND'
-          : action === 'unsuspend' ? 'WARN'  // unsuspend는 백엔드에서 WARN으로 상태 변경됨
-            : 'WITHDRAW'
-      return processAdminMember(Number(id), {action: apiAction})
+      const apiAction = action === 'warn'
+        ? 'WARN'
+        : action === 'suspend'
+          ? 'SUSPEND'
+          : action === 'unsuspend'
+            ? 'UNSUSPEND'
+          : 'WITHDRAW'
+      return processAdminMember(Number(id), {
+        action: apiAction,
+        reason: actionReason.trim() || undefined,
+      })
     },
     onSuccess: () => {
       void qc.invalidateQueries({queryKey: ['adminMember', id]})
@@ -207,6 +228,7 @@ export default function AdminMemberDetailPage() {
     actionMutation.mutate(pendingAction, {
       onSuccess: () => {
         setActionDone(label)
+        setActionReason('')
         setPendingAction(null)
         setTimeout(() => setActionDone(null), 2500)
       },
@@ -297,7 +319,7 @@ export default function AdminMemberDetailPage() {
                   <div className="flex items-center gap-2">
                     <Calendar size={12} style={{color: 'var(--color-text-hint)'}} strokeWidth={1.5}/>
                     <span className="text-[14px]" style={{color: 'var(--color-text-sub)'}}>
-                      가입일 {member.createdAt} · 마지막 로그인 {member.createdAt}
+                      가입일 {formatDateTime(member.createdAt)} · 마지막 로그인 {formatDateTime(member.lastLoginAt)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -378,55 +400,51 @@ export default function AdminMemberDetailPage() {
               </h3>
             </div>
             <div className="flex flex-col gap-0">
-              {/* 거래 내역은 별도 Admin Trades API 미구현 - totalSales/totalPurchases만 표시 */
-                []/*MOCK*/.map((t: {
-                  id: number;
-                  title: string;
-                  role: string;
-                  price: number;
-                  status: string;
-                  date: string
-                }) => {
-                  const st = TRADE_STATUS_KO[t.status] ?? {label: t.status, color: 'var(--color-text-hint)'}
-                  return (
-                    <div
-                      key={t.id}
-                      className="flex items-center gap-3 py-3"
-                      style={{borderBottom: '1px solid var(--color-border)'}}
+              {(member.recentTrades ?? []).length === 0 && (
+                <div
+                  className="rounded-[10px] px-4 py-4 text-[13px] leading-relaxed"
+                  style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-hint)'}}
+                >
+                  최근 거래 내역이 없습니다.
+                </div>
+              )}
+
+              {(member.recentTrades ?? []).map((trade) => (
+                <div
+                  key={trade.tradeId}
+                  className="flex items-start gap-3 py-3"
+                  style={{borderBottom: '1px solid var(--color-border)'}}
+                >
+                  <span
+                    className="mt-0.5 px-2 py-0.5 rounded-full text-[12px] font-medium flex-shrink-0"
+                    style={{
+                      background: trade.role === 'SELLER' ? 'rgba(0,33,71,0.08)' : 'rgba(14,165,233,0.1)',
+                      color: trade.role === 'SELLER' ? 'var(--color-primary)' : 'var(--color-info)',
+                    }}
+                  >
+                    {trade.role === 'SELLER' ? '판매' : '구매'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium" style={{color: 'var(--color-text-main)'}}>
+                      {trade.postTitle}
+                    </p>
+                    <p className="text-[13px]" style={{color: 'var(--color-text-hint)'}}>
+                      완료 시각 {formatDateTime(trade.completedAt)}
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p
+                      className="text-[13px] font-bold"
+                      style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
                     >
-                    <span
-                      className="w-12 text-center text-[12px] font-medium px-1.5 py-0.5 rounded-full flex-shrink-0"
-                      style={{
-                        background: t.role === 'seller' ? 'rgba(0,33,71,0.1)' : 'rgba(14,165,233,0.1)',
-                        color: t.role === 'seller' ? 'var(--color-primary)' : 'var(--color-info)',
-                      }}
-                    >
-                      {t.role === 'seller' ? '판매' : '구매'}
-                    </span>
-                      <p className="flex-1 text-[14px] truncate" style={{color: 'var(--color-text-main)'}}>
-                        {t.title}
-                      </p>
-                      <span
-                        className="text-[14px] font-medium flex-shrink-0"
-                        style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                      >
-                      {formatPrice(t.price)}
-                    </span>
-                      <span
-                        className="text-[13px] font-medium flex-shrink-0"
-                        style={{color: st.color}}
-                      >
-                      {st.label}
-                    </span>
-                      <span
-                        className="text-[13px] flex-shrink-0"
-                        style={{color: 'var(--color-text-hint)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
-                      >
-                      {t.date.slice(5)}
-                    </span>
-                    </div>
-                  )
-                })}
+                      ₩{trade.price.toLocaleString('ko-KR')}
+                    </p>
+                    <p className="text-[12px]" style={{color: 'var(--color-text-hint)'}}>
+                      {TRADE_STATUS_LABEL[trade.status]}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           
@@ -442,6 +460,15 @@ export default function AdminMemberDetailPage() {
               </h3>
             </div>
             <div className="flex flex-col gap-0">
+              {(member.receivedReports ?? []).length === 0 && (
+                <div
+                  className="rounded-[10px] px-4 py-4 text-[13px]"
+                  style={{background: 'var(--color-surface-sunken)', color: 'var(--color-text-hint)'}}
+                >
+                  현재 이 회원에게 접수된 신고가 없습니다.
+                </div>
+              )}
+
               {(member.receivedReports ?? []).map((r: ReportItem) => {
                 const st = REPORT_STATUS_META[r.status] ?? {label: r.status, color: 'var(--color-text-hint)'}
                 return (
@@ -487,7 +514,20 @@ export default function AdminMemberDetailPage() {
             <p className="text-[14px] font-bold mb-4" style={{color: 'var(--color-text-main)'}}>
               관리자 조치
             </p>
-            
+
+            <div className="mb-4">
+              <label className="block text-[13px] font-medium mb-1.5" style={{color: 'var(--color-text-sub)'}}>
+                조치 사유
+              </label>
+              <textarea
+                rows={4}
+                value={actionReason}
+                onChange={(event) => setActionReason(event.target.value)}
+                placeholder="경고, 정지, 정지 해제, 강제 탈퇴 사유를 기록하세요."
+                className="w-full rounded-[8px] px-3 py-2.5 text-[13px] resize-none outline-none transition-colors bg-[var(--color-surface-sunken)] border border-[var(--color-border)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-hint)] focus:border-[var(--color-primary)]"
+              />
+            </div>
+             
             <div className="flex flex-col gap-2.5">
               {/* 경고 */}
               <button
@@ -509,39 +549,38 @@ export default function AdminMemberDetailPage() {
                 </span>
               </button>
               
-              {/* 정지 / 정지 해제 */}
-              {member.status === 'SUSPENDED' ? (
-                <button
-                  type="button"
-                  onClick={() => handleAction('unsuspend')}
-                  className="w-full h-[44px] rounded-[10px] flex items-center gap-2.5 px-4 text-[14px] font-semibold
-                    transition-colors border"
-                  style={{
-                    background: 'rgba(0,179,110,0.08)',
-                    borderColor: 'rgba(0,179,110,0.35)',
-                    color: 'var(--color-success)',
-                  }}
-                >
-                  <ShieldCheck size={15} strokeWidth={1.75}/>
-                  정지 해제
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleAction('suspend')}
-                  disabled={member.status === 'WITHDRAWN'}
-                  className="w-full h-[44px] rounded-[10px] flex items-center gap-2.5 px-4 text-[14px] font-semibold
-                    transition-colors border disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{
-                    background: 'rgba(255,46,77,0.08)',
-                    borderColor: 'rgba(255,46,77,0.35)',
-                    color: 'var(--color-accent)',
-                  }}
-                >
-                  <Ban size={15} strokeWidth={1.75}/>
-                  계정 정지
-                </button>
-              )}
+              {/* 정지 */}
+              <button
+                type="button"
+                onClick={() => handleAction('suspend')}
+                disabled={member.status !== 'ACTIVE'}
+                className="w-full h-[44px] rounded-[10px] flex items-center gap-2.5 px-4 text-[14px] font-semibold
+                  transition-colors border disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: 'rgba(255,46,77,0.08)',
+                  borderColor: 'rgba(255,46,77,0.35)',
+                  color: 'var(--color-accent)',
+                }}
+              >
+                <Ban size={15} strokeWidth={1.75}/>
+                계정 정지
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleAction('unsuspend')}
+                disabled={member.status !== 'SUSPENDED'}
+                className="w-full h-[44px] rounded-[10px] flex items-center gap-2.5 px-4 text-[14px] font-semibold
+                  transition-colors border disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: 'rgba(14,165,233,0.08)',
+                  borderColor: 'rgba(14,165,233,0.35)',
+                  color: 'var(--color-info)',
+                }}
+              >
+                <ShieldCheck size={15} strokeWidth={1.75}/>
+                정지 해제
+              </button>
               
               {/* 강제 탈퇴 */}
               <div className="pt-2" style={{borderTop: '1px solid var(--color-border)'}}>
@@ -565,31 +604,6 @@ export default function AdminMemberDetailPage() {
                 </p>
               </div>
             </div>
-            
-            {/* 관심 종목 */}
-            {member.sports.length > 0 && (
-              <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-border)'}}>
-                <p className="text-[13px] font-semibold uppercase tracking-wide mb-2"
-                   style={{color: 'var(--color-text-hint)'}}>
-                  관심 종목
-                </p>
-                <div className="flex gap-1.5 flex-wrap">
-                  {member.sports.map((s) => (
-                    <span
-                      key={s}
-                      className="px-2.5 py-1 rounded-full text-[13px] font-medium"
-                      style={{
-                        background: 'var(--color-surface-raised)',
-                        color: 'var(--color-text-sub)',
-                        border: '1px solid var(--color-border)'
-                      }}
-                    >
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

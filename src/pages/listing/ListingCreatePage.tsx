@@ -4,37 +4,30 @@
  * 구성:
  *   ImageUpload      — 이미지 업로드 (최대 8장, 드래그앤드롭 시뮬레이션)
  *   FormSection      — 제목/팀/사이즈/등급/거래방식/가격/설명 입력
- *   AiPanel          — AI 설명 추천 + 위험도 탐지 (오른쪽 사이드패널)
+ *   AiPanel          — AI 설명 추천 + 카드 프리뷰 (오른쪽 사이드패널)
  *   LivePreview      — 작성 중 카드 프리뷰
  *
  * AI 기능: 실제 백엔드 연동
  *   - 설명·제목 추천: 첫 번째 이미지를 /api/listings/ai-suggest에 업로드하면 AI가 title+description 반환
- *   - 위험 탐지: 설명 입력 중 키워드 실시간 감지 (택배비 선불, 계좌이체 등)
+ *   - 정책 안내: 상단 AI 안내 배너 + 입력 미충족/유해성 상태 박스 분리 표시
  */
 import {formatPrice} from '../../utils/format'
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
-import {
-  deletePostDraft,
-  getPostDraft,
-  savePostDraft,
-  type DraftModeration,
-} from '../../features/listing/api/draftApi'
-import {
-  createListing,
-  suggestListingFromImage,
-  uploadListingImages,
-} from '../../features/listing/api/listingApi'
-import {resolveImageUrl} from '../../utils/image'
+import {deletePostDraft, type DraftModeration, getPostDraft, savePostDraft,} from '../../features/listing/api/draftApi'
+import {createListing, suggestListingFromImage, uploadListingImages,} from '../../features/listing/api/listingApi'
+import {flattenImageToWhite, resolveImageUrl} from '../../utils/image'
+import {inspectListingModeration} from '../../utils/listingModeration'
+import ConditionBadge from '../../components/ui/ConditionBadge'
 import {AlertTriangle, CheckCircle2, ChevronDown, Eye, Info, Loader2, Sparkles, Upload, X,} from 'lucide-react'
 import {useNavigate} from 'react-router-dom'
 import useAuthStore from '../../store/authStore'
-import type {DeliveryType, Grade, RiskLevel, Sport} from '../../types/listing'
+import type {DeliveryType, Grade, Sport} from '../../types/listing'
 
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 
 const SPORT_OPTIONS: { key: Sport; label: string }[] = [
-  {key: 'SOCCER', label: '축구'},
   {key: 'BASEBALL', label: '야구'},
+  {key: 'SOCCER', label: '축구'},
   {key: 'BASKETBALL', label: '농구'},
   {key: 'VOLLEYBALL', label: '배구'},
   {key: 'ESPORTS', label: 'e스포츠'},
@@ -57,6 +50,21 @@ const DELIVERY_OPTIONS: { key: DeliveryType; label: string; desc: string }[] = [
   {key: 'BOTH', label: '모두', desc: '택배 + 직거래'},
 ]
 
+const SPORT_LABEL: Record<Sport, string> = {
+  SOCCER: '축구',
+  BASEBALL: '야구',
+  BASKETBALL: '농구',
+  VOLLEYBALL: '배구',
+  ESPORTS: 'e스포츠',
+  ETC: '기타',
+}
+
+const DELIVERY_LABEL: Record<DeliveryType, string> = {
+  DELIVERY: '택배',
+  DIRECT: '직거래',
+  BOTH: '택배·직거래',
+}
+
 // ── 폼 타입 ──────────────────────────────────────────────────────────────────
 
 interface ListingForm {
@@ -77,6 +85,112 @@ interface DraftImageItem {
   previewUrl: string
   uploadedUrl: string | null
   file: File | null
+}
+
+interface DraftRestoreSnapshot {
+  form: ListingForm
+  images: DraftImageItem[]
+  moderation: DraftModeration | null
+}
+
+interface DraftRestoreState {
+  beforeRestore: DraftRestoreSnapshot
+  restored: DraftRestoreSnapshot
+  isApplied: boolean
+}
+
+/**
+ * 작성 화면의 현재 입력값을 실제 목록 카드에 가까운 형태로 보여준다.
+ * - 대표 이미지는 첫 번째 previewUrl을 사용한다.
+ * - 아직 이미지가 없으면 목록 카드와 동일한 톤의 플레이스홀더를 렌더링한다.
+ * - 저장 전 단계라 시간 표시는 고정 문구로 두고, 나머지는 현재 폼 상태를 그대로 반영한다.
+ */
+function ListingPreviewCard({
+                              form,
+                              images,
+                            }: {
+  form: ListingForm
+  images: DraftImageItem[]
+}) {
+  const previewImage = images[0]?.previewUrl ?? null
+  const sportLabel = SPORT_LABEL[form.sport]
+  const deliveryLabel = DELIVERY_LABEL[form.deliveryType]
+  const previewTitle = form.title.trim() || '상품명을 입력해주세요'
+  const previewTeam = form.team.trim() || `${sportLabel} · 팀 미정`
+  const previewPrice = form.price ? formatPrice(Number(form.price)) : '₩0'
+  const previewMeta = [deliveryLabel, form.size || null].filter(Boolean).join(' · ')
+  
+  return (
+    <div
+      className="rounded-xl overflow-hidden relative mx-auto w-full max-w-[220px] transition-shadow"
+      style={{border: '1px solid var(--color-border)', background: 'var(--color-surface)'}}
+    >
+      <div className="relative" style={{aspectRatio: '4/5', background: 'var(--color-primary-hover)'}}>
+        {previewImage ? (
+          <img
+            src={previewImage}
+            alt={previewTitle}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <>
+            {/* 실제 카드와 동일한 계열의 플레이스홀더를 사용해 업로드 전에도 분위기를 유지한다. */}
+            <div
+              className="absolute inset-0"
+              style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}
+            />
+            <span
+              className="absolute inset-0 flex items-center justify-center select-none"
+              style={{
+                fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                fontSize: 80,
+                color: 'rgba(255,255,255,.13)',
+              }}
+            >
+              {form.jerseyNumber.trim() || '?'}
+            </span>
+          </>
+        )}
+        
+        <ConditionBadge grade={form.grade} size="sm" className="absolute top-2 left-2"/>
+        
+        <span
+          className="absolute bottom-2 left-2 rounded-full px-2 py-1 text-[11px] font-semibold"
+          style={{
+            background: 'rgba(255,255,255,.9)',
+            color: 'var(--color-text-main)',
+          }}
+        >
+          {deliveryLabel}
+        </span>
+      </div>
+      
+      <div className="p-3">
+        <p className="text-[13px] mb-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>
+          {previewTeam}
+        </p>
+        <p className="text-sm font-semibold leading-snug line-clamp-2" style={{color: 'var(--color-text-main)'}}>
+          {previewTitle}
+        </p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <span
+              className="block font-bold text-sm truncate"
+              style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+            >
+              {previewPrice}
+            </span>
+            <span className="block text-[11px] truncate" style={{color: 'var(--color-text-hint)'}}>
+              {previewMeta || '옵션 입력 대기'}
+            </span>
+          </div>
+          <span className="text-xs flex-shrink-0" style={{color: 'var(--color-text-hint)'}}>
+            미리보기
+          </span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── 서브 컴포넌트 ─────────────────────────────────────────────────────────────
@@ -245,33 +359,43 @@ function FormInput({
   )
 }
 
-/** AI 위험 탐지 배너 */
-function RiskBanner({level, msg}: { level: RiskLevel; msg: string }) {
-  const colors: Record<RiskLevel, { bg: string; text: string; icon: string }> = {
-    HIGH: {bg: 'rgba(255,46,77,.08)', text: 'var(--color-accent)', icon: 'var(--color-accent)'},
-    MID: {bg: 'rgba(255,149,0,.08)', text: 'var(--color-warning)', icon: 'var(--color-warning)'},
-    LOW: {bg: 'rgba(0,179,110,.08)', text: 'var(--color-success)', icon: 'var(--color-success)'},
-  }
-  const c = colors[level]
+/** 유해성 검사에서 감지된 표현 목록 */
+function ModerationHitList({hits}: { hits: string[] }) {
+  if (hits.length === 0) return null
+  
   return (
-    <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl mt-2"
-         style={{background: c.bg, border: `1px solid ${c.text}33`}}>
-      <AlertTriangle size={15} color={c.icon} className="flex-shrink-0 mt-0.5"/>
-      <p className="text-xs leading-relaxed" style={{color: c.text}}>{msg}</p>
+    <div className="flex flex-col gap-2">
+      <p className="text-[11px] font-semibold" style={{color: 'var(--color-text-hint)'}}>
+        수정이 필요한 표현
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {hits.map((hit) => (
+          <span
+            key={hit}
+            className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+            style={{
+              background: 'rgba(255,46,77,.08)',
+              border: '1px solid rgba(255,46,77,.18)',
+              color: 'var(--color-accent)',
+            }}
+          >
+            {hit}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
 
 /** AI 패널 — /api/listings/ai-suggest 실연동 */
 function AiPanel({
-                   form, onApply, images, moderation,
+                   form, onApply, images,
                  }: {
   form: ListingForm
   /** AI 추천 결과 적용 콜백 — title + description 동시 반영 */
   onApply: (result: { title: string; description: string }) => void
   /** 업로드된 이미지 목록 (이번 세션에 추가한 파일이 있을 때만 AI 분석 가능) */
   images: DraftImageItem[]
-  moderation: DraftModeration | null
 }) {
   const [aiLoading, setAiLoading] = useState(false)
   /** AI 추천 결과 — null이면 미생성 또는 오류 */
@@ -373,49 +497,6 @@ function AiPanel({
         </div>
       </div>
       
-      {/* 위험 탐지 */}
-      <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
-        <div className="flex items-center gap-2 px-4 py-3" style={{
-          background: moderation ? 'rgba(255,46,77,.06)' : 'var(--color-surface-raised)',
-          borderBottom: '1px solid var(--color-border)'
-        }}>
-          {moderation
-            ? <AlertTriangle size={15} color="var(--color-accent)"/>
-            : <CheckCircle2 size={15} color="var(--color-success)"/>
-          }
-          <span className="text-sm font-bold"
-                style={{color: moderation ? 'var(--color-accent)' : 'var(--color-success)'}}>
-            {moderation ? '주의가 필요한 내용 감지' : '위험 요소 없음'}
-          </span>
-        </div>
-        <div className="p-4" style={{background: 'var(--color-surface)'}}>
-          {!moderation ? (
-            <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
-              초안을 저장할 때 백엔드 AI가 제목과 설명을 함께 검사합니다.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <RiskBanner
-                level={moderation.riskLevel}
-                msg={moderation.reason ?? '주의가 필요한 내용이 감지되었습니다.'}
-              />
-              {moderation.suggestion && (
-                <div
-                  className="px-3 py-2.5 rounded-xl text-xs leading-relaxed"
-                  style={{
-                    background: 'var(--color-surface-raised)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-sub)',
-                  }}
-                >
-                  {moderation.suggestion}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-      
       {/* 라이브 프리뷰 */}
       <div className="rounded-2xl overflow-hidden" style={{border: '1px solid var(--color-border)'}}>
         <div className="flex items-center gap-2 px-4 py-3"
@@ -424,43 +505,7 @@ function AiPanel({
           <span className="text-sm font-display font-bold" style={{color: 'var(--color-text-sub)'}}>카드 프리뷰</span>
         </div>
         <div className="p-4" style={{background: 'var(--color-surface)'}}>
-          {/* 미니 카드 */}
-          <div className="rounded-xl overflow-hidden"
-               style={{border: '1px solid var(--color-border)', maxWidth: 200, margin: '0 auto'}}>
-            <div
-              className="relative"
-              style={{aspectRatio: '4/5', background: form.team ? '#1A3051' : 'var(--color-surface-raised)'}}
-            >
-              <div className="absolute inset-0"
-                   style={{backgroundImage: 'repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 2px, transparent 2px 16px)'}}/>
-              <span
-                className="absolute inset-0 flex items-center justify-center select-none"
-                style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 56, color: 'rgba(255,255,255,.18)'}}
-              >
-                {form.jerseyNumber || '?'}
-              </span>
-              {form.grade && (
-                <span
-                  className="absolute top-2 left-2 text-xs font-bold px-1.5 py-0.5 rounded"
-                  style={{
-                    background: form.grade === 'S' ? 'rgba(255,184,0,.2)' : 'rgba(255,255,255,.2)',
-                    color: '#fff',
-                  }}
-                >
-                  {form.grade}급
-                </span>
-              )}
-            </div>
-            <div className="p-2.5" style={{background: 'var(--color-surface)'}}>
-              <p className="text-xs font-semibold truncate" style={{color: 'var(--color-text-main)'}}>
-                {form.title || '상품명을 입력해주세요'}
-              </p>
-              <p className="text-sm font-bold mt-1"
-                 style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
-                {form.price ? formatPrice(Number(form.price)) : '₩0'}
-              </p>
-            </div>
-          </div>
+          <ListingPreviewCard form={form} images={images}/>
         </div>
       </div>
     </div>
@@ -473,7 +518,7 @@ export default function ListingCreatePage() {
   const navigate = useNavigate()
   
   const [form, setForm] = useState<ListingForm>({
-    title: '', sport: 'SOCCER', team: '', jerseyNumber: '',
+    title: '', sport: 'BASEBALL', team: '', jerseyNumber: '',
     size: 'M', grade: 'A', deliveryType: 'BOTH', price: '', description: '', tradeArea: '',
   })
   const [images, setImages] = useState<DraftImageItem[]>([])
@@ -482,14 +527,38 @@ export default function ListingCreatePage() {
   const [submitError, setSubmitError] = useState<string | null>(null)   // 등록 실패 메시지
   // 초안 관련 상태
   const [draftLoaded, setDraftLoaded] = useState(false)   // 초안 복원 알림 표시 여부
+  const [draftRestoreState, setDraftRestoreState] = useState<DraftRestoreState | null>(null)
   const [draftSaving, setDraftSaving] = useState(false)   // 저장 중 표시
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const draftRestoreBaseRef = useRef<DraftRestoreSnapshot | null>(null)
   // 인증 상태 (draft API 호출 여부 결정)
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const moderationInput = useMemo(
+    () => `${form.title} ${form.description}`.trim(),
+    [form.title, form.description],
+  )
+  const localModerationPreview = useMemo(
+    () => inspectListingModeration(moderationInput),
+    [moderationInput],
+  )
   
   const update = useCallback(<K extends keyof ListingForm>(key: K, val: ListingForm[K]) => {
     setForm(prev => ({...prev, [key]: val}))
   }, [])
+  
+  /**
+   * 초안 자동 복원 전 기준이 되는 현재 로컬 입력 상태를 ref로 유지한다.
+   *
+   * getPostDraft effect는 마운트 시 한 번만 돌기 때문에,
+   * 최신 값 캡처는 의존성 확장 대신 ref 동기화로 처리한다.
+   */
+  useEffect(() => {
+    draftRestoreBaseRef.current = {
+      form: {...form},
+      images: images.map((image) => ({...image})),
+      moderation: draftModeration,
+    }
+  }, [draftModeration, form, images])
   
   /* 마운트 시 초안 불러오기 — 로그인 상태에서만 호출 (비로그인 시 403) */
   useEffect(() => {
@@ -507,6 +576,13 @@ export default function ListingCreatePage() {
             !!draft.imageUrls?.length
           )
         if (hasDraft) {
+          /**
+           * 초안 복원 스위치를 위해 복원 전/복원 후 상태를 함께 보관한다.
+           *
+           * 현재 페이지는 마운트 직후 서버 초안을 자동 적용하므로,
+           * 사용자가 "실행 취소"와 "복원하기"를 반복해서 눌러도
+           * 같은 두 상태 사이를 안정적으로 왕복할 수 있어야 한다.
+           */
           const restoredImages: DraftImageItem[] = (draft.imageUrls ?? [])
             .reduce<DraftImageItem[]>((acc, url, index) => {
               const resolved = resolveImageUrl(url)
@@ -521,6 +597,32 @@ export default function ListingCreatePage() {
               })
               return acc
             }, [])
+          const restoredSnapshot: DraftRestoreSnapshot = {
+            form: {
+              ...form,
+              title: draft.title ?? form.title,
+              sport: draft.sport ?? form.sport,
+              team: draft.team ?? form.team,
+              jerseyNumber: draft.uniformNumber ?? form.jerseyNumber,
+              grade: draft.condition ?? form.grade,
+              size: draft.size ?? form.size,
+              deliveryType: draft.tradeType ?? form.deliveryType,
+              price: draft.price != null ? String(draft.price) : form.price,
+              description: draft.content ?? form.description,
+              tradeArea: draft.directTradeLocation ?? form.tradeArea,
+            },
+            images: restoredImages.map((image) => ({...image})),
+            moderation: moderation ?? null,
+          }
+          setDraftRestoreState({
+            beforeRestore: draftRestoreBaseRef.current ?? {
+              form: {...form},
+              images: images.map((image) => ({...image})),
+              moderation: draftModeration,
+            },
+            restored: restoredSnapshot,
+            isApplied: true,
+          })
           setForm(prev => ({
             ...prev,
             title: draft.title ?? prev.title,
@@ -542,6 +644,33 @@ export default function ListingCreatePage() {
       .catch(() => { /* 초안 없으면 무시 */
       })
   }, [isAuthenticated])
+  
+  /**
+   * 초안 자동 복원 상태를 토글한다.
+   *
+   * 동작:
+   * - 현재 복원 적용 상태면 복원 직전 로컬 입력 상태로 되돌린다.
+   * - 현재 복원 취소 상태면 서버 초안 복원 상태를 다시 적용한다.
+   * - 알림 박스는 유지하고, 메시지/버튼 라벨만 현재 상태에 맞게 전환한다.
+   *
+   * 참고:
+   * - 서버에 저장된 초안 자체는 유지한다.
+   * - 사용자가 새로고침하거나 다시 진입하면 서버 초안 기준으로 다시 복원될 수 있다.
+   */
+  function handleToggleDraftRestore() {
+    if (!draftRestoreState) {
+      return
+    }
+    
+    const nextSnapshot = draftRestoreState.isApplied
+      ? draftRestoreState.beforeRestore
+      : draftRestoreState.restored
+    
+    setForm({...nextSnapshot.form})
+    setImages(nextSnapshot.images.map((image) => ({...image})))
+    setDraftModeration(nextSnapshot.moderation)
+    setDraftRestoreState((prev) => prev ? {...prev, isApplied: !prev.isApplied} : prev)
+  }
   
   /* 제목/설명 변경 시 디바운스 자동저장 (1.5초 후) — 로그인 상태에서만 */
   useEffect(() => {
@@ -586,21 +715,24 @@ export default function ListingCreatePage() {
     update('title', title)
     update('description', description)
   }
-
+  
   async function handleAddImages(files: File[]) {
     if (!files.length) return
-
-    const nextItems: DraftImageItem[] = files.map((file, index) => ({
+    
+    // 투명 배경(PNG 등)을 흰색 배경 JPEG로 변환해 다크모드 투명도 문제 방지
+    const flattenedFiles = await Promise.all(files.map(flattenImageToWhite))
+    
+    const nextItems: DraftImageItem[] = flattenedFiles.map((file, index) => ({
       id: `local-${Date.now()}-${index}`,
       previewUrl: URL.createObjectURL(file),
       uploadedUrl: null,
       file,
     }))
-
+    
     setImages((prev) => [...prev, ...nextItems])
-
+    
     try {
-      const uploadedUrls = await uploadListingImages(files)
+      const uploadedUrls = await uploadListingImages(flattenedFiles)
       setImages((prev) => {
         let cursor = 0
         return prev.map((image) => {
@@ -618,7 +750,7 @@ export default function ListingCreatePage() {
       setSubmitError('이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.')
     }
   }
-
+  
   function removeImage(idx: number) {
     setImages((prev) => {
       const target = prev[idx]
@@ -632,6 +764,10 @@ export default function ListingCreatePage() {
   /* 제출 — createListing API 연동 */
   async function handleSubmit() {
     if (!form.title || !form.price || images.length === 0) return
+    if (effectiveModeration) {
+      setSubmitError('이 게시글에는 운영 정책에 맞지 않는 표현이 포함되어 있어요. 문제 표현을 수정한 뒤 다시 등록해 주세요.')
+      return
+    }
     setSubmitting(true)
     setSubmitError(null)   // 이전 에러 초기화
     try {
@@ -670,7 +806,50 @@ export default function ListingCreatePage() {
     }
   }
   
-  const canSubmit = !!form.title && !!form.price && images.some((image) => !!image.uploadedUrl)
+  /**
+   * 등록 차단 기준:
+   * - 백엔드 초안 검사 결과가 유해로 판정되었거나
+   * - 프론트 로컬 규칙이 현재 입력값에서 유해 표현을 감지하면
+   *   등록 버튼을 잠근다.
+   *
+   * 백엔드 응답은 AI/정책 전반을, 로컬 규칙은 즉시성 있는 키워드 차단을 담당한다.
+   */
+  const effectiveModeration = draftModeration ?? (
+    localModerationPreview
+      ? {
+        riskLevel: localModerationPreview.riskLevel,
+        reason: localModerationPreview.reason,
+        suggestion: null,
+      }
+      : null
+  )
+  const moderationHits = localModerationPreview?.matchedTerms ?? []
+  const isModerationBlocked = effectiveModeration !== null
+  const canSubmit = !!form.title && !!form.price && images.some((image) => !!image.uploadedUrl) && !isModerationBlocked
+  const moderationWarningMessage = effectiveModeration?.riskLevel === 'HIGH'
+    ? '운영 정책에 어긋날 수 있는 표현이 감지되었습니다. 문제 표현을 수정해야 등록할 수 있어요.'
+    : '주의가 필요한 표현이 감지되었습니다. 내용을 검토하고 수정한 뒤 다시 등록해 주세요.'
+  const draftRestoreMessage = draftRestoreState?.isApplied
+    ? '이전에 작성하던 초안이 복원되었습니다.'
+    : '초안 복원이 취소되었습니다.'
+  const draftRestoreActionLabel = draftRestoreState?.isApplied ? '실행 취소' : '복원하기'
+  const missingSubmitRequirements = useMemo(() => {
+    const requirements: string[] = []
+    
+    if (!form.title.trim()) {
+      requirements.push('상품명을 입력해주세요.')
+    }
+    
+    if (!form.price.trim()) {
+      requirements.push('가격을 입력해주세요.')
+    }
+    
+    if (!images.some((image) => !!image.uploadedUrl)) {
+      requirements.push('사진을 1장 이상 업로드해주세요.')
+    }
+    
+    return requirements
+  }, [form.price, form.title, images])
   
   return (
     <div className="min-h-screen" style={{background: 'var(--color-bg)'}}>
@@ -696,16 +875,43 @@ export default function ListingCreatePage() {
             )}
           </div>
           <p className="text-sm" style={{color: 'var(--color-text-sub)'}}>유니폼 정보를 입력하면 AI가 도와드립니다.</p>
+          <div
+            className="mt-3 flex items-start gap-2.5 px-4 py-3 rounded-xl"
+            style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+          >
+            <Info size={16} color="var(--color-primary)" className="flex-shrink-0 mt-0.5"/>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+                AI 검사 안내
+              </p>
+              <p className="text-sm leading-relaxed mt-1" style={{color: 'var(--color-text-sub)'}}>
+                등록 전 AI가 이미지와 게시글 내용을 함께 확인해 정책 위반 가능성이 있는 표현을 안내합니다.
+              </p>
+            </div>
+          </div>
           {/* 초안 복원 알림 */}
           {draftLoaded && (
             <div
-              className="mt-3 flex items-center justify-between px-4 py-2.5 rounded-xl text-sm"
+              className="mt-3 flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl text-sm"
               style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
             >
-              <span style={{color: 'var(--color-text-sub)'}}>이전에 작성하던 초안이 복원되었습니다.</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <span style={{color: 'var(--color-text-sub)'}}>{draftRestoreMessage}</span>
+                <button
+                  onClick={handleToggleDraftRestore}
+                  className="flex-shrink-0 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-primary)',
+                  }}
+                >
+                  {draftRestoreActionLabel}
+                </button>
+              </div>
               <button
                 onClick={() => setDraftLoaded(false)}
-                className="ml-3 flex-shrink-0"
+                className="flex-shrink-0"
                 style={{color: 'var(--color-text-hint)'}}
                 aria-label="알림 닫기"
               >
@@ -737,7 +943,7 @@ export default function ListingCreatePage() {
                 <FormInput
                   label="상품명" required
                   value={form.title} onChange={v => update('title', v)}
-                  placeholder="예: 맨체스터 유나이티드 23/24 홈 어센틱"
+                  placeholder="예: KIA 타이거즈 2024 홈 유니폼"
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <FormSelect
@@ -749,7 +955,7 @@ export default function ListingCreatePage() {
                 <div className="grid grid-cols-2 gap-3">
                   <FormInput
                     label="팀명" value={form.team} onChange={v => update('team', v)}
-                    placeholder="예: 맨체스터 유나이티드"
+                    placeholder="예: KIA 타이거즈"
                   />
                   <FormInput
                     label="등번호" value={form.jerseyNumber} onChange={v => update('jerseyNumber', v)}
@@ -856,6 +1062,15 @@ export default function ListingCreatePage() {
               </div>
             </div>
             
+            {/* AI 패널 (모바일: 인라인) */}
+            <div className="xl:hidden">
+              <AiPanel
+                form={form}
+                onApply={applyAiDescription}
+                images={images}
+              />
+            </div>
+            
             {/* 상품 설명 */}
             <div className="rounded-2xl p-5"
                  style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}>
@@ -881,10 +1096,70 @@ export default function ListingCreatePage() {
               />
             </div>
             
-            {/* AI 패널 (모바일: 인라인) */}
-            <div className="xl:hidden">
-              <AiPanel form={form} onApply={applyAiDescription} images={images} moderation={draftModeration}/>
-            </div>
+            {isModerationBlocked ? (
+              <div
+                className="flex flex-col gap-3 px-4 py-3.5 rounded-xl"
+                style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.24)'}}
+                role="alert"
+              >
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={16} color="var(--color-accent)" className="flex-shrink-0 mt-0.5"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{color: 'var(--color-accent)'}}>
+                      게시글 등록이 일시적으로 제한되었습니다
+                    </p>
+                    <p className="text-sm leading-relaxed mt-1" style={{color: 'var(--color-accent)'}}>
+                      {moderationWarningMessage}
+                    </p>
+                  </div>
+                </div>
+                <ModerationHitList hits={moderationHits}/>
+                {effectiveModeration?.suggestion && (
+                  <div
+                    className="px-3 py-2.5 rounded-xl text-xs leading-relaxed"
+                    style={{
+                      background: 'var(--color-surface)',
+                      border: '1px solid rgba(255,46,77,.14)',
+                      color: 'var(--color-text-sub)',
+                    }}
+                  >
+                    {effectiveModeration.suggestion}
+                  </div>
+                )}
+              </div>
+            ) : !canSubmit ? (
+              <div
+                className="flex flex-col gap-3 px-4 py-3.5 rounded-xl"
+                style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+                role="status"
+              >
+                <div className="flex items-start gap-2.5">
+                  <Info size={16} color="var(--color-primary)" className="flex-shrink-0 mt-0.5"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold" style={{color: 'var(--color-text-main)'}}>
+                      판매 등록 준비 중입니다
+                    </p>
+                    <p className="text-sm leading-relaxed mt-1" style={{color: 'var(--color-text-sub)'}}>
+                      아래 항목을 채우면 판매 등록 버튼이 활성화됩니다.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {missingSubmitRequirements.map((requirement) => (
+                    <div
+                      key={requirement}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2"
+                      style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
+                    >
+                      <AlertTriangle size={14} color="var(--color-warning)" className="flex-shrink-0"/>
+                      <span className="text-sm" style={{color: 'var(--color-text-sub)'}}>
+                        {requirement}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             
             {/* 등록 실패 에러 메시지 */}
             {submitError && (
@@ -910,9 +1185,9 @@ export default function ListingCreatePage() {
               </button>
             </div>
             
-            {!canSubmit && !submitError && (
+            {!submitError && isModerationBlocked && (
               <p className="text-xs text-center" style={{color: 'var(--color-text-hint)'}}>
-                상품명, 가격, 사진을 입력해야 등록할 수 있습니다.
+                유해성 검사를 통과해야 게시글을 등록할 수 있습니다.
               </p>
             )}
           </div>
@@ -920,7 +1195,11 @@ export default function ListingCreatePage() {
           {/* ── 우: AI 패널 (데스크탑) ───────────────────────────────── */}
           <div className="hidden xl:block w-72 flex-shrink-0">
             <div className="sticky top-20 flex flex-col gap-4">
-              <AiPanel form={form} onApply={applyAiDescription} images={images} moderation={draftModeration}/>
+              <AiPanel
+                form={form}
+                onApply={applyAiDescription}
+                images={images}
+              />
             </div>
           </div>
         </div>

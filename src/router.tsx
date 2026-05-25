@@ -58,6 +58,7 @@ import AdminDisputesPage from './pages/admin/AdminDisputesPage'
 import AdminDisputeDetailPage from './pages/admin/AdminDisputeDetailPage'
 import AdminListingPage from './pages/admin/AdminListingPage'
 import AdminWithdrawalsPage from './pages/admin/AdminWithdrawalsPage'
+import AdminRiskPage from './pages/admin/AdminRiskPage'
 
 const router = createBrowserRouter([
   // ── 인증 레이아웃 (GNB 없음) ──────────────────────────────────────────────
@@ -123,6 +124,7 @@ const router = createBrowserRouter([
       {path: '/admin/disputes', element: <AdminDisputesPage/>},
       {path: '/admin/disputes/:id', element: <AdminDisputeDetailPage/>},
       {path: '/admin/withdrawals', element: <AdminWithdrawalsPage/>},
+      {path: '/admin/risk', element: <AdminRiskPage/>},
     ],
   },
 ])

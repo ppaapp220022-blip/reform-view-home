@@ -15,10 +15,12 @@ import {
   LogOut,
   MessageSquareWarning,
   Shield,
+  ShieldAlert,
   Users,
   Wallet,
 } from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import useTheme from '../../hooks/useTheme'
 
 // ── 사이드바 네비 아이템 ───────────────────────────────────────────────────────
 
@@ -36,9 +38,44 @@ const NAV_ITEMS: NavItem[] = [
   {path: '/admin/reports', label: '신고 관리', icon: <Flag size={16}/>},
   {path: '/admin/disputes', label: '분쟁 처리', icon: <MessageSquareWarning size={16}/>},
   {path: '/admin/withdrawals', label: '출금 요청', icon: <Wallet size={16}/>},
+  {path: '/admin/risk', label: 'AI 위험 탐지', icon: <ShieldAlert size={16}/>},
 ]
 
 // ── 사이드바 ─────────────────────────────────────────────────────────────────
+
+/**
+ * ThemeToggleRow — 사이드바 전용 테마 토글
+ * 사이드바가 navy 배경이므로 아이콘·텍스트를 흰색 계열로 처리
+ */
+function ThemeToggleRow() {
+  const {isDark, toggleTheme} = useTheme()
+  return (
+    <button
+      onClick={toggleTheme}
+      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm w-full text-left transition-all hover:text-white"
+      style={{color: 'rgba(255,255,255,.45)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+      aria-label={isDark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+    >
+      {/* Sun/Moon SVG 인라인 — 사이드바 navy 배경에서 색 보장 */}
+      {isDark ? (
+        /* Sun 아이콘 */
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+      ) : (
+        /* Moon 아이콘 */
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2"
+             strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      )}
+      {isDark ? '라이트 모드' : '다크 모드'}
+    </button>
+  )
+}
 
 function AdminSidebar() {
   const location = useLocation()
@@ -121,11 +158,12 @@ function AdminSidebar() {
         ))}
       </nav>
       
-      {/* 하단 — 메인 사이트 / 로그아웃 */}
+      {/* 하단 — 테마 토글 / 메인 사이트 / 로그아웃 */}
       <div
         className="px-3 py-4 flex flex-col gap-1"
         style={{borderTop: '1px solid rgba(255,255,255,.08)'}}
       >
+        <ThemeToggleRow/>
         <Link
           to="/"
           className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all hover:text-white"
