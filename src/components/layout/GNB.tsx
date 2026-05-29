@@ -15,8 +15,25 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {getNotifications, readAllNotifications, readNotification} from '../../features/notification/api/notificationApi'
 import {getMyProfile} from '../../features/mypage/api/memberApi'
 import {Link, useLocation, useNavigate} from 'react-router-dom'
-import {Bell, Info, LogOut, MessageSquare, Search, ShoppingBag, Star, Tag, User, X,} from 'lucide-react'
+import {
+  Bell,
+  Info,
+  Loader2,
+  LogOut,
+  MessageSquare,
+  Search,
+  ShoppingBag,
+  Star,
+  Tag,
+  TrendingUp,
+  User,
+  X,
+} from 'lucide-react'
 import useAuthStore from '../../store/authStore'
+import type {PostCard} from '../../features/listing/api/listingApi'
+import {getPopularListings, getSearchSuggestions} from '../../features/listing/api/listingApi'
+import {formatPrice} from '../../utils/format'
+import {resolveImageUrl} from '../../utils/image'
 import {useStompNotification} from '../../features/notification/hooks/useStompNotification'
 import {logout as logoutApi} from '../../features/auth/api/authApi'
 import Logo from '../ui/Logo'
@@ -434,6 +451,262 @@ function NotificationButton({className}: { className?: string }) {
   )
 }
 
+// ── GNB 검색바 (데스크톱 전용) ─────────────────────────────────────────────────
+
+/**
+ * GnbSearchBar — GNB 내 AI 연동 검색창 (데스크톱 전용)
+ *
+ * 동작 흐름:
+ *   - 포커스 + 빈 입력: 백엔드 배치 인기 매물 목록 표시 (getPopularListings)
+ *   - 300ms 디바운스 후 입력: AI 의미 기반 유사 검색 제안 (getSearchSuggestions)
+ *   - 아이템 클릭: /listing/{id} 이동
+ *   - Enter: /search?q={keyword} 이동
+ *   - Escape / 외부 클릭: 드롭다운 닫기
+ */
+function GnbSearchBar() {
+  const navigate = useNavigate()
+  const [query, setQuery] = useState('')
+  const [focused, setFocused] = useState(false)
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  // 디바운스 타이머 레퍼런스 (setTimeout ID 저장)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // 300ms 디바운스 — 타이핑 완료 후 AI 검색 요청
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value
+    setQuery(val)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setDebouncedQuery(val), 300)
+  }
+  
+  // 외부 클릭 감지 → 드롭다운 닫기
+  useEffect(() => {
+    if (!focused) return
+    
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setFocused(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [focused])
+  
+  // 인기 매물 — 포커스 시 미리 로드 (빈 쿼리 상태에서 표시)
+  const {data: popularItems} = useQuery({
+    queryKey: ['gnbPopularListings'],
+    queryFn: () => getPopularListings(6),
+    staleTime: 60_000,
+    enabled: focused,      // 포커스 시에만 요청
+  })
+  
+  // AI 검색 제안 — 타이핑 후 디바운스 쿼리로 요청
+  const {data: suggestions, isFetching: isSuggesting} = useQuery({
+    queryKey: ['gnbSuggestions', debouncedQuery],
+    queryFn: () => getSearchSuggestions(debouncedQuery, 5),
+    staleTime: 30_000,
+    // 포커스 상태이고 디바운스 쿼리가 있을 때만 요청
+    enabled: focused && debouncedQuery.trim().length > 0,
+  })
+  
+  // 표시할 아이템: 쿼리 있으면 AI 제안, 없으면 인기 매물
+  const showSuggestions = debouncedQuery.trim().length > 0
+  const items: PostCard[] = showSuggestions ? (suggestions ?? []) : (popularItems ?? [])
+  
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = query.trim()
+    if (trimmed) {
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`)
+      setFocused(false)
+      inputRef.current?.blur()
+    }
+  }
+  
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setFocused(false)
+      inputRef.current?.blur()
+    }
+  }
+  
+  function handleItemClick(item: PostCard) {
+    navigate(`/listing/${item.postId}`)
+    setFocused(false)
+    setQuery('')
+    setDebouncedQuery('')
+  }
+  
+  return (
+    <div ref={containerRef} className="relative flex-1" style={{maxWidth: 360}}>
+      {/* 검색 입력창 */}
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all"
+        style={{
+          background: 'var(--color-surface-raised)',
+          border: `1px solid ${focused ? 'var(--color-primary)' : 'var(--color-border)'}`,
+        }}
+      >
+        <Search size={14} style={{color: 'var(--color-text-hint)', flexShrink: 0}}/>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={handleChange}
+          onFocus={() => setFocused(true)}
+          onKeyDown={handleKeyDown}
+          placeholder="팀, 선수, 유니폼 검색..."
+          className="flex-1 bg-transparent text-sm outline-none"
+          style={{color: 'var(--color-text-main)', minWidth: 0}}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => {
+              setQuery('')
+              setDebouncedQuery('')
+              inputRef.current?.focus()
+            }}
+            aria-label="검색어 지우기"
+            style={{color: 'var(--color-text-hint)', flexShrink: 0}}
+          >
+            <X size={13}/>
+          </button>
+        )}
+      </form>
+      
+      {/* 드롭다운 — 포커스 상태에서만 표시 */}
+      {focused && (
+        <div
+          className="absolute top-full left-0 right-0 mt-1.5 rounded-2xl overflow-hidden z-30"
+          style={{
+            background: 'var(--color-surface)',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 8px 32px -4px rgba(0,33,71,.18)',
+          }}
+        >
+          {/* 드롭다운 헤더 — 섹션 레이블 + 전체 보기 */}
+          <div
+            className="flex items-center justify-between px-4 py-2.5 border-b"
+            style={{borderColor: 'var(--color-border)'}}
+          >
+            {showSuggestions ? (
+              <div className="flex items-center gap-1.5">
+                <Search size={12} style={{color: 'var(--color-text-hint)'}}/>
+                <span className="text-xs font-semibold" style={{color: 'var(--color-text-hint)'}}>
+                  AI 검색 결과
+                </span>
+                {/* AI 검색 중 스피너 */}
+                {isSuggesting && (
+                  <Loader2 size={11} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <TrendingUp size={12} style={{color: 'var(--color-accent)'}}/>
+                <span className="text-xs font-semibold" style={{color: 'var(--color-text-hint)'}}>
+                  인기 매물
+                </span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                navigate(
+                  showSuggestions
+                    ? `/search?q=${encodeURIComponent(query.trim())}`
+                    : '/search',
+                )
+                setFocused(false)
+              }}
+              className="text-xs font-semibold hover:underline"
+              style={{color: 'var(--color-accent)'}}
+            >
+              전체 보기
+            </button>
+          </div>
+          
+          {/* 결과 없음 안내 */}
+          {items.length === 0 && !isSuggesting && (
+            <p className="text-xs text-center py-5" style={{color: 'var(--color-text-hint)'}}>
+              {showSuggestions ? '검색 결과가 없습니다' : '데이터를 불러오는 중...'}
+            </p>
+          )}
+          
+          {/* 아이템 리스트 */}
+          {items.map(item => {
+            const imgSrc = resolveImageUrl(item.thumbnailUrl)
+            return (
+              <button
+                key={item.postId}
+                type="button"
+                onClick={() => handleItemClick(item)}
+                className="flex items-center gap-3 w-full px-4 py-2.5 text-left hover:bg-[var(--color-surface-raised)] transition-colors"
+              >
+                {/* 썸네일 */}
+                <div
+                  className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0"
+                  style={{background: '#1A3051'}}
+                >
+                  {imgSrc && (
+                    <img
+                      src={imgSrc}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                {/* 정보 */}
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-xs font-semibold truncate"
+                    style={{color: 'var(--color-text-main)'}}
+                  >
+                    {item.title}
+                  </p>
+                  <p className="text-[11px]" style={{color: 'var(--color-text-hint)'}}>
+                    {item.team}
+                  </p>
+                </div>
+                {/* 가격 */}
+                <p
+                  className="text-xs font-bold flex-shrink-0"
+                  style={{
+                    color: 'var(--color-primary)',
+                    fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                  }}
+                >
+                  {formatPrice(item.price)}
+                </p>
+              </button>
+            )
+          })}
+          
+          {/* 타이핑 중일 때 "전체 결과 보기" 버튼 */}
+          {showSuggestions && query.trim() && (
+            <button
+              type="button"
+              onClick={() => {
+                navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+                setFocused(false)
+              }}
+              className="flex items-center justify-center gap-2 w-full py-3 border-t text-xs font-semibold hover:bg-[var(--color-surface-raised)] transition-colors"
+              style={{borderColor: 'var(--color-border)', color: 'var(--color-accent)'}}
+            >
+              <Search size={13}/>
+              &quot;{query}&quot; 검색 결과 전체 보기
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── 네비게이션 아이템 ─────────────────────────────────────────────────────────
 // 홈(/) — 브랜드 소개 + 피처 리스팅 허브
 // 마켓(/search) — 전체 검색·필터 마켓플레이스
@@ -524,6 +797,9 @@ export default function GNB() {
             )
           })}
         </nav>
+        
+        {/* GNB 검색바 — AI 의미 기반 자동완성 드롭다운 */}
+        <GnbSearchBar/>
         
         {/* 우측 액션 영역 — 채팅·마이페이지는 nav로 이동, 알림만 아이콘 유지 */}
         <div className="flex items-center gap-2 ml-auto">

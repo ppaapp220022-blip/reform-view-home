@@ -1336,3 +1336,42 @@ npx eslint src/ 2>&1 | grep -B1 "Parsing error" | grep "\.tsx"
 - [done] `tradeApi.ts` — `cancelTrade(tradeId)` 함수 추가
 - [done] `TradeConfirmPage.tsx` — 미사용 `[courierName, setCourierName]` state 제거
 - [done] ESLint: 0 errors / tsc: 0 errors
+
+## 2026-05-29 작업 내역
+
+### 1. 배송 추적 시스템 구현 (TradePage) <!-- 2026-05-29 -->
+- [done] `src/features/delivery/api/deliveryApi.ts` — 기존 존재 확인 (getCouriers, traceDelivery)
+- [done] `tradeApi.ts` — getTradeTracking 기존 존재 확인
+- [done] `TradePage.tsx` — `DeliveryTrackingPanel` 컴포넌트 추가
+  - IN_PROGRESS / RECEIVED 상태 + DELIVERY 방식일 때 구매자·판매자 양쪽에 표시
+  - `getTradeTracking(tradeId)` → useQuery (staleTime: 30s, refetchInterval: 60s)
+  - 타임라인: 최신 이벤트 상단, 날짜·위치·설명 표시
+  - 접기/펼치기 + 수동 새로고침(RefreshCw) 버튼
+  - 예상 도착일 표시 (estimatedDelivery)
+- [done] `TradePage.tsx` — 기존 useEffect + setState 패턴 → 렌더 중 setState 패턴으로 교체 (React Compiler 규칙)
+
+### 2. 검색 AI 구현 <!-- 2026-05-29 -->
+
+#### listingApi.ts 추가 함수
+- [done] `getPopularListings(size?)` — GET /api/listings?sort=popular (배치 인기순)
+- [done] `getSearchSuggestions(keyword, size?)` — GET /api/listings?keyword=... (AI 의미 기반 유사 검색)
+
+#### SearchPage 인기 매물 섹션
+- [done] `SearchPage.tsx` — `PopularSection` 컴포넌트 추가
+  - 검색어 없을 때(!query) 결과 영역 상단에 표시
+  - 가로 스크롤 카드 리스트 (1~3위 메달 뱃지 포함)
+  - refetchInterval: 120s 자동 갱신
+  - 찜(wishedMap) 낙관적 UI 연동
+
+#### GNB 검색창 + 자동완성 드롭다운
+- [done] `GNB.tsx` — `GnbSearchBar` 컴포넌트 추가 (데스크톱 전용, nav와 우측 영역 사이)
+  - 포커스 + 빈 입력: 인기 매물 목록 (getPopularListings, staleTime: 60s)
+  - 300ms 디바운스 타이핑: AI 의미 검색 제안 (getSearchSuggestions, staleTime: 30s)
+  - 드롭다운: 헤더(섹션 레이블 + AI 스피너 + 전체보기) + 카드 리스트
+  - 아이템 클릭: /listing/{id}, Enter: /search?q={keyword}
+  - Escape / 외부 클릭: 드롭다운 닫기
+
+### 최종 검증
+- tsc --noEmit → 0 errors
+- eslint (수정 4개 파일) → 0 errors
+- NUL 바이트 0개 / 이중 className 0쌍
