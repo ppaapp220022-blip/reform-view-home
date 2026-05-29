@@ -33,6 +33,7 @@ import {
   MapPin,
   MessageCircle,
   Package,
+  RefreshCw,
   Send,
   ShieldAlert,
   ShieldCheck,
@@ -46,6 +47,7 @@ import {
   cancelTrade,
   confirmTrade,
   getTrade,
+  getTradeTracking,
   startShipping,
   updateDelivery,
 } from '../../features/trade/api/tradeApi'
@@ -283,8 +285,10 @@ function TradeTimeline({
   return (
     <div className="flex items-start gap-0">
       {steps.map((step, i) => {
-        const isDone = i < activeIdx
-        const isCurrent = i === activeIdx
+        // 거래 완전 종료 시 모든 단계를 초록으로 처리 — "다 봤다" UX 신호
+        const isAllComplete = status === 'CONFIRMED' || status === 'COMPLETED'
+        const isDone = isAllComplete || i < activeIdx
+        const isCurrent = !isAllComplete && i === activeIdx
         const icons = deliveryType === 'DIRECT'
           ? [
             <Clock size={15} key="clock"/>,
@@ -307,10 +311,10 @@ function TradeTimeline({
                   background: isDone
                     ? 'var(--color-success)'
                     : isCurrent
-                      ? 'var(--color-primary)'
+                      ? 'var(--color-accent)'
                       : 'var(--color-surface-raised)',
                   color: isDone || isCurrent ? '#fff' : 'var(--color-text-hint)',
-                  boxShadow: isCurrent ? '0 0 0 3px rgba(0,33,71,.15)' : 'none',
+                  boxShadow: isCurrent ? '0 0 0 3px rgba(255,46,77,.18)' : 'none',
                 }}
               >
                 {isDone ? <CheckCircle2 size={14}/> : icons[i]}
@@ -319,7 +323,7 @@ function TradeTimeline({
                 className="text-[10px] mt-1 text-center leading-tight"
                 style={{
                   color: isCurrent
-                    ? 'var(--color-primary)'
+                    ? 'var(--color-accent)'
                     : isDone
                       ? 'var(--color-success)'
                       : 'var(--color-text-hint)',
@@ -444,18 +448,22 @@ function DeliveryAddressForm({
   const queryClient = useQueryClient()
   const detailInputRef = useRef<HTMLInputElement | null>(null)
   const [expanded, setExpanded] = useState(false)
-  const [baseAddress, setBaseAddress] = useState('')
-  const [detailAddress, setDetailAddress] = useState('')
+  // currentAddress prop 동기화용 — 렌더 중 setState 패턴 (React 공식 권장, effect 내 setState 금지)
+  const [syncedAddress, setSyncedAddress] = useState(currentAddress)
+  const [baseAddress, setBaseAddress] = useState(() => splitDeliveryAddress(currentAddress).baseAddress)
+  const [detailAddress, setDetailAddress] = useState(() => splitDeliveryAddress(currentAddress).detailAddress)
   const [error, setError] = useState<string | null>(null)
   const [isSearchingAddress, setIsSearchingAddress] = useState(false)
   
-  const composedAddress = combineDeliveryAddress(baseAddress, detailAddress)
+  // prop이 변경되면 렌더 중에 state 동기화 (getDerivedState 패턴)
+  if (syncedAddress !== currentAddress) {
+    setSyncedAddress(currentAddress)
+    const next = splitDeliveryAddress(currentAddress)
+    setBaseAddress(next.baseAddress)
+    setDetailAddress(next.detailAddress)
+  }
   
-  useEffect(() => {
-    const nextAddress = splitDeliveryAddress(currentAddress)
-    setBaseAddress(nextAddress.baseAddress)
-    setDetailAddress(nextAddress.detailAddress)
-  }, [currentAddress])
+  const composedAddress = combineDeliveryAddress(baseAddress, detailAddress)
   
   const {mutate: submitAddress, isPending} = useMutation({
     mutationFn: () => updateDelivery(tradeId, {deliveryAddress: composedAddress}),
@@ -771,6 +779,278 @@ function ShippingInputForm({
               ? <><Loader2 size={14} className="animate-spin"/>입력 중...</>
               : <><Truck size={14}/>배송 시작</>}
           </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 배송 단계 정의 (deliveryapi.co.kr 상태 코드 매핑) ─────────────────────────
+/**
+ * deliveryapi.co.kr deliveryStatus 코드 → 4단계 UI 인덱스 매핑
+ * 공식 문서 상태 코드: COLLECTED / IN_TRANSIT / OUT_FOR_DELIVERY / DELIVERED 계열
+ */
+const DELIVERY_STAGE_LABELS = ['접수', '이동 중', '배달 중', '배달 완료'] as const
+
+/**
+ * deliveryStatus 문자열을 0~3 단계 인덱스로 변환
+ * deliveryapi.co.kr 반환 코드 예: COLLECTED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED
+ */
+function getDeliveryStageIndex(status: string): number {
+  const s = (status ?? '').toUpperCase()
+  // 배달 완료
+  if (['DELIVERED', 'COMPLETE', 'COMPLETED', 'SIGNED'].some(k => s.includes(k))) return 3
+  // 배달 중 (라스트마일)
+  if (['OUT_FOR_DELIVERY', 'DELIVERING', 'AT_DELIVERY'].some(k => s.includes(k))) return 2
+  // 이동 중 (허브/간선)
+  if (['TRANSIT', 'MOVING', 'HUB', 'DISTRIBUTION', 'ARRIVED', 'DEPARTURE'].some(k => s.includes(k))) return 1
+  // 접수 (집화)
+  if (['COLLECTED', 'COLLECT', 'PICKUP', 'ACCEPT', 'REGISTERED'].some(k => s.includes(k))) return 0
+  return 0
+}
+
+// ── 배송 추적 패널 ───────────────────────────────────────────────────────────
+
+/**
+ * DeliveryTrackingPanel — 택배 실시간 배송 추적 UI
+ *
+ * getTradeTracking(tradeId) 호출 → 배송 이력 타임라인 렌더링
+ * 60초 자동 갱신 + 수동 새로고침 버튼 제공
+ * IN_PROGRESS / RECEIVED 상태의 구매자·판매자 모두에게 표시
+ */
+function DeliveryTrackingPanel({tradeId}: { tradeId: number }) {
+  const [expanded, setExpanded] = useState(true)
+  const {data, isLoading, isError, refetch, isFetching} = useQuery({
+    queryKey: ['tradeTracking', tradeId],
+    queryFn: () => getTradeTracking(tradeId),
+    staleTime: 30_000,
+    refetchInterval: 60_000, // 1분마다 자동 갱신 (배송 상태 변경 감지)
+    retry: 1,               // 외부 API 실패 시 1회 재시도
+  })
+  
+  // results 배열에서 첫 번째 결과(단일 송장) 추출
+  const result = data?.results?.[0] ?? null
+  // events는 최신 순 정렬 — UI에서 그대로 사용 (최신이 상단)
+  const events = result?.events ?? []
+  
+  return (
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{background: 'var(--color-surface)', border: '1px solid var(--color-border)'}}
+    >
+      {/* 헤더: div 사용 — 내부에 새로고침 <button>이 있어 중첩 button 금지 규칙 적용 */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setExpanded(p => !p)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') setExpanded(p => !p)
+        }}
+        className="flex items-center justify-between w-full px-4 py-3.5 text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <Truck size={15} style={{color: 'var(--color-primary)', flexShrink: 0}}/>
+          <span
+            className="text-sm font-bold"
+            style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+          >
+            배송 추적
+          </span>
+          {/* 현재 배송 상태 레이블 뱃지 */}
+          {result?.statusLabel && (
+            <span
+              className="text-[11px] px-2 py-0.5 rounded-full font-semibold"
+              style={{background: 'rgba(0,33,71,.07)', color: 'var(--color-primary)'}}
+            >
+              {result.statusLabel}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {/* 수동 새로고침 버튼 — 클릭이 헤더 토글로 전파되지 않게 stopPropagation */}
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              void refetch()
+            }}
+            disabled={isFetching}
+            className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-[var(--color-surface-raised)] disabled:opacity-40"
+            aria-label="배송 정보 새로고침"
+          >
+            <RefreshCw
+              size={13}
+              style={{color: 'var(--color-text-hint)'}}
+              className={isFetching ? 'animate-spin' : ''}
+            />
+          </button>
+          {expanded
+            ? <ChevronUp size={15} style={{color: 'var(--color-text-hint)'}}/>
+            : <ChevronDown size={15} style={{color: 'var(--color-text-hint)'}}/>}
+        </div>
+      </div>
+      
+      {/* 본문 — 접힘/펼침 */}
+      {expanded && (
+        <div className="border-t px-4 pb-4 pt-3" style={{borderColor: 'var(--color-border)'}}>
+          
+          {/* 배송 단계 스텝바 — result 있을 때만 표시 */}
+          {!isLoading && !isError && result && (
+            <div className="flex items-start mb-4">
+              {DELIVERY_STAGE_LABELS.map((label, i) => {
+                const stageIdx = getDeliveryStageIndex(result.status)
+                // 배달 완료 시 전 단계 초록 처리 — "다 끝났다" UX 신호
+                const isAllDelivered = stageIdx === DELIVERY_STAGE_LABELS.length - 1
+                const isDone = isAllDelivered || i < stageIdx
+                const isCurrent = !isAllDelivered && i === stageIdx
+                return (
+                  <div key={label} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center flex-shrink-0" style={{minWidth: 44}}>
+                      {/* 단계 원형 인디케이터 */}
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all"
+                        style={{
+                          background: isDone
+                            ? 'var(--color-success)'
+                            : isCurrent
+                              ? 'var(--color-accent)'
+                              : 'var(--color-surface-raised)',
+                          color: isDone || isCurrent ? '#fff' : 'var(--color-text-hint)',
+                          boxShadow: isCurrent ? '0 0 0 3px rgba(255,46,77,.18)' : 'none',
+                        }}
+                      >
+                        {isDone ? <CheckCircle2 size={12}/> : i + 1}
+                      </div>
+                      {/* 단계 레이블 */}
+                      <span
+                        className="text-[9px] mt-1 text-center leading-tight"
+                        style={{
+                          color: isCurrent
+                            ? 'var(--color-accent)'
+                            : isDone
+                              ? 'var(--color-success)'
+                              : 'var(--color-text-hint)',
+                          fontWeight: isCurrent ? 700 : 400,
+                        }}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                    {/* 단계 연결선 */}
+                    {i < DELIVERY_STAGE_LABELS.length - 1 && (
+                      <div
+                        className="flex-1 h-px mx-1 mb-4 transition-colors"
+                        style={{background: i < stageIdx ? 'var(--color-success)' : 'var(--color-border)'}}
+                      />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          
+          {/* 로딩 */}
+          {isLoading && (
+            <div className="flex justify-center py-5">
+              <Loader2 size={18} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+            </div>
+          )}
+          
+          {/* 에러: API 실패 시 trade에 저장된 송장 정보로 폴백 */}
+          {isError && !isLoading && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 justify-center py-2">
+                <AlertCircle size={13} style={{color: 'var(--color-text-hint)'}}/>
+                <p className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+                  실시간 조회 불가 — 저장된 송장 정보를 표시합니다.
+                </p>
+              </div>
+              {(courierCode || trackingNumber) && (
+                <div
+                  className="flex flex-col gap-1.5 px-3 py-2.5 rounded-xl"
+                  style={{background: 'var(--color-surface-raised)'}}
+                >
+                  {courierCode && (
+                    <div className="flex justify-between text-xs">
+                      <span style={{color: 'var(--color-text-hint)'}}>택배사</span>
+                      <span style={{color: 'var(--color-text-sub)'}}>{courierCode}</span>
+                    </div>
+                  )}
+                  {trackingNumber && (
+                    <div className="flex justify-between text-xs">
+                      <span style={{color: 'var(--color-text-hint)'}}>송장번호</span>
+                      <span style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}>
+                        {trackingNumber}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* 이력 없음 */}
+          {!isLoading && !isError && result && events.length === 0 && (
+            <p className="text-xs text-center py-3" style={{color: 'var(--color-text-hint)'}}>
+              아직 배송 이력이 없습니다.
+            </p>
+          )}
+          
+          {/* 배송 이력 타임라인 */}
+          {!isLoading && events.length > 0 && (
+            <div className="flex flex-col">
+              {events.map((event, i) => (
+                <div key={i} className="flex gap-3">
+                  {/* 타임라인 세로선 + 점 */}
+                  <div className="flex flex-col items-center" style={{width: 16}}>
+                    <div
+                      className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0"
+                      style={{background: i === 0 ? 'var(--color-accent)' : 'var(--color-border)'}}
+                    />
+                    {i < events.length - 1 && (
+                      <div
+                        className="w-px flex-1 mt-1"
+                        style={{background: 'var(--color-border)', minHeight: 16}}
+                      />
+                    )}
+                  </div>
+                  {/* 이벤트 내용 */}
+                  <div className="pb-3 flex-1 min-w-0">
+                    <p
+                      className="text-xs font-semibold leading-snug"
+                      style={{color: i === 0 ? 'var(--color-text-main)' : 'var(--color-text-sub)'}}
+                    >
+                      {event.description}
+                    </p>
+                    <p className="text-[10px] mt-0.5 truncate" style={{color: 'var(--color-text-hint)'}}>
+                      {event.location} · {new Date(event.time).toLocaleString('ko-KR', {
+                      month: 'short', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* 예상 도착일 */}
+          {result?.estimatedDelivery && (
+            <div
+              className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg"
+              style={{background: 'rgba(0,33,71,.05)'}}
+            >
+              <Clock size={12} style={{color: 'var(--color-primary)', flexShrink: 0}}/>
+              <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
+                예상 도착:{' '}
+                <span style={{
+                  color: 'var(--color-primary)',
+                  fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                }}>
+                  {result.estimatedDelivery}
+                </span>
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1509,6 +1789,9 @@ function ActionPanel({
     if (isBuyer) {
       return (
         <div className="flex flex-col gap-3">
+          {/* 배송 추적 패널 — 확정 여부 관계없이 항상 표시 */}
+          <DeliveryTrackingPanel tradeId={trade.tradeId} courierCode={trade.courierCode}
+                                 trackingNumber={trade.trackingNumber}/>
           {confirmed && (
             <div
               className="flex flex-col items-center gap-3 py-7 rounded-2xl"
@@ -1588,18 +1871,23 @@ function ActionPanel({
     }
     
     return (
-      <div
-        className="flex items-start gap-3 p-4 rounded-2xl"
-        style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
-      >
-        <Truck size={15} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
-        <div>
-          <p className="text-sm font-semibold" style={{color: 'var(--color-success)'}}>
-            {trade.status === 'RECEIVED' ? '수령 완료 — 구매 확정 대기' : '배송 중'}
-          </p>
-          <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
-            구매자가 구매 확정 시 대금이 정산됩니다.
-          </p>
+      <div className="flex flex-col gap-3">
+        {/* 판매자도 배송 추적 상태 확인 가능 */}
+        <DeliveryTrackingPanel tradeId={trade.tradeId} courierCode={trade.courierCode}
+                               trackingNumber={trade.trackingNumber}/>
+        <div
+          className="flex items-start gap-3 p-4 rounded-2xl"
+          style={{background: 'rgba(0,179,110,.06)', border: '1px solid rgba(0,179,110,.2)'}}
+        >
+          <Truck size={15} style={{color: 'var(--color-success)', flexShrink: 0, marginTop: 2}}/>
+          <div>
+            <p className="text-sm font-semibold" style={{color: 'var(--color-success)'}}>
+              {trade.status === 'RECEIVED' ? '수령 완료 — 구매 확정 대기' : '배송 중'}
+            </p>
+            <p className="text-xs mt-1" style={{color: 'var(--color-text-sub)'}}>
+              구매자가 구매 확정 시 대금이 정산됩니다.
+            </p>
+          </div>
         </div>
       </div>
     )

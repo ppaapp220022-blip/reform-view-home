@@ -89,7 +89,7 @@ export interface ListingQueryParams {
   condition?: Grade          // 컨디션 필터 (Grade 기준)
   minPrice?: number          // 최소 가격 필터
   maxPrice?: number          // 최대 가격 필터
-  sort?: 'latest' | 'price_asc' | 'price_desc' | 'popular'
+  sort?: 'latest' | 'price_asc' | 'price_desc' | 'popular' | 'ai_recommend'
   page?: number              // 0-based
   size?: number
 }
@@ -260,4 +260,32 @@ export async function suggestListingFromImage(
     {headers: {'Content-Type': 'multipart/form-data'}},
   )
   return data
+}
+
+
+// ── 인기·검색 도우미 API ──────────────────────────────────────────────────────
+
+/**
+ * 인기 판매글 목록 조회 (배치 처리 인기순)
+ * GET /api/listings?sort=popular&size={size}
+ *
+ * 백엔드 배치 스케줄러가 viewCount·wishCount 기반으로 인기글을 주기적으로 갱신.
+ * SearchPage "인기 매물" 섹션과 GNB 검색 자동완성 기본 목록에 활용.
+ */
+export async function getPopularListings(size = 8): Promise<PostCard[]> {
+  const res = await getListings({sort: 'popular', size, page: 0})
+  return res.content
+}
+
+/**
+ * 검색 자동완성용 키워드 매물 조회 (AI 의미 기반 유사 검색)
+ * GET /api/listings?keyword={keyword}&size={size}
+ *
+ * keyword 존재 시 백엔드가 Spring AI + Vector Store 기반 유사 의미 검색 실행.
+ * GNB 검색창에서 300ms 디바운스 후 호출 — 빈 keyword는 빈 배열 반환.
+ */
+export async function getSearchSuggestions(keyword: string, size = 5): Promise<PostCard[]> {
+  if (!keyword.trim()) return []
+  const res = await getListings({keyword, size, page: 0})
+  return res.content
 }

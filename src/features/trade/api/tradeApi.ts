@@ -18,7 +18,11 @@
 import apiClient from '../../../lib/axios'
 import type {PageResponse} from '../../../types/api'
 import type {TradeStatus} from '../../../types/listing'
-import type {DeliveryTrackingTraceResponse} from '../../delivery/api/deliveryApi'
+import type {
+  DeliveryTraceEvent,
+  DeliveryTraceResult,
+  DeliveryTrackingTraceResponse
+} from '../../delivery/api/deliveryApi'
 
 // ── 응답 타입 (백엔드 DTO 기준) ────────────────────────────────────────────────
 
@@ -193,18 +197,87 @@ export async function startShipping(
   return data.status
 }
 
+// ── 백엔드 raw 응답 타입 (DeliveryTrackingTraceResponseDTO) ─────────────────────
+// 실제 deliveryapi.co.kr 응답을 그대로 감싸는 구조로, 프론트 DeliveryTrackingTraceResponse와 다름
+interface RawProgress {
+  dateTime: string    // ISO 8601 형식 날짜
+  location: string
+  status: string
+  statusCode: string
+  description: string
+}
+
+interface RawTrackingData {
+  trackingNumber: string
+  courierCode: string
+  courierName: string
+  deliveryStatus: string      // 상태 코드 (예: 'DELIVERED')
+  deliveryStatusText: string  // 한국어 레이블 (예: '배달완료')
+  isDelivered: boolean
+  senderName: string | null
+  receiverName: string | null
+  progresses: RawProgress[]   // 배송 이력 (최신 순)
+}
+
+interface RawTrackingResult {
+  clientId: string
+  success: boolean
+  data: RawTrackingData | null   // 조회 성공 시에만 존재
+  error: { code: string; message: string } | null
+}
+
+interface RawTrackingResponse {
+  isSuccess: boolean
+  data: {
+    results: RawTrackingResult[]
+    summary: { total: number; successful: number; failed: number }
+  }
+}
+
 /**
  * 배송 추적 조회
  * GET /api/trades/{id}/tracking
  * 거래에 등록된 송장번호로 실시간 배송 상태를 조회
+ *
+ * 백엔드가 반환하는 RawTrackingResponse (DeliveryTrackingTraceResponseDTO)를
+ * 프론트 DeliveryTrackingTraceResponse 형식으로 정규화해서 반환한다.
  */
 export async function getTradeTracking(
   tradeId: number,
 ): Promise<DeliveryTrackingTraceResponse> {
-  const {data} = await apiClient.get<DeliveryTrackingTraceResponse>(
+  const {data: raw} = await apiClient.get<RawTrackingResponse>(
     `/trades/${tradeId}/tracking`,
   )
-  return data
+  
+  // 백엔드 raw 구조 → 프론트 정규화 타입으로 변환
+  const rawResults: RawTrackingResult[] = raw?.data?.results ?? []
+  
+  const results: DeliveryTraceResult[] = rawResults
+    .filter(r => r.success && r.data)   // 조회 실패한 항목 제외
+    .map(r => {
+      const d = r.data!  // filter에서 null 제외됨
+      
+      // 배송 이력 → DeliveryTraceEvent 배열 (백엔드 최신순 유지)
+      const events: DeliveryTraceEvent[] = (d.progresses ?? []).map(p => ({
+        time: p.dateTime,
+        status: p.status,
+        location: p.location,
+        description: p.description,
+      }))
+      
+      return {
+        trackingNumber: d.trackingNumber,
+        status: d.deliveryStatus,
+        statusLabel: d.deliveryStatusText,
+        from: d.senderName ?? '',
+        to: d.receiverName ?? '',
+        estimatedDelivery: null,  // deliveryapi.co.kr는 예상 도착일 미제공
+        lastEvent: events[0] ?? null,
+        events,
+      } satisfies DeliveryTraceResult
+    })
+  
+  return {results}
 }
 
 /**

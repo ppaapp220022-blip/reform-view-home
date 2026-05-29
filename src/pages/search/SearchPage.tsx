@@ -14,11 +14,21 @@
 import {formatPrice} from '../../utils/format'
 import {useState} from 'react'
 import {Link, useSearchParams} from 'react-router-dom'
-import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, X,} from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  Heart,
+  Loader2,
+  RotateCcw,
+  Search,
+  SlidersHorizontal,
+  TrendingUp,
+  X,
+} from 'lucide-react'
 import Pagination from '../../components/ui/Pagination'
 import {useQuery} from '@tanstack/react-query'
 import type {PostCard} from '../../features/listing/api/listingApi'
-import {getListings, toggleWish} from '../../features/listing/api/listingApi'
+import {getListings, getPopularListings, toggleWish} from '../../features/listing/api/listingApi'
 import {resolveImageUrl} from '../../utils/image'
 import ConditionBadge from '../../components/ui/ConditionBadge'
 import type {DeliveryType, Grade, Sport} from '../../types/listing'
@@ -61,6 +71,141 @@ const SORT_OPTIONS = [
 
 
 // ── 컴포넌트 ──────────────────────────────────────────────────────────────────
+
+// ── 인기 매물 섹션 ──────────────────────────────────────────────────────────────
+
+/**
+ * PopularSection — 배치 인기순 매물 가로 스크롤 섹션
+ *
+ * 백엔드 배치 스케줄러가 viewCount·wishCount 기반으로 인기글을 갱신하며,
+ * getPopularListings() → sort=popular API를 통해 주기적으로 최신 데이터를 반영.
+ * - staleTime: 60s / refetchInterval: 120s (과도한 요청 방지)
+ * - 검색어 없을 때만 표시 (query='')
+ */
+function PopularSection({
+                          wishedMap,
+                          onLike,
+                        }: {
+  wishedMap: Map<number, boolean>
+  onLike: (postId: number) => void
+}) {
+  const {data: popular, isLoading} = useQuery({
+    queryKey: ['popularListings'],
+    queryFn: () => getPopularListings(8),
+    staleTime: 60_000,
+    refetchInterval: 120_000, // 2분마다 자동 갱신
+  })
+  
+  // 로딩 중이거나 결과 없으면 섹션 미표시
+  if (isLoading || !popular?.length) return null
+  
+  return (
+    <div className="mb-6">
+      {/* 섹션 헤더 */}
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingUp size={16} style={{color: 'var(--color-accent)'}}/>
+        <h2
+          className="text-sm font-bold"
+          style={{color: 'var(--color-text-main)', fontFamily: "'Giants','Pretendard',sans-serif"}}
+        >
+          인기 매물
+        </h2>
+        <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>
+          실시간 업데이트
+        </span>
+      </div>
+      {/* 가로 스크롤 카드 리스트 */}
+      <div className="flex gap-3 overflow-x-auto pb-1" style={{scrollbarWidth: 'none'}}>
+        {popular.map((item, idx) => {
+          const imgSrc = resolveImageUrl(item.thumbnailUrl)
+          const isWished = wishedMap.has(item.postId)
+            ? wishedMap.get(item.postId)!
+            : item.isWished
+          return (
+            <Link
+              key={item.postId}
+              to={`/listing/${item.postId}`}
+              className="flex-shrink-0 rounded-xl overflow-hidden block hover:shadow-md transition-shadow relative"
+              style={{
+                width: 140,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+              }}
+            >
+              {/* 썸네일 */}
+              <div className="relative" style={{aspectRatio: '4/5', background: '#1A3051'}}>
+                {imgSrc ? (
+                  <img
+                    src={imgSrc}
+                    alt={item.title}
+                    className="w-full h-full object-cover"
+                    onError={e => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <span
+                    className="absolute inset-0 flex items-center justify-center select-none"
+                    style={{fontFamily: "'IAMAPLAYER',Giants,sans-serif", fontSize: 48, color: 'rgba(255,255,255,.13)'}}
+                  >
+                    {item.postId % 99}
+                  </span>
+                )}
+                {/* 인기 순위 뱃지 (1~3위) */}
+                {idx < 3 && (
+                  <span
+                    className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{
+                      background: idx === 0
+                        ? 'linear-gradient(135deg, #FFB800, #FF9500)'
+                        : idx === 1
+                          ? 'linear-gradient(135deg, #C8D0DA, #A0ACB8)'
+                          : 'linear-gradient(135deg, #CD8B3A, #9A5A20)',
+                      fontFamily: "'IAMAPLAYER',Giants,sans-serif",
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+                )}
+                {/* 찜 버튼 */}
+                <button
+                  onClick={e => {
+                    e.preventDefault()
+                    onLike(item.postId)
+                  }}
+                  className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{background: 'rgba(0,0,0,.35)'}}
+                  aria-label="찜하기"
+                >
+                  <Heart
+                    size={12}
+                    fill={isWished ? 'var(--color-accent)' : 'none'}
+                    color={isWished ? 'var(--color-accent)' : '#fff'}
+                  />
+                </button>
+              </div>
+              {/* 정보 */}
+              <div className="p-2">
+                <p className="text-[11px] truncate" style={{color: 'var(--color-text-hint)'}}>{item.team}</p>
+                <p className="text-xs font-semibold line-clamp-2 leading-snug mt-0.5"
+                   style={{color: 'var(--color-text-main)'}}>
+                  {item.title}
+                </p>
+                <p
+                  className="text-xs font-bold mt-1"
+                  style={{color: 'var(--color-primary)', fontFamily: "'IAMAPLAYER',Giants,sans-serif"}}
+                >
+                  {formatPrice(item.price)}
+                </p>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 
 /** 상품 카드 — PostCard(API) 기반 */
 function ProductCard({
@@ -320,7 +465,8 @@ export default function SearchPage() {
         condition: grade !== 'all' ? grade : undefined,
         tradeType: delivery !== 'all' ? delivery : undefined,
         maxPrice: maxPrice < 300 ? maxPrice * 1000 : undefined,
-        sort,
+        // 'ai_recommend' → 백엔드 popular 폴백 (백엔드 구현 후 직접 전달 예정)
+        sort: sort === 'ai_recommend' ? 'popular' : sort,
         page,
         size: 20,
       }),
@@ -505,6 +651,10 @@ export default function SearchPage() {
           
           {/* 결과 영역 */}
           <div className="flex-1 min-w-0">
+            {/* 인기 매물 섹션 — 검색어 없을 때만 표시 */}
+            {!query && (
+              <PopularSection wishedMap={wishedOverride} onLike={toggleLike}/>
+            )}
             {/* 정렬 + 필터 버튼 */}
             <div className="flex items-center justify-between mb-4 gap-3">
               <div className="flex items-center gap-3">
@@ -539,23 +689,39 @@ export default function SearchPage() {
               
               {/* 정렬 */}
               <div className="flex gap-1.5 flex-wrap">
-                {SORT_OPTIONS.map(o => (
-                  <button
-                    key={o.key}
-                    onClick={() => {
-                      setSort(o.key as 'latest' | 'price_asc' | 'price_desc' | 'popular');
-                      setPage(0)
-                    }}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                    style={{
-                      background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',
-                      color: sort === o.key ? '#fff' : 'var(--color-text-sub)',
-                      border: `1px solid ${sort === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
+                {SORT_OPTIONS.map(o => {
+                  /* AI추천 버튼: 그라디언트 + Sparkles 아이콘 특별 스타일 */
+                  const isAi = o.key === 'ai_recommend'
+                  const isActive = sort === o.key
+                  return (
+                    <button
+                      key={o.key}
+                      onClick={() => {
+                        setSort(o.key as 'latest' | 'price_asc' | 'price_desc' | 'popular' | 'ai_recommend');
+                        setPage(0)
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1"
+                      style={
+                        isAi && isActive
+                          ? {background: 'var(--color-accent)', color: '#fff', border: 'none'}
+                          : isAi
+                            ? {
+                              background: 'var(--color-surface)',
+                              color: 'var(--color-accent)',
+                              border: '1px solid var(--color-accent)'
+                            }
+                            : {
+                              background: isActive ? 'var(--color-primary)' : 'var(--color-surface)',
+                              color: isActive ? '#fff' : 'var(--color-text-sub)',
+                              border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                            }
+                      }
+                    >
+                      {isAi && <Sparkles size={11}/>}
+                      {o.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
             

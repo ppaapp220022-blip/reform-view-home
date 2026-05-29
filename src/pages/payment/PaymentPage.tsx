@@ -18,7 +18,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Link, useParams} from 'react-router-dom'
 import {useQuery} from '@tanstack/react-query'
 import {ANONYMOUS, loadPaymentWidget, type PaymentWidgetInstance} from '@tosspayments/payment-widget-sdk'
-import {AlertCircle, ChevronLeft, Loader2, Lock, Shield, User} from 'lucide-react'
+import {AlertCircle, CheckCircle2, ChevronLeft, Loader2, Lock, Shield, User} from 'lucide-react'
 import {useInitPayment} from '../../features/payment/hooks/usePayment'
 import {getTrade, type TradeResponse} from '../../features/trade/api/tradeApi'
 import {formatPrice} from '../../utils/format'
@@ -28,6 +28,10 @@ import useAuthStore from '../../store/authStore'
 // ── 상수 ─────────────────────────────────────────────────────────────────────
 // Toss 클라이언트 키 — 프론트 .env의 VITE_TOSS_CLIENT_KEY 에서 로드
 const TOSS_CLIENT_KEY = import.meta.env.VITE_TOSS_CLIENT_KEY as string
+// Toss 테스트/라이브 키 형식: 'test_ck_...' 또는 'live_ck_...'
+const TOSS_KEY_VALID = typeof TOSS_CLIENT_KEY === 'string' && /^(test|live)_g?ck_/.test(TOSS_CLIENT_KEY)
+// Mock 모드: VITE_TOSS_MOCK=true 이거나 docs 샘플 키 사용 시 Toss SDK 호출 없이 Mock UI 렌더링
+const TOSS_MOCK_MODE = import.meta.env.VITE_TOSS_MOCK === 'true'
 
 // 폴백 유니폼 색상 (썸네일 없을 때 사용)
 const JERSEY_COLORS = [
@@ -104,7 +108,7 @@ function DirectTradeBlockedState({trade}: { trade: TradeResponse }) {
             판매자와 채팅으로 장소, 시간, 상품 상태를 충분히 확인한 뒤 거래를 진행해 주세요.
             직거래 완료는 거래 화면에서 바로 처리할 수 있습니다.
           </p>
-
+          
           <div
             className="mt-5 px-4 py-3 rounded-2xl"
             style={{background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)'}}
@@ -123,7 +127,7 @@ function DirectTradeBlockedState({trade}: { trade: TradeResponse }) {
             </p>
           </div>
         </div>
-
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link
             to={`/trade/${trade.tradeId}/confirm`}
@@ -272,6 +276,61 @@ function OrderSummaryCard({trade}: { trade: TradeResponse }) {
   )
 }
 
+// ── Mock 결제 위젯 ────────────────────────────────────────────────────────────
+
+const MOCK_METHODS = [
+  {key: 'card', label: '신용카드 / 체크카드', icon: '💳'},
+  {key: 'kakao', label: '카카오페이', icon: '🟡'},
+  {key: 'toss', label: '토스페이', icon: '🔵'},
+  {key: 'transfer', label: '계좌이체', icon: '🏦'},
+] as const
+
+/**
+ * MockPaymentWidget — Toss 실제 키 없을 때 결제 수단 선택 UI 시뮬레이션
+ * onReady: 수단 선택 시 호출 → 결제하기 버튼 활성화
+ */
+function MockPaymentWidget({onReady}: { onReady: () => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  
+  function selectMethod(key: string) {
+    setSelected(key)
+    onReady()
+  }
+  
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        className="flex items-start gap-2 px-3 py-2.5 rounded-xl mb-2"
+        style={{background: 'rgba(14,165,233,.07)', border: '1px solid rgba(14,165,233,.2)'}}
+      >
+        <AlertCircle size={14} style={{color: 'var(--color-info)', flexShrink: 0, marginTop: 1}}/>
+        <p className="text-xs leading-relaxed" style={{color: 'var(--color-info)'}}>
+          개발 환경 Mock 결제 모드입니다. 실제 결제가 발생하지 않습니다.
+        </p>
+      </div>
+      {MOCK_METHODS.map(m => (
+        <button
+          key={m.key}
+          onClick={() => selectMethod(m.key)}
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left transition-all"
+          style={{
+            background: selected === m.key ? 'rgba(0,33,71,.06)' : 'var(--color-surface-raised)',
+            border: `1.5px solid ${selected === m.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          }}
+        >
+          <span className="text-lg">{m.icon}</span>
+          <span className="text-sm font-medium flex-1" style={{color: 'var(--color-text-main)'}}>
+            {m.label}
+          </span>
+          {selected === m.key && (
+            <CheckCircle2 size={16} style={{color: 'var(--color-primary)', flexShrink: 0}}/>
+          )}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ── 메인 페이지 ────────────────────────────────────────────────────────────────
 export default function PaymentPage() {
   const {id} = useParams<{ id: string }>()
@@ -307,12 +366,19 @@ export default function PaymentPage() {
   // ── Toss Widget 초기화 ──────────────────────────────────────────────────────
   // trade 데이터 로드 완료 후 위젯 초기화 (total이 확정돼야 위젯 렌더링 가능)
   useEffect(() => {
+    if (TOSS_MOCK_MODE) return  // mock 모드에서는 Toss SDK 호출 자체를 건너뜀
     if (!trade) return
     // async 클로저에서 타입 narrowing 유지를 위해 로컬 변수로 캡처
     const currentTrade = trade
     let cancelled = false
     
     async function loadWidget() {
+      // .env에 유효한 Toss 클라이언트 키가 없으면 위젯 로드 건너뜀
+      if (!TOSS_KEY_VALID) {
+        console.warn('[Payment] VITE_TOSS_CLIENT_KEY 미설정 또는 형식 오류 — 위젯 로드 스킵')
+        setWidgetError('.env에 VITE_TOSS_CLIENT_KEY를 설정해야 결제 위젯이 활성화됩니다.')
+        return
+      }
       try {
         // 1) SDK 로드 (클라이언트 키 + 고객 키)
         const widget = await loadPaymentWidget(TOSS_CLIENT_KEY, customerKey)
@@ -361,6 +427,16 @@ export default function PaymentPage() {
       {tradeId: trade.tradeId, payMethod: 'Card'},
       {
         async onSuccess(data) {
+          // Mock 모드: 실제 Toss requestPayment 없이 successUrl로 직접 이동
+          if (TOSS_MOCK_MODE) {
+            const params = new URLSearchParams({
+              paymentKey: `mock_${data.tossOrderId}`,
+              orderId: data.tossOrderId,
+              amount: String(trade.tradePrice),
+            })
+            window.location.href = `${window.location.origin}/payment/success?${params}`
+            return
+          }
           // 2) Toss Widget으로 결제 요청 (Promise → await 필수)
           //    성공 → successUrl, 실패 → failUrl로 리다이렉트
           try {
@@ -444,31 +520,33 @@ export default function PaymentPage() {
                   결제 수단
                 </h2>
                 
-                {/* 위젯 로딩 스피너 */}
-                {!widgetReady && !widgetError && (
-                  <div className="flex items-center justify-center py-16 gap-3">
-                    <Loader2 size={20} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
-                    <span className="text-sm" style={{color: 'var(--color-text-hint)'}}>결제 수단을 불러오는 중...</span>
-                  </div>
+                {/* Mock 모드: Toss SDK 대신 Mock UI 표시 */}
+                {TOSS_MOCK_MODE ? (
+                  <MockPaymentWidget onReady={() => setWidgetReady(true)}/>
+                ) : (
+                  <>
+                    {!widgetReady && !widgetError && (
+                      <div className="flex items-center justify-center py-16 gap-3">
+                        <Loader2 size={20} className="animate-spin" style={{color: 'var(--color-text-hint)'}}/>
+                        <span className="text-sm" style={{color: 'var(--color-text-hint)'}}>결제 수단을 불러오는 중...</span>
+                      </div>
+                    )}
+                    {widgetError && (
+                      <div
+                        className="flex items-start gap-2 p-3 rounded-xl mb-4"
+                        style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
+                      >
+                        <AlertCircle size={15} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
+                        <p className="text-sm" style={{color: 'var(--color-accent)'}}>{widgetError}</p>
+                      </div>
+                    )}
+                    <div id="toss-payment-method"/>
+                  </>
                 )}
-                
-                {/* 위젯 에러 메시지 */}
-                {widgetError && (
-                  <div
-                    className="flex items-start gap-2 p-3 rounded-xl mb-4"
-                    style={{background: 'rgba(255,46,77,.08)', border: '1px solid rgba(255,46,77,.2)'}}
-                  >
-                    <AlertCircle size={15} style={{color: 'var(--color-accent)', flexShrink: 0, marginTop: 1}}/>
-                    <p className="text-sm" style={{color: 'var(--color-accent)'}}>{widgetError}</p>
-                  </div>
-                )}
-                
-                {/* Toss Widget 결제 수단 마운트 영역 */}
-                <div id="toss-payment-method"/>
               </div>
               
-              {/* Toss Widget 약관 마운트 영역 */}
-              <div id="toss-agreement" className="px-5 pb-4"/>
+              {/* Toss Widget 약관 마운트 영역 — mock 모드에서는 불필요 */}
+              {!TOSS_MOCK_MODE && <div id="toss-agreement" className="px-5 pb-4"/>}
             </div>
           </div>
           

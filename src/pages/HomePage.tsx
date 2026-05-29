@@ -11,7 +11,7 @@
  */
 import {useState} from 'react'
 import {Link, useNavigate} from 'react-router-dom'
-import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, X} from 'lucide-react'
+import {ChevronDown, ChevronUp, Heart, Loader2, RotateCcw, Search, SlidersHorizontal, Sparkles, X} from 'lucide-react'
 import {useQuery} from '@tanstack/react-query'
 import {formatPrice} from '../utils/format'
 import {resolveImageUrl} from '../utils/image'
@@ -51,6 +51,7 @@ const DELIVERY_OPTIONS: { key: DeliveryType | 'all'; label: string }[] = [
 ]
 
 const SORT_OPTIONS = [
+  {key: 'ai_recommend', label: 'AI추천'},
   {key: 'latest', label: '최신순'},
   {key: 'popular', label: '인기순'},
   {key: 'price_asc', label: '낮은가격'},
@@ -451,7 +452,7 @@ export default function HomePage() {
   const [size, setSize] = useState('전체')              // 클라이언트 측 필터링
   const [delivery, setDelivery] = useState<DeliveryType | 'all'>('all')
   const [maxPrice, setMaxPrice] = useState(300)         // 슬라이더: 10~300 (×1000원)
-  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular'>('latest')
+  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular' | 'ai_recommend'>('latest')
   const [page, setPage] = useState(0)                   // 0-based 페이지
   
   /* ── UI 상태 ── */
@@ -504,7 +505,8 @@ export default function HomePage() {
     condition: grade !== 'all' ? grade : undefined,
     tradeType: delivery !== 'all' ? delivery : undefined,
     maxPrice: maxPrice < 300 ? maxPrice * 1000 : undefined,
-    sort,
+    // 'ai_recommend' 선택 시 백엔드 popular 폴백 (백엔드 구현 후 직접 전달 예정)
+    sort: sort === 'ai_recommend' ? 'popular' : sort,
     page,
     size: 20,
   }
@@ -698,23 +700,39 @@ export default function HomePage() {
               
               {/* 정렬 버튼 */}
               <div className="flex gap-1.5 flex-wrap">
-                {SORT_OPTIONS.map(o => (
-                  <button
-                    key={o.key}
-                    onClick={() => {
-                      setSort(o.key as typeof sort);
-                      setPage(0)
-                    }}
-                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
-                    style={{
-                      background: sort === o.key ? 'var(--color-primary)' : 'var(--color-surface)',
-                      color: sort === o.key ? '#fff' : 'var(--color-text-sub)',
-                      border: `1px solid ${sort === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                    }}
-                  >
-                    {o.label}
-                  </button>
-                ))}
+                {SORT_OPTIONS.map(o => {
+                  /* AI추천 버튼은 그라디언트 + Sparkles 아이콘으로 특별 스타일 적용 */
+                  const isAi = o.key === 'ai_recommend'
+                  const isActive = sort === o.key
+                  return (
+                    <button
+                      key={o.key}
+                      onClick={() => {
+                        setSort(o.key as typeof sort);
+                        setPage(0)
+                      }}
+                      className="px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1"
+                      style={
+                        isAi && isActive
+                          ? {background: 'var(--color-accent)', color: '#fff', border: 'none'}
+                          : isAi
+                            ? {
+                              background: 'var(--color-surface)',
+                              color: 'var(--color-accent)',
+                              border: '1px solid var(--color-accent)'
+                            }
+                            : {
+                              background: isActive ? 'var(--color-primary)' : 'var(--color-surface)',
+                              color: isActive ? '#fff' : 'var(--color-text-sub)',
+                              border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                            }
+                      }
+                    >
+                      {isAi && <Sparkles size={11}/>}
+                      {o.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
             
