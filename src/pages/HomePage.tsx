@@ -7,7 +7,7 @@
  *   [Sidebar | Grid]   — 필터 사이드바(220px) + 상품 5열 그리드
  *
  * 상태: 로컬 필터 (추후 URL params + useQuery 전환)
- * 데이터: 목 데이터 (백엔드 미연동)
+ * 데이터: 통계 — /api/statistics (백엔드 연동), 상품 목록 — /api/listings (백엔드 연동)
  */
 import {useState} from 'react'
 import {Link, useNavigate} from 'react-router-dom'
@@ -17,6 +17,8 @@ import {formatPrice} from '../utils/format'
 import {resolveImageUrl} from '../utils/image'
 import type {PostCard} from '../features/listing/api/listingApi'
 import {getListings, toggleWish} from '../features/listing/api/listingApi'
+import {getStatistics} from '../features/statistics/api/statisticsApi'
+import type {StatisticsResponse} from '../features/statistics/api/statisticsApi'
 import type {DeliveryType, Grade, Sport} from '../types/listing'
 import ConditionBadge from '../components/ui/ConditionBadge'
 import Pagination from '../components/ui/Pagination'
@@ -154,7 +156,36 @@ function ProductCard({
 
 // ── Hero 섹션 ─────────────────────────────────────────────────────────────────
 
-function HeroSection() {
+/**
+ * HeroSection — navy 배경의 피처 상품 + 통계 영역
+ *
+ * @param stats  백엔드 /api/statistics 응답. null이면 스켈레톤 표시.
+ */
+function HeroSection({stats}: {stats: StatisticsResponse | null}) {
+  /**
+   * 숫자를 로케일 형식으로 변환 (예: 31500 → "31,500")
+   * 만족도는 뒤에 % 붙임
+   */
+  function fmt(value: number, suffix = '') {
+    return value.toLocaleString('ko-KR') + suffix
+  }
+
+  // 통계 항목 정의 (백엔드 필드 → 레이블 매핑)
+  const statItems = stats
+    ? [
+        {num: fmt(stats.tradeCount),   lbl: '누적 거래'},
+        {num: fmt(stats.productCount), lbl: '등록 상품'},
+        {num: fmt(stats.memberCount),  lbl: '활성 회원'},
+        {num: fmt(stats.satisfaction, '%'), lbl: '만족도'},
+      ]
+    : [
+        // stats 로딩 전 플레이스홀더 — 레이아웃 shift 방지
+        {num: '—', lbl: '누적 거래'},
+        {num: '—', lbl: '등록 상품'},
+        {num: '—', lbl: '활성 회원'},
+        {num: '—', lbl: '만족도'},
+      ]
+
   return (
     <div
       className="relative overflow-hidden px-8 py-10"
@@ -165,7 +196,7 @@ function HeroSection() {
            style={{border: '36px solid rgba(255,255,255,0.03)'}}/>
       <div className="absolute right-20 -bottom-16 w-44 h-44 rounded-full pointer-events-none"
            style={{border: '24px solid rgba(255,255,255,0.03)'}}/>
-      
+
       <div className="max-w-[1126px] mx-auto flex items-center gap-12">
         {/* 텍스트 */}
         <div className="flex-1 min-w-0">
@@ -198,18 +229,13 @@ function HeroSection() {
               찜하기
             </button>
           </div>
-          
-          {/* 통계 바 */}
+
+          {/* 통계 바 — /api/statistics 실시간 조회 */}
           <div
             className="flex gap-8 mt-8 pt-6"
             style={{borderTop: '1px solid rgba(255,255,255,0.08)'}}
           >
-            {[
-              {num: '4,820', lbl: '누적 거래'},
-              {num: '31,500', lbl: '등록 상품'},
-              {num: '9,200', lbl: '활성 회원'},
-              {num: '98%', lbl: '만족도'},
-            ].map(({num, lbl}) => (
+            {statItems.map(({num, lbl}) => (
               <div key={lbl}>
                 <p
                   className="text-[28px] leading-none text-white"
@@ -224,7 +250,7 @@ function HeroSection() {
             ))}
           </div>
         </div>
-        
+
         {/* 장식 일러스트 (데스크탑만) — 대각선 패턴 + 숫자 워터마크 */}
         <div className="hidden md:flex items-center justify-center w-56 flex-shrink-0 relative select-none">
           <div
@@ -511,6 +537,14 @@ export default function HomePage() {
     size: 20,
   }
   
+  /* ── 메인 통계 조회 (/api/statistics) ── */
+  const {data: statsData} = useQuery({
+    queryKey: ['statistics'],
+    queryFn: getStatistics,
+    staleTime: 60_000,          // 1분 캐시 (Redis 갱신 주기 고려)
+    retry: false,               // 실패해도 폴백(—) 표시로 충분
+  })
+
   /* ── 판매글 목록 조회 ── */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['listings', queryParams],
@@ -564,8 +598,8 @@ export default function HomePage() {
   
   return (
     <div style={{background: 'var(--color-bg)'}}>
-      {/* ── 히어로 ── */}
-      <HeroSection/>
+      {/* ── 히어로 — 통계 실시간 연동 ── */}
+      <HeroSection stats={statsData ?? null}/>
       
       {/* ── 모바일 필터 드로어 오버레이 ── */}
       {filterOpen && (
