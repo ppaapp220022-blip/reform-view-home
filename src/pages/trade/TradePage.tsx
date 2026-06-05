@@ -818,7 +818,7 @@ function getDeliveryStageIndex(status: string): number {
  * 60초 자동 갱신 + 수동 새로고침 버튼 제공
  * IN_PROGRESS / RECEIVED 상태의 구매자·판매자 모두에게 표시
  */
-function DeliveryTrackingPanel({tradeId}: { tradeId: number }) {
+function DeliveryTrackingPanel({tradeId, courierCode, trackingNumber}: { tradeId: number; courierCode?: string | null; trackingNumber?: string | null }) {
   const [expanded, setExpanded] = useState(true)
   const {data, isLoading, isError, refetch, isFetching} = useQuery({
     queryKey: ['tradeTracking', tradeId],

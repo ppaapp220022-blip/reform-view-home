@@ -23,6 +23,7 @@ import {
   Search,
   SlidersHorizontal,
   TrendingUp,
+  Sparkles,
   X,
 } from 'lucide-react'
 import Pagination from '../../components/ui/Pagination'
@@ -445,7 +446,7 @@ export default function SearchPage() {
   const [size, setSize] = useState('전체')
   const [delivery, setDelivery] = useState<DeliveryType | 'all'>('all')
   const [maxPrice, setMaxPrice] = useState(300)
-  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular'>('latest')
+  const [sort, setSort] = useState<'latest' | 'price_asc' | 'price_desc' | 'popular' | 'ai_recommend'>('latest')
   const [page, setPage] = useState(0) // 0-based 페이지
   
   /* 모바일 필터 드로어 */
