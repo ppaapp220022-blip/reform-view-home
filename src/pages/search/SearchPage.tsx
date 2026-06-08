@@ -30,6 +30,8 @@ import Pagination from '../../components/ui/Pagination'
 import {useQuery} from '@tanstack/react-query'
 import type {PostCard} from '../../features/listing/api/listingApi'
 import {getListings, getPopularListings, toggleWish} from '../../features/listing/api/listingApi'
+import type {RecommendPostCard} from '../../features/recommendation/api/recommendationApi'
+import {getRecommendations} from '../../features/recommendation/api/recommendationApi'
 import {resolveImageUrl} from '../../utils/image'
 import ConditionBadge from '../../components/ui/ConditionBadge'
 import type {DeliveryType, Grade, Sport} from '../../types/listing'
@@ -213,12 +215,14 @@ function ProductCard({
                        item,
                        isWished,
                        onLike,
+                       recommendReason,
                      }: {
-  item: PostCard
+  item: PostCard | RecommendPostCard
   isWished: boolean
   onLike: (postId: number) => void
+  recommendReason?: string
 }) {
-  
+
   const imgSrc = resolveImageUrl(item.thumbnailUrl)
   return (
     <article
@@ -253,6 +257,16 @@ function ProductCard({
           )}
           {/* 등급 배지 — HomePage와 동일한 ConditionBadge 컴포넌트 사용 */}
           <ConditionBadge grade={item.grade} size="sm" className="absolute top-2 left-2"/>
+          {/* AI 추천 이유 뱃지 */}
+          {recommendReason && (
+            <span
+              className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{background: 'rgba(255,46,77,.85)', color: '#fff', backdropFilter: 'blur(4px)'}}
+            >
+              <Sparkles size={9}/>
+              {recommendReason}
+            </span>
+          )}
         </div>
         {/* 정보 */}
         <div className="p-3">
@@ -456,7 +470,9 @@ export default function SearchPage() {
   const [wishedOverride, setWishedOverride] = useState<Map<number, boolean>>(new Map())
   
   
-  /* API — 실제 DB 데이터 조회 */
+  const isAiMode = sort === 'ai_recommend'
+
+  /* API — 일반 검색/필터 목록 */
   const {data, isLoading, isError} = useQuery({
     queryKey: ['searchListings', query, sport, grade, delivery, maxPrice, sort, page],
     queryFn: () =>
@@ -466,22 +482,36 @@ export default function SearchPage() {
         condition: grade !== 'all' ? grade : undefined,
         tradeType: delivery !== 'all' ? delivery : undefined,
         maxPrice: maxPrice < 300 ? maxPrice * 1000 : undefined,
-        // 'ai_recommend' → 백엔드 popular 폴백 (백엔드 구현 후 직접 전달 예정)
-        sort: sort === 'ai_recommend' ? 'popular' : sort,
+        sort: 'latest',
         page,
         size: 20,
       }),
+    enabled: !isAiMode, // AI 추천 모드에선 비활성
     staleTime: 30_000,
-    placeholderData: prev => prev, // 필터 바뀌어도 이전 결과 유지 (깜빡임 방지)
+    placeholderData: prev => prev,
   })
-  
+
+  /* API — AI 개인화 추천 */
+  const {
+    data: aiData,
+    isLoading: aiLoading,
+    isError: aiError,
+  } = useQuery({
+    queryKey: ['aiRecommendations'],
+    queryFn: () => getRecommendations(20),
+    enabled: isAiMode, // AI 추천 버튼 클릭 시만 호출
+    staleTime: 60_000, // 1분 캐시 (임베딩 기반이라 자주 바뀌지 않음)
+  })
+
   /* 사이즈 필터는 API 미지원 → 클라이언트 측 필터링 */
-  const allItems: PostCard[] = data?.content ?? []
-  const results: PostCard[] = size !== '전체'
-    ? allItems.filter(item => item.size === size)
-    : allItems
-  
-  const totalPages = data?.totalPages ?? 1
+  const allItems = isAiMode ? (aiData ?? []) : (data?.content ?? [])
+  const results = isAiMode
+    ? allItems  // AI 추천은 사이즈 필터 미적용
+    : (size !== '전체' ? (allItems as PostCard[]).filter(item => item.size === size) : allItems)
+
+  const totalPages = isAiMode ? 1 : (data?.totalPages ?? 1)
+  const activeIsLoading = isAiMode ? aiLoading : isLoading
+  const activeIsError = isAiMode ? aiError : isError
   
   /* 찜 토글 — 낙관적 UI + API 호출 */
   async function toggleLike(postId: number) {
@@ -498,10 +528,10 @@ export default function SearchPage() {
   }
   
   /* 이 아이템이 찜 상태인지 판단 (낙관적 override 우선) */
-  function isItemWished(item: PostCard): boolean {
-    return wishedOverride.has(item.postId)
-      ? wishedOverride.get(item.postId)!
-      : item.isWished
+  function isItemWished(item: PostCard | RecommendPostCard): boolean {
+    if (wishedOverride.has(item.postId)) return wishedOverride.get(item.postId)!
+    // RecommendPostCard는 isWished 없음 → false 기본값
+    return 'isWished' in item ? item.isWished : false
   }
   
   /* 필터 초기화 */
@@ -760,15 +790,26 @@ export default function SearchPage() {
               </div>
             )}
             
+            {/* AI 추천 모드 안내 */}
+            {isAiMode && !aiLoading && !aiError && (
+              <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl"
+                   style={{background: 'rgba(255,46,77,.07)', border: '1px solid rgba(255,46,77,.15)'}}>
+                <Sparkles size={13} style={{color: 'var(--color-accent)', flexShrink: 0}}/>
+                <p className="text-xs" style={{color: 'var(--color-text-sub)'}}>
+                  내 관심 종목·최근 검색·클릭 기록을 분석해 추천한 매물이에요.
+                </p>
+              </div>
+            )}
+
             {/* 로딩 스피너 */}
-            {isLoading && (
+            {activeIsLoading && (
               <div className="flex justify-center py-20">
                 <Loader2 size={32} className="animate-spin" style={{color: 'var(--color-accent)'}}/>
               </div>
             )}
-            
+
             {/* 에러 */}
-            {isError && !isLoading && (
+            {activeIsError && !activeIsLoading && (
               <div className="flex flex-col items-center justify-center py-24 gap-3">
                 <p className="font-display font-bold text-base" style={{color: 'var(--color-text-main)'}}>
                   데이터를 불러오지 못했습니다
@@ -778,9 +819,9 @@ export default function SearchPage() {
                 </p>
               </div>
             )}
-            
+
             {/* 그리드 or EmptyState */}
-            {!isLoading && !isError && (
+            {!activeIsLoading && !activeIsError && (
               results.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-4">
                   <div
@@ -813,14 +854,15 @@ export default function SearchPage() {
                       item={item}
                       isWished={isItemWished(item)}
                       onLike={toggleLike}
+                      recommendReason={isAiMode ? (item as RecommendPostCard).recommendReason : undefined}
                     />
                   ))}
                 </div>
               )
             )}
             
-            {/* 페이지네이션 */}
-            {!isLoading && totalPages > 1 && (
+            {/* 페이지네이션 — AI 추천 모드에선 페이지네이션 없음 */}
+            {!activeIsLoading && totalPages > 1 && (
               <Pagination
                 page={page}
                 totalPages={totalPages}
