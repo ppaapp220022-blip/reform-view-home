@@ -18,9 +18,9 @@ import {useCallback, useEffect, useRef, useState} from 'react'
 import {Client, type IMessage} from '@stomp/stompjs'
 import type {ChatMessage} from '../api/chatApi'
 import useAuthStore from '../../../store/authStore'
+import {resolveWebSocketBaseUrl} from '../../../lib/resolveWebSocketBaseUrl'
 
-// 백엔드 WebSocket 서버 URL (개발: localhost:8080)
-const WS_BASE_URL = (import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:8080') as string
+const WS_BASE_URL = resolveWebSocketBaseUrl()
 
 interface UseStompChatOptions {
   /** 채팅방 ID — null이면 연결하지 않음 */

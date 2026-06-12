@@ -19,9 +19,9 @@ import {useEffect, useRef, useState} from 'react'
 import {Client} from '@stomp/stompjs'
 import {useQueryClient} from '@tanstack/react-query'
 import useAuthStore from '../../../store/authStore'
+import {resolveWebSocketBaseUrl} from '../../../lib/resolveWebSocketBaseUrl'
 
-// 백엔드 WebSocket 서버 URL (채팅 훅과 동일)
-const WS_BASE_URL = (import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:8080') as string
+const WS_BASE_URL = resolveWebSocketBaseUrl()
 
 interface UseStompNotificationReturn {
   /** WebSocket 연결 상태 */

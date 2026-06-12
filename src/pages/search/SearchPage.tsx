@@ -212,18 +212,18 @@ function PopularSection({
 
 /** 상품 카드 — PostCard(API) 기반 */
 function ProductCard({
-                       item,
-                       isWished,
-                       onLike,
-                       recommendReason,
-                     }: {
+                        item,
+                        isWished,
+                        onLike,
+                        recommendReason,
+                      }: {
   item: PostCard | RecommendPostCard
   isWished: boolean
   onLike: (postId: number) => void
   recommendReason?: string
 }) {
-
   const imgSrc = resolveImageUrl(item.thumbnailUrl)
+  const timeAgo = 'timeAgo' in item ? item.timeAgo : ''
   return (
     <article
       className="rounded-xl overflow-hidden transition-shadow hover:shadow-md relative"
@@ -281,7 +281,7 @@ function ProductCard({
             >
               {formatPrice(item.price)}
             </span>
-            <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>{item.timeAgo}</span>
+            <span className="text-xs" style={{color: 'var(--color-text-hint)'}}>{timeAgo}</span>
           </div>
         </div>
       </Link>
@@ -515,9 +515,10 @@ export default function SearchPage() {
   
   /* 찜 토글 — 낙관적 UI + API 호출 */
   async function toggleLike(postId: number) {
+    const currentItem = allItems.find(i => i.postId === postId)
     const current = wishedOverride.has(postId)
       ? wishedOverride.get(postId)!
-      : (allItems.find(i => i.postId === postId)?.isWished ?? false)
+      : (currentItem && 'isWished' in currentItem ? currentItem.isWished : false)
     setWishedOverride(prev => new Map(prev).set(postId, !current))
     try {
       await toggleWish(postId)

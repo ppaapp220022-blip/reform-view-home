@@ -18,8 +18,9 @@ import type {ChatRoomDetail} from '../../chat/api/chatApi'
 import type {TradeDeliveryType, TradeResponse} from '../api/tradeApi'
 import type {TradeStatus} from '../../../types/listing'
 import useAuthStore from '../../../store/authStore'
+import {resolveWebSocketBaseUrl} from '../../../lib/resolveWebSocketBaseUrl'
 
-const WS_BASE_URL = (import.meta.env.VITE_WS_BASE_URL ?? 'ws://localhost:8080') as string
+const WS_BASE_URL = resolveWebSocketBaseUrl()
 
 export interface TradeRealtimeEvent {
   eventType: string
