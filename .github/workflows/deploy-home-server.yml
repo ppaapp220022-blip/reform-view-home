@@ -2,7 +2,7 @@ name: Deploy Frontend To Home Server
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/reform-view-home
