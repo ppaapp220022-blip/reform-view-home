@@ -1,7 +1,7 @@
 /**
  * recommendationApi.ts — AI 개인화 추천 API
  *
- * GET /api/recommendations?size={n}
+ * GET /recommendations?size={n}
  *   - 로그인 회원의 관심 종목·키워드 + 최근 검색·클릭 이력 기반 맞춤 추천
  *   - 비로그인 시 빈 배열 반환
  */
@@ -32,7 +32,7 @@ export interface RecommendPostCard {
  * @param size 반환할 게시글 수 (기본 20, 최대 50)
  */
 export async function getRecommendations(size = 20): Promise<RecommendPostCard[]> {
-  const res = await apiClient.get<RecommendPostCard[]>('/api/recommendations', {
+  const res = await apiClient.get<RecommendPostCard[]>('/recommendations', {
     params: { size },
   })
   // axios 인터셉터가 ApiResponse<T>를 언래핑해 data를 반환
