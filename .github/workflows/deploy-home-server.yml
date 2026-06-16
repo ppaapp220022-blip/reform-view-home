@@ -59,7 +59,7 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: [self-hosted, Linux, X64, home-server]
+    runs-on: [self-hosted, Linux, X64, reform-view]
 
     permissions:
       contents: read
